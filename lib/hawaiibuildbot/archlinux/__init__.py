@@ -29,16 +29,17 @@ class RepositoryFactory(BuildFactory):
     Factory to build a repository of packages for a certain architecture.
     """
 
-    def __init__(self, source, arch):
-        BuildFactory.__init__(self, [source])
+    def __init__(self, sources, arch):
+        BuildFactory.__init__(self, sources)
 
         # Create a directory to hold the packages that have been built
         self.addStep(MkDirCommand("built_packages"))
-        # Copy the helpers
-        self.addStep(Git(repourl="git://github.com/hawaii-desktop/builder", mode="full", method="fresh", shallow=True))
         # Create or update the chroot
         self.addStep(MkDirCommand("chroot"))
         self.addStep(CreateOrUpdateChrootAction(arch=arch))
+        # Download the builder code
+        self.addStep(ShellCommand(name="clone-builder", command="git clone --depth 1 git://github.com/hawaii-desktop/builder ../builder"))
+        #pkgtools_gitrepo=Git(repourl="git://github.com/hawaii-desktop/builder", mode="full", method="clobber", shallow=True)
         # Scan repository and find packages to build
         self.addStep(RepositoryScan(channel="ci", arch=arch))
 
