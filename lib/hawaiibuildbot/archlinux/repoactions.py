@@ -65,14 +65,14 @@ class RepositoryScan(ShellMixin, steps.BuildStep):
         pkginfo = []
         for pkgname in self.packages:
             # Dependencies
-            cmd = yield self._makeRemoteCommand("helpers/pkgdepends {}/PKGBUILD".format(pkgname))
+            cmd = yield self._makeRemoteCommand("../helpers/pkgdepends {}/PKGBUILD".format(pkgname))
             yield self.runCommand(cmd)
             if cmd.didFail():
                 defer.returnValue(FAILURE)
             depends = cmd.stdout.split()
 
             # Get the package names this package provides
-            cmd = yield self._makeRemoteCommand("helpers/pkgprovides {}/PKGBUILD".format(pkgname))
+            cmd = yield self._makeRemoteCommand("../helpers/pkgprovides {}/PKGBUILD".format(pkgname))
             yield self.runCommand(cmd)
             if cmd.didFail():
                 defer.returnValue(FAILURE)
