@@ -42,6 +42,7 @@ class RepositoryFactory(BuildFactory):
         for helper in ("pkgdepends", "pkgprovides", "pkgversion"):
             self.addStep(steps.FileDownload(name="download-helper-" + helper,
                                             mastersrc="helpers/archlinux/" + helper,
-                                            slavedest="helpers/" + helper))
+                                            slavedest="../helpers/" + helper,
+                                            mode=0755))
         # Scan repository and find packages to build
         self.addStep(RepositoryScan(channel="ci", arch=arch))
