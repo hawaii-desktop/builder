@@ -19,15 +19,14 @@
 
 import networkx as nx
 
-from buildbot.plugins import steps
-from buildbot.process.buildstep import ShellMixin
+from buildbot.process.buildstep import ShellMixin, BuildStep
 from buildbot.status.results import *
 
 from twisted.internet import defer
 
 from pkgactions import BinaryPackageBuild
 
-class RepositoryScan(ShellMixin, steps.BuildStep):
+class RepositoryScan(ShellMixin, BuildStep):
     """
     Scans a repository to find packages and build them.
     """
@@ -37,7 +36,7 @@ class RepositoryScan(ShellMixin, steps.BuildStep):
 
     def __init__(self, arch, channel, **kwargs):
         kwargs = self.setupShellMixin(kwargs, prohibitArgs=["command"])
-        steps.BuildStep.__init__(self, **kwargs)
+        BuildStep.__init__(self, **kwargs)
         self.arch = arch
         self.channel = channel
 
@@ -125,10 +124,10 @@ class RepositoryScan(ShellMixin, steps.BuildStep):
     def getResultSummary(self):
         return {"step": u"{} packages".format(len(self.packages))}
 
-    def _makeRemoteCommand(self, cmd):
+    def _makeRemoteCommand(self, cmd, **kwargs):
         args = cmd.split(" ")
         return self.makeRemoteShellCommand(collectStdout=True, collectStderr=True,
-            command=args)
+            command=args, **kwargs)
 
     def _loadYaml(self, fileName):
         from yaml import load
