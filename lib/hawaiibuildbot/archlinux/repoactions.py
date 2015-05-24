@@ -61,7 +61,7 @@ class RepositoryScan(ShellMixin, BuildStep):
             defer.returnValue(SKIPPED)
 
         # Get the dependencies and provides for the packages
-        pkginfo = []
+        pkg_info = []
         for pkgname in self.packages:
             # Dependencies
             cmd = yield self._makeRemoteCommand("../helpers/pkgdepends {}/PKGBUILD".format(pkgname))
@@ -114,7 +114,7 @@ class RepositoryScan(ShellMixin, BuildStep):
         yield log.addStdout(u"Sorted packages: {}\n".format(sorted_names))
 
         self.build.addStepsAfterCurrentStep(steps)
-        self.setProperty("packages", sorted_package_names, "Repository Scan")
+        self.setProperty("packages", sorted_names, "Repository Scan")
 
         defer.returnValue(SUCCESS)
 
