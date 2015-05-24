@@ -40,6 +40,8 @@ class PrepareChrootAction(ShellMixin, steps.BuildStep):
 
     @defer.inlineCallbacks
     def run(self):
+        # Save the chroot base directory
+        self.setProperty("chroot_basedir", self.cachedir, "PrepareChroot")
         # If the chroot directory is missing create the chroot
         path = os.path.join(self.cachedir, self.chrootdir)
         result = yield self._runCommand("test -d {}".format(path))
