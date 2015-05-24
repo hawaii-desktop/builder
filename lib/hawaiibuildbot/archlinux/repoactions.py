@@ -45,11 +45,11 @@ class RepositoryScan(ShellMixin, BuildStep):
         log = yield self.addLog("logs")
 
         # Make a list of packages that have been built already
-        cmd = yield self._makeRemoteCommand("ls built_packages")
+        cmd = yield self._makeRemoteCommand("ls ../built_packages")
         yield self.runCommand(cmd)
         if cmd.didFail():
             defer.returnValue(FAILURE)
-        existing_packages = cmd.stdout.split()
+        existing_packages = map((lambda x: a[3:]), cmd.stdout.split())
         self.setProperty("existing_packages", existing_packages, "Repository Scan")
 
         # Find out which packages are meant for this channel
