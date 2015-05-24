@@ -36,8 +36,7 @@ class RepositoryFactory(BuildFactory):
         # Create a directory to hold the packages that have been built
         self.addStep(steps.MakeDirectory(name="create-built_packages-dir", dir="built_packages"))
         # Create or update the chroot
-        self.addStep(steps.MakeDirectory(name="create-chroot-dir", dir="chroot"))
-        self.addStep(CreateOrUpdateChrootAction(arch=arch))
+        self.addStep(PrepareChrootAction(arch=arch))
         # Download the helpers
         self.addStep(steps.MakeDirectory(name="create-helpers-dir", dir="helpers"))
         for helper in ("pkgdepends", "pkgprovides", "pkgversion"):

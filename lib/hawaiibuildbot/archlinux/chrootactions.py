@@ -20,30 +20,50 @@
 import os
 
 from buildbot.plugins import steps
-from buildbot.process.buildstep import ShellMixin
+from buildbot.process.buildstep import ShellMixin, ShellMixin
 from buildbot.status.results import *
 
 from twisted.internet import defer
 
-class BaseChrootAction(ShellMixin, steps.BuildStep):
+class PrepareChrootAction(ShellMixin, steps.BuildStep):
     """
-    Base chroot action.
+    Create or update the chroot for the requested architecture.
     See https://wiki.archlinux.org/index.php/DeveloperWiki:Building_in_a_Clean_Chroot
     """
 
     def __init__(self, arch, **kwargs):
         steps.BuildStep.__init__(self, haltOnFailure=True, **kwargs)
         self.arch = arch
-        self.chrootdir = "chroot/root"
+        self.name = u"prepare-chroot %s" % self.arch
+        self.cachedir = os.path.expanduser("~/.local/cache/hawaiibuild/archlinux/chroot")
+        self.chrootdir = "root"
 
     @defer.inlineCallbacks
     def run(self):
-        cmd = yield self._makeCommand()
-        yield self.runCommand(cmd)
-        if cmd.didFail():
-            defer.returnValue(FAILURE)
+        # If the chroot directory is missing create the chroot
+        path = os.path.join(self.cachedir, self.chrootdir)
+        result = yield self._runCommand("test -d {}".format(path))
+        if result:
+            # Update the chroot
+            self.workdir = self.cachedir
+            result = yield self._runCommand("sudo arch-nspawn {} pacman -Syu".format(self.chrootdir))
+            if result:
+                defer.returnValue(SUCCESS)
+            else:
+                defer.returnValue(FAILURE)
         else:
-            defer.returnValue(SUCCESS)
+            # Create the directory
+            result = yield self._runCommand("mkdir -p {}".format(self.cachedir))
+            if result:
+                # Create the chroot
+                self.workdir = self.cachedir
+                result = yield self._runCommand("sudo mkarchroot {} base-devel".format(self.chrootdir))
+                if result:
+                    defer.returnValue(SUCCESS)
+                else:
+                    defer.returnValue(FAILURE)
+            else:
+                defer.returnValue(FAILURE)
 
     def getCurrentSummary(self):
         return {"step": u"running"}
@@ -51,60 +71,12 @@ class BaseChrootAction(ShellMixin, steps.BuildStep):
     def getResultSummary(self):
         return {"step": u"success"}
 
-class CreateChrootAction(BaseChrootAction):
-    """
-    Create a chroot to build packages.
-    See https://wiki.archlinux.org/index.php/DeveloperWiki:Building_in_a_Clean_Chroot
-    """
-
-    def __init__(self, arch, **kwargs):
-        BaseChrootAction.__init__(self, arch, **kwargs)
-        self.name = u"create-chroot %s" % self.arch
-
-    def _makeCommand(self):
+    def _makeCommand(self, command):
         return self.makeRemoteShellCommand(collectStdout=True, collectStderr=True,
-            command=["sudo", "mkarchroot", self.chrootdir, "base-devel"])
-
-class UpdateChrootAction(BaseChrootAction):
-    """
-    Update a chroot to build packages.
-    See https://wiki.archlinux.org/index.php/DeveloperWiki:Building_in_a_Clean_Chroot
-    """
-
-    def __init__(self, arch, **kwargs):
-        BaseChrootAction.__init__(self, arch, **kwargs)
-        self.name = u"update-chroot %s" % self.arch
-
-    def _makeCommand(self):
-        return self.makeRemoteShellCommand(collectStdout=True, collectStderr=True,
-            command=["sudo", "arch-nspawn", self.chrootdir, "pacman", "-Syu"])
-
-class CreateOrUpdateChrootAction(BaseChrootAction):
-    """
-    Create or update a chroot to build packages.
-    See https://wiki.archlinux.org/index.php/DeveloperWiki:Building_in_a_Clean_Chroot
-    """
-
-    def __init__(self, arch, **kwargs):
-        BaseChrootAction.__init__(self, arch, **kwargs)
-        self.name = u"create-or-update-chroot %s" % self.arch
+            command=command.split(" "))
 
     @defer.inlineCallbacks
-    def run(self):
-        cmd = yield self._makeRemoteCommand("ls " + self.chrootdir)
+    def _runCommand(self, command):
+        cmd = yield self._makeCommand(command)
         yield self.runCommand(cmd)
-        if cmd.didFail():
-            cmd = yield self._makeRemoteCommand("sudo mkarchroot {} base-devel".format(self.chrootdir))
-            yield self.runCommand(cmd)
-            if cmd.didFail():
-                defer.returnValue(FAILURE)
-        else:
-            cmd = yield self._makeRemoteCommand("sudo arch-nspawn {} pacman -Syu".format(self.chrootdir))
-            yield self.runCommand(cmd)
-            if cmd.didFail():
-                defer.returnValue(FAILURE)
-        defer.returnValue(SUCCESS)
-
-    def _makeRemoteCommand(self, cmd):
-        return self.makeRemoteShellCommand(collectStdout=True, collectStderr=True,
-            command=cmd.split(" "))
+        defer.returnValue(not cmd.didFail())
