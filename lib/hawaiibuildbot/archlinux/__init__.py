@@ -34,12 +34,15 @@ class RepositoryFactory(BuildFactory):
         BuildFactory.__init__(self, sources)
 
         # Create a directory to hold the packages that have been built
-        self.addStep(steps.MakeDirectory("built_packages"))
+        self.addStep(steps.MakeDirectory(name="create-built_packages-dir", dir="built_packages"))
         # Create or update the chroot
-        self.addStep(steps.MakeDirectory(dir="chroot"))
+        self.addStep(steps.MakeDirectory(name="create-chroot-dir", dir="chroot"))
         self.addStep(CreateOrUpdateChrootAction(arch=arch))
-        # Download the builder code
-        self.addStep(ShellCommand(name="clone-builder", command="git clone --depth 1 git://github.com/hawaii-desktop/builder ../builder"))
-        #pkgtools_gitrepo=Git(repourl="git://github.com/hawaii-desktop/builder", mode="full", method="clobber", shallow=True)
+        # Download the helpers
+        self.addStep(steps.MakeDirectory(name="create-helpers-dir", dir="helpers"))
+        for helper in ("pkgdepends", "pkgprovides", "pkgversion"):
+            self.addStep(steps.FileDownload(name="download-helper-" + helper,
+                                            mastersrc="helpers/archlinux/" + helper,
+                                            slavedest="helpers/" + helper))
         # Scan repository and find packages to build
         self.addStep(RepositoryScan(channel="ci", arch=arch))
