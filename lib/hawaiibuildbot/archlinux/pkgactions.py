@@ -17,6 +17,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+import os, re
+
 from buildbot.plugins import steps
 from buildbot.process.buildstep import ShellMixin
 from buildbot.process.buildstep import BuildStep
@@ -26,7 +28,7 @@ from twisted.internet import defer
 
 class BinaryPackageBuild(ShellMixin, BuildStep):
     """
-    Builds a package in a clean chroot.
+    Build a package in a clean chroot.
     See https://wiki.archlinux.org/index.php/DeveloperWiki:Building_in_a_Clean_Chroot
     """
     description = "Build a package in a clean chroot"
@@ -47,11 +49,80 @@ class BinaryPackageBuild(ShellMixin, BuildStep):
         yield log.addStdout(u"Depends: {}\n".format(self.depends))
         yield log.addStdout(u"Provides: {}\n".format(self.provides))
 
-        # Check whether we already built the latest version
-        cmd = yield self._makeRemoteCommand("{}/helpers/pkgver -l {}/PKGBUILD".format(self.workdir, "."))
-        defer.returnValue(FAILURE)
+        # Package directory
+        workdir = os.path.join(self.workdir, self.pkgname)
 
-    def _makeRemoteCommand(self, cmd):
-        args = cmd.split(" ")
+        # Check whether we already built the latest version
+        cmd = yield self._makeCommand("../../helpers/pkgversion -l PKGBUILD", workdir=workdir)
+        yield self.runCommand(cmd)
+        if cmd.didFail():
+            defer.returnValue(FAILURE)
+        self.latest_version = cmd.stdout.strip()
+        yield log.addStdout(u"Latest Version: {}\n".format(self.latest_version))
+
+        # Determine the package file name
+        self.pkgfilename = "{}-{}-{}.pkg.tar.xz".format(self.pkgname, self.latest_version, self.arch)
+        yield log.addStdout(u"Expected package file name: {}\n".format(self.pkgfilename))
+
+        # Already built packages
+        r = re.compile(r'{}.*\-.*\-{}\.pkg\.tar\.xz'.format(self.pkgname, self.arch))
+        already_built_packages = filter(r.match, self.getProperty("existing_packages"))
+        yield log.addStdout(u"Existing packages: {}\n".format(already_built_packages))
+
+        # Did we have this package already built?
+        r = re.compile(r'{}.*\-{}\-{}\.pkg\.tar\.xz'.format(self.pkgname, self.latest_version, self.arch))
+        already_built_same_version = filter(r.match, self.getProperty("existing_packages"))
+
+        if len(already_built_same_version) > 0:
+            self.current = True
+            yield log.addStdout(u"Package already built, skipping!\n")
+        else:
+            # Retrieve the chroot path
+            chrootdir = self.getProperty("chroot_basedir")
+            yield log.addStdout(u"Building from chroot: {}\n".format(chrootdir))
+
+            # Actually build the package
+            cmd = yield self._makeCommand("sudo makechrootpkg -r {} -cu".format(chrootdir), workdir=workdir)
+            yield self.runCommand(cmd)
+            if cmd.didFail():
+                defer.returnValue(FAILURE)
+
+            # Add artifact to the list
+            r = re.compile(r'.*\-{}\-{}\.pkg\.tar\.xz'.format(self.latest_version, self.arch))
+            self.artifacts = filter(r.match, cmd.stdout.split(" "))
+            yield log.addStdout(u"Artifacts: {}\n".format(self.artifacts))
+
+            # Update already built packages
+            r = re.compile(r'.*\-.*\-{}\.pkg\.tar\.xz'.format(self.arch))
+            already_built_packages = filter(r.match, cmd.stdout.split(" "))
+            yield log.addStdout(u"Packages built: {}\n".format(already_built_packages))
+
+            # Bail out if we don't have artifacts
+            if len(self.artifacts) == 0:
+                yield log.addStderr(u"No artifacts have been built!\n")
+                defer.returnValue(FAILURE)
+
+            # Copy the artifacts
+            for artifact in self.artifacts:
+                cmd = yield self._makeCommand("cp -f {}/{} ../built_packages".format(self.pkgname, artifact))
+                yield self.runCommand(cmd)
+                if cmd.didFail():
+                    defer.returnValue(FAILURE)
+
+                cmd = yield self._makeCommand("repo-add ../built_packages/repository.db.tar.gz " +
+                                              "../built_packages/{}".format(artifact))
+                yield self.runCommand(cmd)
+                if cmd.didFail():
+                    defer.returnValue(FAILURE)
+
+        defer.returnValue(SUCCESS)
+
+    def _makeCommand(self, command, **kwargs):
         return self.makeRemoteShellCommand(collectStdout=True, collectStderr=True,
-            command=args)
+            command=command.split(" "), **kwargs)
+
+    @defer.inlineCallbacks
+    def _runCommand(self, command, **kwargs):
+        cmd = yield self._makeCommand(command, **kwargs)
+        yield self.runCommand(cmd)
+        defer.returnValue(not cmd.didFail())
