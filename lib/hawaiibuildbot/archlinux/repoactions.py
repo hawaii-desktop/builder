@@ -55,7 +55,7 @@ class RepositoryScan(ShellMixin, BuildStep):
         # Find out which packages are meant for this channel
         data = self._loadYaml("buildinfo.yml")
         self.packages = data.get(self.channel, {}).get(self.arch, [])
-        self.packages = ["hawaii-icon-themes-git",]
+        self.packages = ["hawaii-widget-styles-git",]
         if len(self.packages) == 0:
             yield log.addStdout("No packages to build found from the list")
             defer.returnValue(SKIPPED)
