@@ -26,16 +26,19 @@ from buildbot.status.results import *
 
 from twisted.internet import defer
 
-class BinaryPackageBuild(ShellMixin, BuildStep):
+from chrootactions import CcmAction
+
+class BinaryPackageBuild(CcmAction):
     """
     Build a package in a clean chroot.
     See https://wiki.archlinux.org/index.php/DeveloperWiki:Building_in_a_Clean_Chroot
     """
     description = "Build a package in a clean chroot"
     artifacts = []
+    ccm = True
 
     def __init__(self, name, arch, depends, provides, **kwargs):
-        BuildStep.__init__(self, haltOnFailure=True, **kwargs)
+        CcmAction.__init__(self, arch=arch, action="s", workdir=os.path.join(self.workdir, name), **kwargs)
         self.name = "BinaryPackage {} {}".format(name, arch)
         self.pkgname = name
         self.arch = arch
@@ -49,11 +52,8 @@ class BinaryPackageBuild(ShellMixin, BuildStep):
         yield log.addStdout(u"Depends: {}\n".format(self.depends))
         yield log.addStdout(u"Provides: {}\n".format(self.provides))
 
-        # Package directory
-        workdir = os.path.join(self.workdir, self.pkgname)
-
         # Check whether we already built the latest version
-        cmd = yield self._makeCommand("../../helpers/pkgversion -l PKGBUILD", workdir=workdir)
+        cmd = yield self._makeCommand("../../helpers/pkgversion -l PKGBUILD")
         yield self.runCommand(cmd)
         if cmd.didFail():
             defer.returnValue(FAILURE)
@@ -80,19 +80,26 @@ class BinaryPackageBuild(ShellMixin, BuildStep):
             self.current = True
             yield log.addStdout(u"Package already built, skipping!\n")
         else:
-            # Retrieve the chroot path
-            chrootdir = self.getProperty("chroot_basedir")
-            yield log.addStdout(u"Building from chroot: {}\n".format(chrootdir))
+            if self.ccm is True:
+                # Build the package with ccm
+                cmd = yield self._makeCcmCommand("s")
+                yield self.runCommand(cmd)
+                if cmd.didFail():
+                    defer.returnValue(FAILURE)
+            else:
+                # Retrieve the chroot path
+                chrootdir = self.getProperty("chroot_basedir")
+                yield log.addStdout(u"Building from chroot: {}\n".format(chrootdir))
 
-            # Actually build the package
-            repodir = os.path.join(self.workdir, "..", "repository")
-            cmd = yield self._makeCommand("sudo makechrootpkg -cu -D {}:/var/tmp/repository -r {}".format(repodir, chrootdir), workdir=workdir)
-            yield self.runCommand(cmd)
-            if cmd.didFail():
-                defer.returnValue(FAILURE)
+                # Actually build the package
+                repodir = os.path.join(self.workdir, "..", "repository")
+                cmd = yield self._makeCommand("sudo makechrootpkg -cu -D {}:/var/tmp/repository -r {}".format(repodir, chrootdir))
+                yield self.runCommand(cmd)
+                if cmd.didFail():
+                    defer.returnValue(FAILURE)
 
             # Find the artifacts
-            cmd = yield self._makeCommand(["/usr/bin/find", ".", "-type", "f", "-name", "*.pkg.tar.xz", "-printf", "%f "], workdir=workdir)
+            cmd = yield self._makeCommand(["/usr/bin/find", ".", "-type", "f", "-name", "*.pkg.tar.xz", "-printf", "%f "])
             yield self.runCommand(cmd)
             if cmd.didFail():
                 defer.returnValue(FAILURE)
