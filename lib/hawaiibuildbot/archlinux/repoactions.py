@@ -45,7 +45,7 @@ class RepositoryScan(ShellMixin, BuildStep):
         log = yield self.addLog("logs")
 
         # Make a list of packages that have been built already
-        cmd = yield self._makeCommand("ls ../repository")
+        cmd = yield self._makeCommand(["/usr/bin/find", "../repository", "-type", "f", "-name", "*.pkg.tar.xz", "-printf", "%f "])
         yield self.runCommand(cmd)
         if cmd.didFail():
             defer.returnValue(FAILURE)
@@ -55,7 +55,6 @@ class RepositoryScan(ShellMixin, BuildStep):
         # Find out which packages are meant for this channel
         data = self._loadYaml("buildinfo.yml")
         self.packages = data.get(self.channel, {}).get(self.arch, [])
-        self.packages = ["hawaii-widget-styles-git",]
         if len(self.packages) == 0:
             yield log.addStdout("No packages to build found from the list")
             defer.returnValue(SKIPPED)
