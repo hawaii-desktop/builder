@@ -40,7 +40,7 @@ class RepositoryFactory(BuildFactory):
         self.addStep(CcmAction(arch=arch, action="u"))
         # Download the helpers
         self.addStep(steps.MakeDirectory(name="CreateHelpersDir", dir="helpers"))
-        for helper in ("pkgdepends", "pkgprovides", "pkgversion"):
+        for helper in ("pkgdepends", "pkgprovides", "pkgversion", "ccm-setup"):
             self.addStep(steps.FileDownload(name="DownloadHelper " + helper,
                                             mastersrc="helpers/archlinux/" + helper,
                                             slavedest="../helpers/" + helper,
