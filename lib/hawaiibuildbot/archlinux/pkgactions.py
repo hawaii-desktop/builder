@@ -58,6 +58,9 @@ class BinaryPackageBuild(ShellMixin, BuildStep):
         if cmd.didFail():
             defer.returnValue(FAILURE)
         self.latest_version = cmd.stdout.strip()
+        if self.latest_version == "?":
+            yield log.addStderr(u"Unable to determine the {} version".format(self.pkgname))
+            defer.returnValue(FAILURE)
         yield log.addStdout(u"Latest Version: {}\n".format(self.latest_version))
 
         # Determine the package file name
@@ -87,6 +90,12 @@ class BinaryPackageBuild(ShellMixin, BuildStep):
             if cmd.didFail():
                 defer.returnValue(FAILURE)
 
+            # Find the artifacts
+            cmd = yield self._makeCommand(["/usr/bin/find", ".", "-type", "f", "-name", "*.pkg.tar.xz", "-printf", "%f "], workdir=workdir)
+            yield self.runCommand(cmd)
+            if cmd.didFail():
+                defer.returnValue(FAILURE)
+
             # Add artifact to the list
             r = re.compile(r'.*\-{}\-{}\.pkg\.tar\.xz'.format(self.latest_version, self.arch))
             self.artifacts = filter(r.match, cmd.stdout.split(" "))
@@ -104,7 +113,7 @@ class BinaryPackageBuild(ShellMixin, BuildStep):
 
             # Copy the artifacts
             for artifact in self.artifacts:
-                cmd = yield self._makeCommand("cp -f {}/{} ../built_packages".format(self.pkgname, artifact))
+                cmd = yield self._makeCommand("/usr/bin/cp -f {}/{} ../built_packages".format(self.pkgname, artifact))
                 yield self.runCommand(cmd)
                 if cmd.didFail():
                     defer.returnValue(FAILURE)
@@ -117,9 +126,14 @@ class BinaryPackageBuild(ShellMixin, BuildStep):
 
         defer.returnValue(SUCCESS)
 
-    def _makeCommand(self, command, **kwargs):
+    def _makeCommand(self, args, **kwargs):
+        import types
+        if type(args) == types.StringType:
+            command = args.split(" ")
+        else:
+            command = args
         return self.makeRemoteShellCommand(collectStdout=True, collectStderr=True,
-            command=command.split(" "), **kwargs)
+            command=command, **kwargs)
 
     @defer.inlineCallbacks
     def _runCommand(self, command, **kwargs):

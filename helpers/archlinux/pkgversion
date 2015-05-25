@@ -43,6 +43,8 @@ fi
 
 source $pkgbuild
 
+srcdir=`readlink -f $(dirname $pkgbuild)`
+
 pkgbase=${pkgbase:-${pkgname[0]}}
 
 if [ "`type -t pkgver`" = 'function' ]; then
