@@ -58,6 +58,8 @@ Install needed packages:
 sudo pacman -S devtools
 ```
 
+Also install (clean-chroot-manager)[https://bbs.archlinux.org/viewtopic.php?id=168421].
+
 Create the slaves:
 
 ```sh
