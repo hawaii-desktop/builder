@@ -44,5 +44,7 @@ class RepositoryFactory(BuildFactory):
                                             mastersrc="helpers/archlinux/" + helper,
                                             slavedest="../helpers/" + helper,
                                             mode=0755))
+        # Copy the list of packages to build from slave to master
+        self.addStep(steps.FileUpload("buildinfo.yml", "tmp/buildinfo.yml", name="UploadBuildYaml"))
         # Scan repository and find packages to build
         self.addStep(RepositoryScan(channel="ci", arch=arch))
