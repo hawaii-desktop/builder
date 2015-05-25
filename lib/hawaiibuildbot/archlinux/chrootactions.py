@@ -29,6 +29,7 @@ class PrepareChrootAction(ShellMixin, steps.BuildStep):
     """
     Create or update the chroot for the requested architecture.
     See https://wiki.archlinux.org/index.php/DeveloperWiki:Building_in_a_Clean_Chroot
+    BEWARE: This only support the same architecture of the slave.
     """
 
     def __init__(self, arch, **kwargs):
@@ -82,3 +83,36 @@ class PrepareChrootAction(ShellMixin, steps.BuildStep):
         cmd = yield self._makeCommand(command)
         yield self.runCommand(cmd)
         defer.returnValue(not cmd.didFail())
+
+class CcmAction(ShellMixin, steps.BuildStep):
+    """
+    Build packages and manages chroots with clean-chroot-manager.
+    See https://bbs.archlinux.org/viewtopic.php?id=168421
+    """
+
+    def __init__(self, arch, action, **kwargs):
+        steps.BuildStep.__init__(self, haltOnFailure=True, **kwargs)
+        self.arch = arch
+        action_map = {"c": "Create", "u": "Update", "s": "Build"}
+        self.name = "Ccm{} {}".format(action_map[action], self.arch)
+        self.action = action
+
+    @defer.inlineCallbacks
+    def run(self):
+        cmd = yield self._makeCcmCommand(self.action)
+        yield self.runCommand(cmd)
+        if cmd.didFail():
+            defer.returnValue(FAILURE)
+        else:
+            defer.returnValue(SUCCESS)
+
+    def getCurrentSummary(self):
+        return {"step": u"running"}
+
+    def getResultSummary(self):
+        return {"step": u"success"}
+
+    def _makeCcmCommand(self, action):
+        bits = "32" if self.arch == "i686" else "64"
+        return self.makeRemoteShellCommand(collectStdout=True, collectStderr=True,
+            command=["sudo", "ccm" + bits, action])
