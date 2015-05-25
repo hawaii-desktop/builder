@@ -85,7 +85,8 @@ class BinaryPackageBuild(ShellMixin, BuildStep):
             yield log.addStdout(u"Building from chroot: {}\n".format(chrootdir))
 
             # Actually build the package
-            cmd = yield self._makeCommand("sudo makechrootpkg -r {} -cu".format(chrootdir), workdir=workdir)
+            repodir = os.path.join(self.workdir, "..", "repository")
+            cmd = yield self._makeCommand("sudo makechrootpkg -cu -D {}:/var/tmp/repository -r {}".format(repodir, chrootdir), workdir=workdir)
             yield self.runCommand(cmd)
             if cmd.didFail():
                 defer.returnValue(FAILURE)
