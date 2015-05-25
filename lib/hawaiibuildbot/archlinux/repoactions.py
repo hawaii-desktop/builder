@@ -49,15 +49,17 @@ class RepositoryScan(ShellMixin, BuildStep):
         yield self.runCommand(cmd)
         if cmd.didFail():
             defer.returnValue(FAILURE)
-        existing_packages = map((lambda x: a[3:]), cmd.stdout.split())
+        existing_packages = cmd.stdout.strip().split(" ")
         self.setProperty("existing_packages", existing_packages, "RepositoryScan")
 
         # Find out which packages are meant for this channel
         data = self._loadYaml("tmp/buildinfo.yml")
         self.packages = data.get(self.channel, {}).get(self.arch, [])
         if len(self.packages) == 0:
-            yield log.addStdout("No packages to build found from the list")
+            yield log.addStdout("No packages to build found from the list\n")
             defer.returnValue(SKIPPED)
+        else:
+            yield log.addStdout(u"Packages to build for {}:\n\t{}\n".format(self.arch, "\n\t".join(self.packages)))
 
         # Get the dependencies and provides for the packages
         pkg_info = []
@@ -67,14 +69,14 @@ class RepositoryScan(ShellMixin, BuildStep):
             yield self.runCommand(cmd)
             if cmd.didFail():
                 defer.returnValue(FAILURE)
-            depends = cmd.stdout.split()
+            depends = cmd.stdout.strip().split(" ")
 
             # Get the package names this package provides
             cmd = yield self._makeCommand("../helpers/pkgprovides {}/PKGBUILD".format(pkgname))
             yield self.runCommand(cmd)
             if cmd.didFail():
                 defer.returnValue(FAILURE)
-            provides = cmd.stdout.split()
+            provides = cmd.stdout.strip().split(" ")
 
             # Append package information
             pkg_info.append({
@@ -87,8 +89,8 @@ class RepositoryScan(ShellMixin, BuildStep):
         for pkg in pkg_info:
             deps = []
             for dep in pkg["depends"]:
-                providers = [pkg for pkg in pkg_info if dep in pkg["provides"] or pkg["name"] == dep]
-                if len(provides) > 0:
+                providers = [npkg for npkg in pkg_info if dep in npkg["provides"] or npkg["name"] == dep]
+                if len(providers) > 0:
                     deps.append(providers[0]["name"])
             pkg["depends"] = deps
 
@@ -100,8 +102,10 @@ class RepositoryScan(ShellMixin, BuildStep):
                 graph.add_node(pkg["name"])
             else:
                 for dep in pkg["depends"]:
-                    graph.add_edge(dep, pkg["name"])
+                    if dep != pkg["name"]:
+                        graph.add_edge(dep, pkg["name"])
         sorted_names = nx.topological_sort(graph)
+        yield log.addStdout(u"Sorted packages:\n\t{}\n".format("\n\t".join(sorted_names)))
 
         # Create build steps for the sorted packages list
         steps = []
@@ -110,10 +114,8 @@ class RepositoryScan(ShellMixin, BuildStep):
             steps.append(BinaryPackageBuild(name=name, arch=self.arch,
                             depends=info["depends"], provides=info["provides"]))
 
-        yield log.addStdout(u"Sorted packages: {}\n".format(sorted_names))
-
         self.build.addStepsAfterCurrentStep(steps)
-        self.setProperty("packages", sorted_names, "Repository Scan")
+        self.setProperty("packages", sorted_names, "RepositoryScan")
 
         defer.returnValue(SUCCESS)
 
