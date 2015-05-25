@@ -45,7 +45,7 @@ class RepositoryScan(ShellMixin, BuildStep):
         log = yield self.addLog("logs")
 
         # Make a list of packages that have been built already
-        cmd = yield self._makeRemoteCommand("ls ../built_packages")
+        cmd = yield self._makeRemoteCommand("ls ../repository")
         yield self.runCommand(cmd)
         if cmd.didFail():
             defer.returnValue(FAILURE)

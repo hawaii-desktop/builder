@@ -113,13 +113,13 @@ class BinaryPackageBuild(ShellMixin, BuildStep):
 
             # Copy the artifacts
             for artifact in self.artifacts:
-                cmd = yield self._makeCommand("/usr/bin/cp -f {}/{} ../built_packages".format(self.pkgname, artifact))
+                cmd = yield self._makeCommand("/usr/bin/cp -f {}/{} ../repository".format(self.pkgname, artifact))
                 yield self.runCommand(cmd)
                 if cmd.didFail():
                     defer.returnValue(FAILURE)
 
-                cmd = yield self._makeCommand("repo-add ../built_packages/repository.db.tar.gz " +
-                                              "../built_packages/{}".format(artifact))
+                cmd = yield self._makeCommand("repo-add ../repository/repository.db.tar.gz " +
+                                              "../repository/{}".format(artifact))
                 yield self.runCommand(cmd)
                 if cmd.didFail():
                     defer.returnValue(FAILURE)
