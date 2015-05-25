@@ -45,7 +45,7 @@ class RepositoryScan(ShellMixin, BuildStep):
         log = yield self.addLog("logs")
 
         # Make a list of packages that have been built already
-        cmd = yield self._makeRemoteCommand("ls ../repository")
+        cmd = yield self._makeCommand("ls ../repository")
         yield self.runCommand(cmd)
         if cmd.didFail():
             defer.returnValue(FAILURE)
@@ -64,14 +64,14 @@ class RepositoryScan(ShellMixin, BuildStep):
         pkg_info = []
         for pkgname in self.packages:
             # Dependencies
-            cmd = yield self._makeRemoteCommand("../helpers/pkgdepends {}/PKGBUILD".format(pkgname))
+            cmd = yield self._makeCommand("../helpers/pkgdepends {}/PKGBUILD".format(pkgname))
             yield self.runCommand(cmd)
             if cmd.didFail():
                 defer.returnValue(FAILURE)
             depends = cmd.stdout.split()
 
             # Get the package names this package provides
-            cmd = yield self._makeRemoteCommand("../helpers/pkgprovides {}/PKGBUILD".format(pkgname))
+            cmd = yield self._makeCommand("../helpers/pkgprovides {}/PKGBUILD".format(pkgname))
             yield self.runCommand(cmd)
             if cmd.didFail():
                 defer.returnValue(FAILURE)
@@ -124,10 +124,14 @@ class RepositoryScan(ShellMixin, BuildStep):
     def getResultSummary(self):
         return {"step": u"{} packages".format(len(self.packages))}
 
-    def _makeRemoteCommand(self, cmd, **kwargs):
-        args = cmd.split(" ")
+    def _makeCommand(self, args, **kwargs):
+        import types
+        if type(args) == types.StringType:
+            command = args.split(" ")
+        else:
+            command = args
         return self.makeRemoteShellCommand(collectStdout=True, collectStderr=True,
-            command=args, **kwargs)
+            command=command, **kwargs)
 
     def _loadYaml(self, fileName):
         from yaml import load
