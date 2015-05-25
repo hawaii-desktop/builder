@@ -138,8 +138,5 @@ class RepositoryScan(ShellMixin, BuildStep):
             from yaml import CLoader as Loader
         except ImportError:
             from yaml import Loader
-        try:
-            stream = open(fileName, "r")
-        except:
-            return {}
+        stream = open(fileName, "r")
         return load(stream, Loader=Loader)
