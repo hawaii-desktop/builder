@@ -6,7 +6,7 @@ Nikita
 On the build master server, install buildbot:
 
 ```sh
-sudo pacman -S base-devel git python2-pip python2-virtualenv npm nodejs
+sudo pacman -S base-devel git python2-pip python2-virtualenv
 
 mkdir ~/buildbot
 cd ~/buildbot
@@ -18,25 +18,21 @@ pip install --upgrade pip
 pip install mock pyaml networkx
 
 git clone https://github.com/buildbot/buildbot buildbotsrc
+cd buildbotsrc
 
-cd buildbotsrc/master
-python setup.py install
-
-cd ../slave
-python setup.py install
-
-cd ../pkg
-python setup.py install
-
-cd ..
-make prebuilt_frontend
-
-cd ../www
-for i in base codeparameters console_view md_base waterfall_view; do
-pushd $i
+pushd master
 python setup.py install
 popd
-done
+
+pushd slave
+python setup.py install
+popd
+
+pushd pkg
+python setup.py install
+popd
+
+make prebuilt_frontend
 ```
 
 Then create the master configuration:
@@ -55,6 +51,12 @@ cp archlinux.cfg ~/buildbot/masters/archlinux/master.cfg
 ```
 
 # Slave setup
+
+Install needed packages:
+
+```sh
+sudo pacman -S devtools
+```
 
 Create the slaves:
 
