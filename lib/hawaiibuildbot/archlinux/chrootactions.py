@@ -48,7 +48,7 @@ class PrepareChrootAction(ShellMixin, steps.BuildStep):
         if result:
             # Update the chroot
             self.workdir = self.cachedir
-            result = yield self._runCommand("sudo arch-nspawn {} pacman -Syu".format(self.chrootdir))
+            result = yield self._runCommand("sudo arch-nspawn {} pacman -Syu --noconfirm".format(self.chrootdir))
             if result:
                 defer.returnValue(SUCCESS)
             else:
