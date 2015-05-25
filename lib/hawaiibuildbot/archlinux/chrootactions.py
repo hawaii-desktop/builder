@@ -34,7 +34,7 @@ class PrepareChrootAction(ShellMixin, steps.BuildStep):
     def __init__(self, arch, **kwargs):
         steps.BuildStep.__init__(self, haltOnFailure=True, **kwargs)
         self.arch = arch
-        self.name = u"prepare-chroot %s" % self.arch
+        self.name = "PrepareChroot %s" % self.arch
         self.cachedir = os.path.expanduser("~/.local/cache/hawaiibuild/archlinux/chroot")
         self.chrootdir = "root"
 

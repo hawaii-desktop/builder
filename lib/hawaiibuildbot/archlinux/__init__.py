@@ -34,13 +34,13 @@ class RepositoryFactory(BuildFactory):
         BuildFactory.__init__(self, sources)
 
         # Create a directory to hold the packages that have been built
-        self.addStep(steps.MakeDirectory(name="create-repository", dir="repository"))
+        self.addStep(steps.MakeDirectory(name="CreateRepositoryDir", dir="repository"))
         # Create or update the chroot
         self.addStep(PrepareChrootAction(arch=arch))
         # Download the helpers
-        self.addStep(steps.MakeDirectory(name="create-helpers-dir", dir="helpers"))
+        self.addStep(steps.MakeDirectory(name="CreateHelpersDir", dir="helpers"))
         for helper in ("pkgdepends", "pkgprovides", "pkgversion"):
-            self.addStep(steps.FileDownload(name="download-helper-" + helper,
+            self.addStep(steps.FileDownload(name="DownloadHelper " + helper,
                                             mastersrc="helpers/archlinux/" + helper,
                                             slavedest="../helpers/" + helper,
                                             mode=0755))

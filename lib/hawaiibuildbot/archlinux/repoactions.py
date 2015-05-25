@@ -30,7 +30,7 @@ class RepositoryScan(ShellMixin, BuildStep):
     """
     Scans a repository to find packages and build them.
     """
-    name = "scan-repository"
+    name = "RepositoryScan"
     description = "Scan a repository and build packages not yet built"
     packages = []
 
@@ -50,7 +50,7 @@ class RepositoryScan(ShellMixin, BuildStep):
         if cmd.didFail():
             defer.returnValue(FAILURE)
         existing_packages = map((lambda x: a[3:]), cmd.stdout.split())
-        self.setProperty("existing_packages", existing_packages, "Repository Scan")
+        self.setProperty("existing_packages", existing_packages, "RepositoryScan")
 
         # Find out which packages are meant for this channel
         data = self._loadYaml("buildinfo.yml")

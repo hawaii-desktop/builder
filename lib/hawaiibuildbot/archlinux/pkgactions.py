@@ -36,7 +36,7 @@ class BinaryPackageBuild(ShellMixin, BuildStep):
 
     def __init__(self, name, arch, depends, provides, **kwargs):
         BuildStep.__init__(self, haltOnFailure=True, **kwargs)
-        self.name = "binary_package/{}/{}".format(name, arch)
+        self.name = "BinaryPackage {} {}".format(name, arch)
         self.pkgname = name
         self.arch = arch
         self.depends = depends
