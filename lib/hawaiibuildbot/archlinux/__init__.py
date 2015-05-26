@@ -24,6 +24,7 @@ from buildbot.plugins import steps
 
 from chrootactions import *
 from repoactions import *
+from sourceactions import *
 
 class RepositoryFactory(BuildFactory):
     """
@@ -48,3 +49,6 @@ class RepositoryFactory(BuildFactory):
         self.addStep(steps.FileUpload("buildinfo.yml", "tmp/buildinfo.yml", name="UploadBuildYaml"))
         # Scan repository and find packages to build
         self.addStep(RepositoryScan(channel="ci", arch=arch))
+        # Push back changes to version control
+        if arch == "x86_64":
+            self.addStep(PushSourceChanges())
