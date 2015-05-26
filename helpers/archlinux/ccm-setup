@@ -18,19 +18,22 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-basechrootdir=$1
+basechrootdir=`readlink -f $1`
 
 if [ -z "$basechrootdir" ]; then
     echo "Usage: $0 <base chroot path>"
     exit 1
 fi
 
-basechrootdir=$(readlink -f $basechrootdir)
+chroot32=${basechrootdir}32
+chroot64=${basechrootdir}64
+
+mkdir -p $chroot32 $chroot64
 
 mkdir -p ~/.config
 cat > ~/.config/clean-chroot-manager.conf <<EOF
-CHROOTPATH64=${basechrootdir}64
-CHROOTPATH32=${basechrootdir}32
+CHROOTPATH32=$chroot32
+CHROOTPATH64=$chroot64
 THREADS=5
 CFLAGS=""
 RUNNAMCAP=

@@ -99,13 +99,10 @@ class CcmAction(ShellMixin, steps.BuildStep):
 
     @defer.inlineCallbacks
     def run(self):
-        basechrootdir = os.path.join(self.workdir, "..", "chroot")
-        cmd = yield self._makeShellCommand(["../helpers/ccm-setup", basechrootdir])
+        cmd = yield self._makeShellCommand(["../helpers/ccm-setup", "../chroot"])
         yield self.runCommand(cmd)
         if cmd.didFail():
             defer.returnValue(FAILURE)
-        else:
-            defer.returnValue(SUCCESS)
 
         cmd = yield self._makeCcmCommand(self.action)
         yield self.runCommand(cmd)
@@ -120,11 +117,11 @@ class CcmAction(ShellMixin, steps.BuildStep):
     def getResultSummary(self):
         return {"step": u"success"}
 
-    def _makeCcmCommand(self, action):
+    def _makeCcmCommand(self, action, **kwargs):
         bits = "32" if self.arch == "i686" else "64"
         return self.makeRemoteShellCommand(collectStdout=True, collectStderr=True,
-            command=["sudo", "ccm" + bits, action])
+            command=["sudo", "ccm" + bits, action], **kwargs)
 
-    def _makeShellCommand(self, args):
+    def _makeShellCommand(self, args, **kwargs):
         return self.makeRemoteShellCommand(collectStdout=True, collectStderr=True,
-            command=args)
+            command=args, **kwargs)

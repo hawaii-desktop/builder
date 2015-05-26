@@ -44,6 +44,7 @@ class RepositoryFactory(BuildFactory):
         self.addStep(steps.MakeDirectory(name="CreateRepositoryDir", dir="repository"))
         # Create or update the chroot
         #self.addStep(PrepareChrootAction(arch=arch))
+        self.addStep(CcmAction(arch=arch, action="c"))
         self.addStep(CcmAction(arch=arch, action="u"))
         # Copy the list of packages to build from slave to master
         self.addStep(steps.FileUpload("buildinfo.yml", "tmp/buildinfo.yml", name="UploadBuildYaml"))

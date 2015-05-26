@@ -38,7 +38,7 @@ class BinaryPackageBuild(CcmAction):
     ccm = True
 
     def __init__(self, name, arch, depends, provides, **kwargs):
-        CcmAction.__init__(self, arch=arch, action="s", workdir=os.path.join(self.workdir, name), **kwargs)
+        CcmAction.__init__(self, arch=arch, action="s", **kwargs)
         self.name = "BinaryPackage {} {}".format(name, arch)
         self.pkgname = name
         self.arch = arch
@@ -52,8 +52,11 @@ class BinaryPackageBuild(CcmAction):
         yield log.addStdout(u"Depends: {}\n".format(self.depends))
         yield log.addStdout(u"Provides: {}\n".format(self.provides))
 
+        # Package directory
+        workdir = os.path.join(self.workdir, self.pkgname)
+
         # Check whether we already built the latest version
-        cmd = yield self._makeCommand("../../helpers/pkgversion -l PKGBUILD")
+        cmd = yield self._makeCommand("../../helpers/pkgversion -l PKGBUILD", workdir=workdir)
         yield self.runCommand(cmd)
         if cmd.didFail():
             defer.returnValue(FAILURE)
@@ -82,7 +85,7 @@ class BinaryPackageBuild(CcmAction):
         else:
             if self.ccm is True:
                 # Build the package with ccm
-                cmd = yield self._makeCcmCommand("s")
+                cmd = yield self._makeCcmCommand("s", workdir=workdir)
                 yield self.runCommand(cmd)
                 if cmd.didFail():
                     defer.returnValue(FAILURE)
@@ -93,13 +96,13 @@ class BinaryPackageBuild(CcmAction):
 
                 # Actually build the package
                 repodir = os.path.join(self.workdir, "..", "repository")
-                cmd = yield self._makeCommand("sudo makechrootpkg -cu -D {}:/var/tmp/repository -r {}".format(repodir, chrootdir))
+                cmd = yield self._makeCommand("sudo makechrootpkg -cu -D {}:/var/tmp/repository -r {}".format(repodir, chrootdir), workdir=workdir)
                 yield self.runCommand(cmd)
                 if cmd.didFail():
                     defer.returnValue(FAILURE)
 
             # Find the artifacts
-            cmd = yield self._makeCommand(["/usr/bin/find", ".", "-type", "f", "-name", "*.pkg.tar.xz", "-printf", "%f "])
+            cmd = yield self._makeCommand(["/usr/bin/find", ".", "-type", "f", "-name", "*.pkg.tar.xz", "-printf", "%f "], workdir=workdir)
             yield self.runCommand(cmd)
             if cmd.didFail():
                 defer.returnValue(FAILURE)
