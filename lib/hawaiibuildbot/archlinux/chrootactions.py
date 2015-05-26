@@ -125,3 +125,45 @@ class CcmAction(ShellMixin, steps.BuildStep):
     def _makeShellCommand(self, args, **kwargs):
         return self.makeRemoteShellCommand(collectStdout=True, collectStderr=True,
             command=args, **kwargs)
+
+class PrepareCcm(CcmAction):
+    """
+    Create or update a chroot with clean-chroot-manager.
+    See https://bbs.archlinux.org/viewtopic.php?id=168421
+    """
+
+    def __init__(self, arch, **kwargs):
+        CcmAction.__init__(self, arch, "c", **kwargs)
+        self.name = "PrepareCcm {}".format(self.arch)
+
+    @defer.inlineCallbacks
+    def run(self):
+        cmd = yield self._makeShellCommand(["../helpers/ccm-setup", "../chroot"])
+        yield self.runCommand(cmd)
+        if cmd.didFail():
+            defer.returnValue(FAILURE)
+
+        # If the chroot directory is missing create the chroot
+        bits = "32" if self.arch == "i686" else "64"
+        result = yield self._runCommand("test -d ../chroot{}/root".format(bits))
+        if result:
+            action = "u"
+        else:
+            action = "c"
+
+        cmd = yield self._makeCcmCommand(action)
+        yield self.runCommand(cmd)
+        if cmd.didFail():
+            defer.returnValue(FAILURE)
+        else:
+            defer.returnValue(SUCCESS)
+
+    def _makeCommand(self, command):
+        return self.makeRemoteShellCommand(collectStdout=True, collectStderr=True,
+            command=command.split(" "))
+
+    @defer.inlineCallbacks
+    def _runCommand(self, command):
+        cmd = yield self._makeCommand(command)
+        yield self.runCommand(cmd)
+        defer.returnValue(not cmd.didFail())
