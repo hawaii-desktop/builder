@@ -120,7 +120,7 @@ class CcmAction(ShellMixin, steps.BuildStep):
     def _makeCcmCommand(self, action, **kwargs):
         bits = "32" if self.arch == "i686" else "64"
         return self.makeRemoteShellCommand(collectStdout=True, collectStderr=True,
-            command=["sudo", "ccm" + bits, action], **kwargs)
+            command=["sudo", "linux" + bits, "ccm" + bits, action], **kwargs)
 
     def _makeShellCommand(self, args, **kwargs):
         return self.makeRemoteShellCommand(collectStdout=True, collectStderr=True,
