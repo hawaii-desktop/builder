@@ -51,7 +51,7 @@ class PushSourceChanges(ShellMixin, BuildStep):
         # Commit
         author = "Buildbot <buildbot@hawaiios.org>"
         msg = "Build {} at {}".format(self.build.number, time.strftime("%c"))
-        cmd = yield self._makeCommand(["git", "commit", "--allow-empty", "-m", msg, "--author=" + author])
+        cmd = yield self._makeCommand(["git", "commit", "-m", msg, "--author=" + author])
         yield self.runCommand(cmd)
         if cmd.didFail():
             defer.returnValue(FAILURE)
