@@ -26,7 +26,7 @@ usage() {
 while getopts "l" o; do
     case "${o}" in
         l)
-            makepkg -odcC &>/dev/null
+            makepkg -od &>/dev/null
             ;;
         *)
             usage
@@ -43,11 +43,13 @@ fi
 
 source $pkgbuild
 
-srcdir=`readlink -f $(dirname $pkgbuild)`
+basedir=`readlink -f $(dirname $pkgbuild)`
+srcdir="$basedir/src"
 
 pkgbase=${pkgbase:-${pkgname[0]}}
 
 if [ "`type -t pkgver`" = 'function' ]; then
+    cd $srcdir
     ver=$(pkgver)
 
     if [ -z "$ver" ]; then
@@ -58,3 +60,5 @@ if [ "`type -t pkgver`" = 'function' ]; then
 else
     echo $pkgver-$pkgrel
 fi
+
+rm -rf $srcdir

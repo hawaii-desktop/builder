@@ -109,12 +109,14 @@ class BinaryPackageBuild(CcmAction):
 
             # Add artifact to the list
             r = re.compile(r'.*\-{}\-{}\.pkg\.tar\.xz'.format(self.latest_version, self.arch))
-            self.artifacts = filter(r.match, cmd.stdout.split(" "))
+            self.artifacts = cmd.stdout.strip().split(" ")
             yield log.addStdout(u"Artifacts: {}\n".format(self.artifacts))
+            matching_artifacts = filter(r.match, cmd.stdout.strip().split(" "))
+            yield log.addStdout(u"Artifacts matching: {}\n".format(matching_artifacts))
 
             # Update already built packages
             r = re.compile(r'.*\-.*\-{}\.pkg\.tar\.xz'.format(self.arch))
-            already_built_packages = filter(r.match, cmd.stdout.split(" "))
+            already_built_packages = filter(r.match, cmd.stdout.strip().split(" "))
             yield log.addStdout(u"Packages built: {}\n".format(already_built_packages))
 
             # Bail out if we don't have artifacts
