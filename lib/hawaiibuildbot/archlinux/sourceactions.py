@@ -17,6 +17,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+import time
+
 from buildbot.process.buildstep import ShellMixin, BuildStep
 from buildbot.status.results import *
 
@@ -40,13 +42,15 @@ class PushSourceChanges(ShellMixin, BuildStep):
         log = yield self.addLog("logs")
 
         # Add PKGBUILD
-        cmd = yield self._makeCommand("git add PKGBUILD")
+        cmd = yield self._makeCommand("git add ./*PKGBUILD")
         yield self.runCommand(cmd)
         if cmd.didFail():
             defer.returnValue(FAILURE)
 
         # Commit
-        cmd = yield self._makeCommand(["git", "commit", "--allow-empty", "-m", "Build {} at {}".format(self.build_number, time.strftime("%c"))])
+        author = "Buildbot <buildbot@hawaiios.org>"
+        msg = "Build {} at {}".format(self.build_number, time.strftime("%c"))
+        cmd = yield self._makeCommand(["git", "commit", "--allow-empty", "-m", msg, "--author=" + author])
         yield self.runCommand(cmd)
         if cmd.didFail():
             defer.returnValue(FAILURE)
