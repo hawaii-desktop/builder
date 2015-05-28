@@ -11,20 +11,16 @@ sudo pacman -S base-devel git python2-pip python2-virtualenv
 mkdir ~/buildbot
 cd ~/buildbot
 
-virtualenv-2.7 --no-site-packages buildbotenv
-source buildbotenv/bin/activate
+virtualenv-2.7 --no-site-packages env
+source env/bin/activate
 
 pip install --upgrade pip
-pip install mock pyaml networkx twisted
+pip install mock pyaml networkx twisted autobahn python-dateutil sqlalchemy==0.7.2 sqlalchemy-migrate==0.7.2 Jinja2
 
-git clone https://github.com/buildbot/buildbot buildbotsrc
-cd buildbotsrc
+git clone --depth 1 https://github.com/buildbot/buildbot src
+cd src
 
 pushd master
-python setup.py install
-popd
-
-pushd slave
 python setup.py install
 popd
 
@@ -50,10 +46,26 @@ cp master.cfg ~/buildbot/master/master.cfg
 
 # Slave setup
 
-Install needed packages:
+On the build slave, install needed packages:
 
 ```sh
-sudo pacman -S devtools
+sudo pacman -S devtools base-devel git python2-pip python2-virtualenv
+
+mkdir ~/buildbot
+cd ~/buildbot
+
+virtualenv-2.7 --no-site-packages env
+source env/bin/activate
+
+pip install --upgrade pip
+pip install mock pyaml networkx twisted
+
+git clone https://github.com/buildbot/buildbot src
+cd src
+
+pushd slave
+python setup.py install
+popd
 ```
 
 Also install (clean-chroot-manager)[https://bbs.archlinux.org/viewtopic.php?id=168421].
