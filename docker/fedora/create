@@ -18,8 +18,24 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-basedir=~/buildbot
+# Log into container  (username: admin   password: admin)
+# ssh -p $(docker port $CONTAINER_ID 22 | cut -d: -f 2) admin@localhost
 
-cp -f master.cfg $basedir/master/master.cfg || exit $?
-mkdir -p $basedir/master/helpers || exit $?
-rsync -az --delete helpers $basedir/master || exit $?
+nslave=$1
+
+if [ -z "$nslave" ]; then
+    echo "Usage: $0 <nslave>"
+    exit 1
+fi
+
+name=x86_64-fedora-${nslave}
+
+sudo pacman -S --noconfirm docker
+sudo systemctl start docker
+sudo systemctl enable docker
+cat Dockerfile | sed -e "s/@SLAVE@/$name/g" | sudo docker build -t $name -
+CONTAINER_ID=$(sudo docker run -d -p 22 $name)
+
+sudo docker commit $CONTAINER_ID $name
+
+echo "buildbot slave container: $CONTAINER_ID"

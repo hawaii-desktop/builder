@@ -18,8 +18,13 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-basedir=~/buildbot
+nslave=$1
 
-cp -f master.cfg $basedir/master/master.cfg || exit $?
-mkdir -p $basedir/master/helpers || exit $?
-rsync -az --delete helpers $basedir/master || exit $?
+if [ -z "$nslave" ]; then
+    echo "Usage: $0 <nslave>"
+    exit 1
+fi
+
+name=x86_64-fedora-${nslave}
+
+sudo docker run --net=host -t -i $name su - admin -c 'buildslave start /data/buildbot/slave'

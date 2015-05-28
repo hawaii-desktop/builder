@@ -23,10 +23,10 @@ what=$1
 master=$2
 
 if [ -z "$what" ]; then
-    echo "Usage: $0 [start|stop|restart] <master name>"
+    echo "Usage: $0 [start|stop|restart|sighup]"
     exit 0
 fi
 
 export PYTHONPATH=$(pwd)/lib
 source ~/buildbot/buildbotenv/bin/activate
-buildbot $what $basedir/masters/$master
+buildbot $what $basedir/master

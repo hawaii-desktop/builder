@@ -11,11 +11,11 @@ sudo pacman -S base-devel git python2-pip python2-virtualenv
 mkdir ~/buildbot
 cd ~/buildbot
 
-virtualenv2 --no-site-packages buildbotenv
+virtualenv-2.7 --no-site-packages buildbotenv
 source buildbotenv/bin/activate
 
 pip install --upgrade pip
-pip install mock pyaml networkx
+pip install mock pyaml networkx twisted
 
 git clone https://github.com/buildbot/buildbot buildbotsrc
 cd buildbotsrc
@@ -39,15 +39,13 @@ Then create the master configuration:
 
 ```sh
 cd ~/buildbot
-mkdir -p masters
-cd masters
-buildbot create-master archlinux
+buildbot create-master master
 ```
 
 From the clone of this repository:
 
 ```sh
-cp archlinux.cfg ~/buildbot/masters/archlinux/master.cfg
+cp master.cfg ~/buildbot/master/master.cfg
 ```
 
 # Slave setup

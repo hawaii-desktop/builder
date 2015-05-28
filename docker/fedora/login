@@ -18,8 +18,17 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-basedir=~/buildbot
+CONTAINER_ID=$1
 
-cp -f master.cfg $basedir/master/master.cfg || exit $?
-mkdir -p $basedir/master/helpers || exit $?
-rsync -az --delete helpers $basedir/master || exit $?
+if [ -z "$CONTAINER_ID" ]; then
+    echo "Usage: $0 <CONTAINER_ID>"
+    exit 1
+fi
+
+# Log into container  (username: admin   password: admin)
+port=$(sudo docker port $CONTAINER_ID 22 | cut -d: -f 2)
+if [ -z "$port" ]; then
+    echo "No port for container $CONTAINER_ID"
+    exit 1
+fi
+ssh -p $port admin@localhost
