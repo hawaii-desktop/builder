@@ -41,7 +41,7 @@ class ShellCommand(ShellMixin, steps.BuildStep):
 
     def _makeCommand(self, command):
         return self.makeRemoteShellCommand(collectStdout=True, collectStderr=True,
-            command=command.split(" "))
+            command=command)
 
     @defer.inlineCallbacks
     def _runCommand(self, command):

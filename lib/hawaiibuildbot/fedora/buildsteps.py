@@ -17,6 +17,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+from buildbot import config
 from buildbot.plugins import steps
 from buildbot.process.buildstep import ShellMixin
 from buildbot.status.results import *
@@ -25,6 +26,7 @@ from twisted.internet import defer
 
 from shell import ShellCommand
 from rpmspec import RpmSpec
+from mock import MockBuildSRPM, MockRebuild
 
 class PrepareSources(ShellCommand):
     """
@@ -45,16 +47,19 @@ class PrepareSources(ShellCommand):
         else:
             defer.returnValue(FAILURE)
 
-class BuildSourcePackage(ShellCommand):
+class BuildSourcePackage(MockBuildSRPM):
     """
     Create a SRPM from sources using mock.
     """
 
     def __init__(self, arch, distro, pkgname, **kwargs):
-        ShellCommand.__init__(self, **kwargs)
         self.arch = arch
         self.distro = distro
         self.pkgname = pkgname
+        root = "fedora-{}-{}".format(self.distro, self.arch)
+        resultdir = "../results"
+        spec = "{}.spec".format(self.pkgname)
+        MockBuildSRPM.__init__(self, root=root, resultdir=resultdir, specfile=spec, **kwargs)
         self.name = "srpm {} {}/{}".format(self.pkgname, self.distro, self.arch)
 
     @defer.inlineCallbacks
@@ -62,12 +67,7 @@ class BuildSourcePackage(ShellCommand):
         log = yield self.addLog("logs")
 
         # Compress upstream sources
-        root = "fedora-{}-{}".format(self.distro, self.arch)
-        spec = "{}.spec".format(self.pkgname)
-        sources = "."
-        resultdir = "../results"
-        command = "/usr/bin/mock --root={} --resultdir={} --buildsrpm --spec {} --sources {}".format(root, resultdir, spec, sources)
-        cmd = yield self._makeCommand(command)
+        cmd = yield self._makeCommand(self.command)
         yield self.runCommand(cmd)
         if cmd.didFail():
             defer.returnValue(FAILURE)
@@ -77,7 +77,7 @@ class BuildSourcePackage(ShellCommand):
             m = r.search(cmd.stdout.strip())
             if m:
                 # Retrieve package information
-                rpmSpec = RpmSpec(specfile=spec)
+                rpmSpec = RpmSpec(specfile=self.specfile)
                 rpmSpec.load()
                 if not rpmSpec.loaded:
                     yield log.addStderr(u"Unable to read specfile")
@@ -97,33 +97,20 @@ class BuildSourcePackage(ShellCommand):
                 defer.returnValue(FAILURE)
         defer.returnValue(SUCCESS)
 
-class BuildBinaryPackage(ShellCommand):
+class BuildBinaryPackage(MockRebuild):
     """
     Build a SRPM using mock.
     """
 
     def __init__(self, arch, distro, pkgname, **kwargs):
-        ShellCommand.__init__(self, **kwargs)
         self.arch = arch
         self.distro = distro
         self.pkgname = pkgname
-        self.name = "rpm {} {}/{}".format(self.pkgname, self.distro, self.arch)
-
-    @defer.inlineCallbacks
-    def run(self):
-        log = yield self.addLog("logs")
-
-        # Compress upstream sources
         root = "fedora-{}-{}".format(self.distro, self.arch)
         resultdir = "../results"
         pkg_info = self.getProperty("package_info")
         if len(pkg_info.get(self.pkgname, {}).keys()) == 0:
-            yield log.addStderr(u"Unable to retrieve package information")
-            defer.returnValue(FAILURE)
+            config.error("Unable to retrieve package information")
         srpm = package_info[self.pkgname]["srpm"]
-        command = "/usr/bin/mock --root={} --resultdir={} --rebuild {}".format(root, resultdir, srpm)
-        cmd = yield self._makeCommand(command)
-        yield self.runCommand(cmd)
-        if cmd.didFail():
-            defer.returnValue(FAILURE)
-        defer.returnValue(SUCCESS)
+        MockRebuild.__init__(self, root=root, resultdir=resultdir, srpm=srpm, **kwargs)
+        self.name = "rpm {} {}/{}".format(self.pkgname, self.distro, self.arch)
