@@ -53,7 +53,10 @@ Description=Buildbot Master\n\
 \n\
 [Service]\n\
 ExecStart=twistd --nodaemon --no_save -y /data/buildbot/slave/buildbot.tac\n\
-User=admin\n" > \
+User=admin\n\
+\n\
+[Install]\n\
+WantedBy=multi-user.target\n" > \
     /etc/systemd/system/multi-user.target.wants/buildbot-slave.service
 
 # Expose container port 22 to a random port in the host

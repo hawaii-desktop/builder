@@ -23,22 +23,34 @@ from fedora:latest
 maintainer Pier Luigi Fiorini <pierluigi.fiorini@gmail.com>
 
 # Update
-run yum update -y
+run dnf update -y
 
 # Install packages
-run yum install -y make gcc git sudo openssh-server
-run yum install -y python-devel python-pip
+run dnf install -y make gcc git sudo openssh-server
+run dnf install -y python-devel python-pip
+run dnf install -y supervisor
 
-# Install mock
-run yum install -y mock
+# Install mock and rpmbuild
+run dnf install -y mock rpm-build
 
-# Set ssh superuser (username: admin   password: admin)
+# Install live CD and appliance tools
+run dnf install -y livecd-tools appliance-tools fedora-kickstarts spin-kickstarts
+
+# Install repository tools
+run dnf install -y createrepo
+
+# User (username: admin   password: admin)
 run mkdir /data
 run useradd -m -d /data/buildbot -p sa1aY64JOY94w admin
-run sed -Ei 's/adm:x:4:/admin:x:4:admin/' /etc/group
-run sed -Ei 's/(\%admin ALL=\(ALL\) )ALL/\1 NOPASSWD:ALL/' /etc/sudoers
+run /bin/echo "%admin ALL=(ALL) ALL NOPASSWD: ALL" >>/etc/sudoers
+run usermod -G mock -a admin
 
-# Setup virtualenv
+# Enable root and ssh access
+run mkdir -p /run/sshd
+run /bin/echo "root:password" | /usr/sbin/chpasswd
+run /usr/bin/sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' -i /etc/pam.d/sshd
+
+# Install Python modules
 run pip install --upgrade pip
 run pip install mock pyaml networkx twisted
 
@@ -49,20 +61,21 @@ run cd /data/buildbot/src/slave; python setup.py install
 
 # Create buildbot configuration
 run cd /data/buildbot; sudo -u admin sh -c \
-    "buildslave create-slave slave localhost:9989 @SLAVE@ password"
+    "buildslave create-slave slave @MASTER@ @SLAVE@ password"
 
-# Set buildbot master service and enable it
+# Set buildbot and ssh services
+run mkdir -p /etc/supervisor/conf.d
+run /bin/echo -e "[program:sshd]\ncommand=/usr/sbin/sshd -D\n" > \
+    /etc/supervisor/conf.d/sshd.conf
 run /bin/echo -e "\
-[Unit]\n\
-Description=Buildbot Slave\n\
-\n\
-[Service]\n\
-ExecStart=twistd --nodaemon --no_save -y /data/buildbot/slave/buildbot.tac\n\
-User=admin\n" > \
-    /etc/systemd/system/multi-user.target.wants/buildbot-slave.service
+[program:buildslave]\n\
+command=twistd --nodaemon --no_save -y buildbot.tac\n\
+directory=/data/buildbot/slave\n\
+user=admin\n" > \
+    /etc/supervisor/conf.d/buildbot.conf
 
 # Expose container port 22 to a random port in the host
 expose 22
 
-# Run slave
-cmd ["sudo", "-u", "admin", "sh", "-c", "twistd --nodaemon --no_save -y /data/buildbot/slave/buildbot.tac"]
+# Run supervisord
+cmd ["/usr/bin/supervisord", "-n"]
