@@ -43,4 +43,4 @@ class CiFactory(BuildFactory):
             self.addStep(Git(name="{} downstream".format(pkgname), repourl=sources[pkgname]["downstreamsrc"], mode="incremental", workdir="sources/{}/downstream".format(pkgname)))
             self.addStep(PrepareSources(pkgname, workdir="sources/{}".format(pkgname)))
             self.addStep(BuildSourcePackage(arch=arch, distro="22", pkgname=pkgname, workdir="sources/{}/work".format(pkgname)))
-            self.addStep(BuildBinaryPackage(arch=arch, distro="22", pkgname=pkgname, workdir="sources/{}/work".format(pkgname)))
+            #self.addStep(BuildBinaryPackage(arch=arch, distro="22", pkgname=pkgname, workdir="sources/{}/work".format(pkgname)))

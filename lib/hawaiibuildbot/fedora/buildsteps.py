@@ -23,31 +23,8 @@ from buildbot.status.results import *
 
 from twisted.internet import defer
 
-class ShellCommand(ShellMixin, steps.BuildStep):
-    """
-    Execute a shell command.
-    """
-
-    name = "sh"
-
-    def __init__(self, **kwargs):
-        steps.BuildStep.__init__(self, haltOnFailure=True, **kwargs)
-
-    def getCurrentSummary(self):
-        return {"step": u"running"}
-
-    def getResultSummary(self):
-        return {"step": u"success"}
-
-    def _makeCommand(self, command):
-        return self.makeRemoteShellCommand(collectStdout=True, collectStderr=True,
-            command=command.split(" "))
-
-    @defer.inlineCallbacks
-    def _runCommand(self, command):
-        cmd = yield self._makeCommand(command)
-        yield self.runCommand(cmd)
-        defer.returnValue(not cmd.didFail())
+from shell import ShellCommand
+from rpmspec import RpmSpec
 
 class PrepareSources(ShellCommand):
     """
@@ -82,6 +59,8 @@ class BuildSourcePackage(ShellCommand):
 
     @defer.inlineCallbacks
     def run(self):
+        log = yield self.addLog("logs")
+
         # Compress upstream sources
         root = "fedora-{}-{}".format(self.distro, self.arch)
         spec = "{}.spec".format(self.pkgname)
@@ -97,7 +76,23 @@ class BuildSourcePackage(ShellCommand):
             r = re.compile(r"Wrote: .*/([^/]*.src.rpm)")
             m = r.search(cmd.stdout.strip())
             if m:
-                self.setProperty("srpm", m.group(1), "BuildSourcePackage")
+                # Retrieve package information
+                rpmSpec = RpmSpec(specfile=spec)
+                rpmSpec.load()
+                if not rpmSpec.loaded:
+                    yield log.addStderr(u"Unable to read specfile")
+                    defer.returnValue(FAILURE)
+                # Save srpm location and package information
+                pkg_info = self.getProperty("package_info") or {}
+                pkg_info[self.pkgname] = {
+                    "name": rpmSpec.pkg_name,
+                    "version": rpmSpec.pkg_version,
+                    "provides": rpmInfo.pkg_provides,
+                    "requires": rpmInfo.pkg_requires,
+                    "srpm": m.group(1)
+                }
+                yield log.addStdout(u"Package information for {}: {}\n".format(self.pkgname, pkg_info[self.pkgname]))
+                self.setProperty("package_info", pkg_info, "BuildSourcePackage")
             else:
                 defer.returnValue(FAILURE)
         defer.returnValue(SUCCESS)
@@ -116,10 +111,16 @@ class BuildBinaryPackage(ShellCommand):
 
     @defer.inlineCallbacks
     def run(self):
+        log = yield self.addLog("logs")
+
         # Compress upstream sources
         root = "fedora-{}-{}".format(self.distro, self.arch)
         resultdir = "../results"
-        srpm = self.getProperty("srpm")
+        pkg_info = self.getProperty("package_info")
+        if len(pkg_info.get(self.pkgname, {}).keys()) == 0:
+            yield log.addStderr(u"Unable to retrieve package information")
+            defer.returnValue(FAILURE)
+        srpm = package_info[self.pkgname]["srpm"]
         command = "/usr/bin/mock --root={} --resultdir={} --rebuild {}".format(root, resultdir, srpm)
         cmd = yield self._makeCommand(command)
         yield self.runCommand(cmd)
