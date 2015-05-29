@@ -62,39 +62,53 @@ class BuildSourcePackage(MockBuildSRPM):
         MockBuildSRPM.__init__(self, root=root, resultdir=resultdir, specfile=spec, **kwargs)
         self.name = "srpm {} {}/{}".format(self.pkgname, self.distro, self.arch)
 
+class AcquirePackageInfo(ShellCommand):
+    """
+    Retrieve information from a source package.
+    """
+
+    name = "packageinfo"
+
+    pkgname = None
+    specfile = None
+
+    def __init__(self, pkgname=None, **kwargs):
+        ShellCommand.__init__(self, **kwargs)
+
+        if pkgname:
+            self.pkgname = pkgname
+        if not self.pkgname:
+            config.error("You must specify a package name")
+
+        self.specfile = "{}.spec".format(self.pkgname)
+        self.name = "packageinfo {}".format(self.pkgname)
+
     @defer.inlineCallbacks
     def run(self):
         log = yield self.addLog("logs")
 
-        # Compress upstream sources
-        cmd = yield self._makeCommand(self.command)
-        yield self.runCommand(cmd)
-        if cmd.didFail():
-            defer.returnValue(FAILURE)
-        else:
-            import re
-            r = re.compile(r"Wrote: .*/([^/]*.src.rpm)")
-            m = r.search(cmd.stdout.strip())
-            if m:
-                # Retrieve package information
-                rpmSpec = RpmSpec(specfile=self.specfile)
-                rpmSpec.load()
-                if not rpmSpec.loaded:
-                    yield log.addStderr(u"Unable to read specfile")
-                    defer.returnValue(FAILURE)
-                # Save srpm location and package information
-                pkg_info = self.getProperty("package_info") or {}
-                pkg_info[self.pkgname] = {
-                    "name": rpmSpec.pkg_name,
-                    "version": rpmSpec.pkg_version,
-                    "provides": rpmInfo.pkg_provides,
-                    "requires": rpmInfo.pkg_requires,
-                    "srpm": m.group(1)
-                }
-                yield log.addStdout(u"Package information for {}: {}\n".format(self.pkgname, pkg_info[self.pkgname]))
-                self.setProperty("package_info", pkg_info, "BuildSourcePackage")
-            else:
+        srpm = self.getProperty("srpm")
+        if srpm:
+            # Retrieve package information
+            rpmSpec = RpmSpec(specfile=self.specfile)
+            rpmSpec.load()
+            if not rpmSpec.loaded:
+                yield log.addStderr(u"Unable to read specfile")
                 defer.returnValue(FAILURE)
+            # Save srpm location and package information
+            pkg_info = self.getProperty("package_info") or {}
+            pkg_info[self.pkgname] = {
+                "name": rpmSpec.pkg_name,
+                "version": rpmSpec.pkg_version,
+                "provides": rpmInfo.pkg_provides,
+                "requires": rpmInfo.pkg_requires,
+                "srpm": self.srpm
+            }
+            yield log.addStdout(u"Package information for {}: {}\n".format(self.pkgname, pkg_info[self.pkgname]))
+            self.setProperty("package_info", pkg_info, "BuildSourcePackage")
+        else:
+            yield log.addStderr(u"Unable to find srpm path")
+            defer.returnValue(FAILURE)
         defer.returnValue(SUCCESS)
 
 class BuildBinaryPackage(MockRebuild):
