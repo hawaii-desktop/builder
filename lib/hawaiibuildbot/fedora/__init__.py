@@ -20,6 +20,7 @@
 from buildbot.process.factory import BuildFactory
 from buildbot.steps.source.git import Git
 
+from repo import *
 from buildsteps import *
 
 class CiFactory(BuildFactory):
@@ -31,11 +32,14 @@ class CiFactory(BuildFactory):
         BuildFactory.__init__(self, [])
 
         # Copy helpers
-        for helper in ("mksrc",):
+        for helper in ("createrepo", "mksrc"):
             self.addStep(steps.FileDownload(name="helper " + helper,
                                             mastersrc="helpers/fedora/" + helper,
                                             slavedest="../helpers/" + helper,
                                             mode=0755))
+
+        # Create or update local repository
+        self.addStep(CreateRepo(repodir="repository"))
 
         # Build the SRPM from git
         for pkgname in sources.keys():
