@@ -21,18 +21,31 @@ from buildbot.process.factory import BuildFactory
 from buildbot.steps.source.git import Git
 
 from repo import *
+from sources import *
 from buildsteps import *
 
 class CiFactory(BuildFactory):
     """
     Factory to build a repository of the Hawaii CI for a certain architecture.
+    Strategoy:
+        - Copy all the helpers from master to slave
+        - Create or update local repository
+        - Clone upstream and downstream sources and prepare the
+          spec file and source tarball
+        - Scan the repository to find packages that have already been built
+        - Scan the sources to retrieve package information
+        - Determine which packages need to be built and order the list
+          based on dependencies
+        - Build SRPMs
+        - Build RPMs
     """
 
     def __init__(self, sources, arch):
         BuildFactory.__init__(self, [])
 
         # Copy helpers
-        for helper in ("createrepo", "mksrc"):
+        for helper in ("createrepo", "mksrc", "srpm-nvr", "spec-nvr",
+                       "spec-provides", "spec-requires", "needs-rebuild"):
             self.addStep(steps.FileDownload(name="helper " + helper,
                                             mastersrc="helpers/fedora/" + helper,
                                             slavedest="../helpers/" + helper,
@@ -41,11 +54,16 @@ class CiFactory(BuildFactory):
         # Create or update local repository
         self.addStep(CreateRepo(repodir="repository"))
 
-        # Build the SRPM from git
+        # Clone all sources and prepare the spec file and source tarball
         for pkgname in sources.keys():
-            self.addStep(Git(name="{} upstream".format(pkgname), repourl=sources[pkgname]["upstreamsrc"], mode="incremental", workdir="sources/{}/{}".format(pkgname, pkgname)))
-            self.addStep(Git(name="{} downstream".format(pkgname), repourl=sources[pkgname]["downstreamsrc"], mode="incremental", workdir="sources/{}/downstream".format(pkgname)))
-            self.addStep(PrepareSources(pkgname, workdir="sources/{}".format(pkgname)))
-            self.addStep(BuildSourcePackage(arch=arch, distro="22", pkgname=pkgname, workdir="sources/{}/work".format(pkgname)))
-            self.addStep(AcquirePackageInfo(pkgname=pkgname, workdir="sources/{}/work".format(pkgname)))
-            #self.addStep(BuildBinaryPackage(arch=arch, distro="22", pkgname=pkgname, workdir="sources/{}/work".format(pkgname)))
+            self.addStep(Git(name="{} upstream".format(pkgname), repourl=sources[pkgname]["upstreamsrc"],
+                             mode="incremental", workdir="{}/upstream".format(pkgname)))
+            self.addStep(Git(name="{} downstream".format(pkgname), repourl=sources[pkgname]["downstreamsrc"],
+                             mode="incremental", workdir="{}/downstream".format(pkgname)))
+            self.addStep(PrepareSources(pkgname, workdir=pkgname))
+
+        # Scan the repository to find which packages have already been built
+        self.addStep(RepositoryScan(repodir="../repository"))
+
+        # Scan sources and build
+        self.addStep(SourcesScan(pkgnames=sources.keys(), arch=arch, distro="22"))

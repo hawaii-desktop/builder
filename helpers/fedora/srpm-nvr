@@ -18,30 +18,26 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-pkgname=$1
+srpm=$1
 
-if [ -z "$pkgname" ]; then
-    echo "Usage: $0 <package name>"
+if [ -z "$srpm" ]; then
+    echo "Usage: $0 <srpm>"
     exit 1
 fi
 
-#
-# Under the cwd (build/$PKGNAME) we have a couple of directories:
-#  - upstream: upstream sources
-#  - downstream: RPM packaging stuff
-#
+if [ ! -f $srpm ]; then
+    echo "Source RPM \"$srpm\" not found!"
+    exit 1
+fi
 
-# Copy the packaging directory
-rm -rf work
-cp -R downstream work
+name=$(/usr/bin/rpm -qp --qf "%{name}\n" $srpm | sed -e 's,^(none)$,,g')
+epoch=$(/usr/bin/rpm -qp --qf "%{epoch}\n" $srpm)
+version=$(/usr/bin/rpm -qp --qf "%{version}\n" $srpm | sed -e 's,^(none)$,,g')
+release=$(/usr/bin/rpm -qp --qf "%{release}\n" $srpm | sed -e 's,^(none)$,,g')
 
-# Compress sources
-(cd upstream; git archive --format=tar --prefix=${pkgname}/ HEAD | gzip -5 >../work/${pkgname}.tar.gz)
+if [ -z "$name" -o -z "$version" -o -z "$release" ]; then
+    echo "Unable to retrieve NVR from \"$srpm\""
+    exit 1
+fi
 
-# Prepare spec file
-pushd upstream
-build_date=$(date +"%Y%m%d")
-gitdate=$(git log -1 --format="%cd" --date=short | tr -d '-')
-gitver=$(git log -1 --format="%h")
-popd
-cat downstream/${pkgname}.spec | sed -e "s,@BUILD_DATE@,$build_date," -e "s,@GIT_DATE@,$gitdate,g" -e "s,@GIT_VERSION@,$gitver," > work/${pkgname}.spec
+echo "${name} ${epoch} ${version} ${release}"

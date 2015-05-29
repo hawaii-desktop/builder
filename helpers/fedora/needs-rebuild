@@ -18,30 +18,22 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-pkgname=$1
+evr1=$1
+evr2=$2
 
-if [ -z "$pkgname" ]; then
-    echo "Usage: $0 <package name>"
+if [ -z "$evr1" -o -z "$evr2" ]; then
+    echo "Usage: $0 <EVR1> <EVR2>"
     exit 1
 fi
 
-#
-# Under the cwd (build/$PKGNAME) we have a couple of directories:
-#  - upstream: upstream sources
-#  - downstream: RPM packaging stuff
-#
+# Compare EVR1 with EVR2, we assume EVR1 is from the spec file and EVR2
+# is from the last build
+/usr/bin/rpmdev-vercmp $evr1 $evr2 2>&1 >/dev/null
 
-# Copy the packaging directory
-rm -rf work
-cp -R downstream work
-
-# Compress sources
-(cd upstream; git archive --format=tar --prefix=${pkgname}/ HEAD | gzip -5 >../work/${pkgname}.tar.gz)
-
-# Prepare spec file
-pushd upstream
-build_date=$(date +"%Y%m%d")
-gitdate=$(git log -1 --format="%cd" --date=short | tr -d '-')
-gitver=$(git log -1 --format="%h")
-popd
-cat downstream/${pkgname}.spec | sed -e "s,@BUILD_DATE@,$build_date," -e "s,@GIT_DATE@,$gitdate,g" -e "s,@GIT_VERSION@,$gitver," > work/${pkgname}.spec
+# Return a string saying "yes" or "no", return "yes" when
+# EVR1 is greater than EVR2
+if [ $? -eq 11 ]; then
+    echo "yes"
+else
+    echo "no"
+fi
