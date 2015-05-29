@@ -21,12 +21,12 @@ from buildbot import config
 from buildbot.plugins import steps
 from buildbot.process.buildstep import ShellMixin
 from buildbot.status.results import *
+from buildbot.steps.package.rpm.mock import MockBuildSRPM, MockRebuild
 
 from twisted.internet import defer
 
 from shell import ShellCommand
 from rpmspec import RpmSpec
-from mock import MockBuildSRPM, MockRebuild
 
 class PrepareSources(ShellCommand):
     """
@@ -59,7 +59,7 @@ class BuildSourcePackage(MockBuildSRPM):
         root = "fedora-{}-{}".format(self.distro, self.arch)
         resultdir = "../results"
         spec = "{}.spec".format(self.pkgname)
-        MockBuildSRPM.__init__(self, root=root, resultdir=resultdir, specfile=spec, **kwargs)
+        MockBuildSRPM.__init__(self, root=root, resultdir=resultdir, spec=spec, **kwargs)
         self.name = "srpm {} {}/{}".format(self.pkgname, self.distro, self.arch)
 
 class AcquirePackageInfo(ShellCommand):
@@ -87,28 +87,32 @@ class AcquirePackageInfo(ShellCommand):
     def run(self):
         log = yield self.addLog("logs")
 
-        srpm = self.getProperty("srpm")
-        if srpm:
-            # Retrieve package information
-            rpmSpec = RpmSpec(specfile=self.specfile)
-            rpmSpec.load()
-            if not rpmSpec.loaded:
-                yield log.addStderr(u"Unable to read specfile")
-                defer.returnValue(FAILURE)
-            # Save srpm location and package information
-            pkg_info = self.getProperty("package_info") or {}
-            pkg_info[self.pkgname] = {
-                "name": rpmSpec.pkg_name,
-                "version": rpmSpec.pkg_version,
-                "provides": rpmInfo.pkg_provides,
-                "requires": rpmInfo.pkg_requires,
-                "srpm": self.srpm
-            }
-            yield log.addStdout(u"Package information for {}: {}\n".format(self.pkgname, pkg_info[self.pkgname]))
-            self.setProperty("package_info", pkg_info, "BuildSourcePackage")
-        else:
-            yield log.addStderr(u"Unable to find srpm path")
+        # Find srpm
+        cmd = yield self._makeCommand(["/usr/bin/find", "../results", "-type", "f", "-name", "*.src.rpm", "-printf", "%f "])
+        yield self.runCommand(cmd)
+        if cmd.didFail():
+            yield log.addStderr(u"Unable to find srpm path\n")
             defer.returnValue(FAILURE)
+        srpm = cmd.stdout.strip()
+        yield log.addStdout(u"Source package: {}\n".format(srpm))
+
+        # Retrieve package information
+        rpmSpec = RpmSpec(specfile=self.specfile, workdir=self.workdir)
+        rpmSpec.load()
+        if not rpmSpec.loaded:
+            yield log.addStderr(u"Unable to read specfile {}\n".format(self.specfile))
+            defer.returnValue(FAILURE)
+        # Save srpm location and package information
+        pkg_info = self.getProperty("package_info") or {}
+        pkg_info[self.pkgname] = {
+            "name": rpmSpec.pkg_name,
+            "version": rpmSpec.pkg_version,
+            "provides": rpmInfo.pkg_provides,
+            "requires": rpmInfo.pkg_requires,
+            "srpm": srpm
+        }
+        yield log.addStdout(u"Package information for {}: {}\n".format(self.pkgname, pkg_info[self.pkgname]))
+        self.setProperty("package_info", pkg_info, "BuildSourcePackage")
         defer.returnValue(SUCCESS)
 
 class BuildBinaryPackage(MockRebuild):
