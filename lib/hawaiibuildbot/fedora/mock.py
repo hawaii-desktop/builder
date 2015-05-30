@@ -171,7 +171,7 @@ class MockChain(Mock):
     description = ["mockchain rebuilding srpms"]
     descriptionDone = ["mockchain rebuild srpms"]
 
-    def __init__(self, srpms=[], **kwargs):
+    def __init__(self, localrepo=None srpms=[], **kwargs):
         Mock.__init__(self, **kwargs)
 
         if not srpms or len(srpms) == 0:
@@ -179,4 +179,7 @@ class MockChain(Mock):
 
         self.command = ["/usr/bin/mockchain", "--root", self.root,
                         "-m", "--resultdir=" + self.resultdir,
-                        "--tmp_prefix=buildbot", " ".join(srpms)]
+                        "--tmp_prefix=buildbot"]
+        if localrepo:
+            self.command += ["-l", localrepo]
+        self.command.append(" ".join(srpms))
