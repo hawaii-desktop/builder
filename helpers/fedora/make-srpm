@@ -1,0 +1,100 @@
+#!/bin/bash
+#
+# This file is part of Hawaii.
+#
+# Copyright (C) 2015 Pier Luigi Fiorini <pierluigi.fiorini@gmail.com>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+pkgname=$1
+repourl1=$2
+branch1=$3
+repourl2=$4
+branch2=$5
+
+if [ -z "$pkgname" -o -z "$repourl1" -o -z "$branch1" -o -z "$repourl2" -o -z "$branch2" ]; then
+    echo "Usage: $0 <package name> <upstream repourl> <upstream branch> <downstream repourl> <downstream branch>"
+    exit 1
+fi
+
+mkclonedir() {
+    dirname=$1
+    if [ -e $dirname -a ! -d $dirname ]; then
+        echo "$dirname exists but it's not a directory"
+        exit 1
+    fi
+}
+
+clone() {
+    repourl=$1
+    branch=$2
+    dirname=$3
+
+    echo "~~~ Clone $dirname"
+
+    if [ -d $dirname ]; then
+        pushd $dirname >/dev/null
+        git pull
+        popd >/dev/null
+    else
+        git clone -b $branch $repourl $dirname
+    fi
+}
+
+#
+# Under the cwd (build/$PKGNAME) we have a couple of directories:
+#  - upstream: upstream sources
+#  - downstream: RPM packaging stuff
+#  - work: Working copy
+#
+
+# Sanity check
+mkclonedir upstream
+mkclonedir downstream
+
+# Clone
+clone $repourl1 $branch1 upstream
+clone $repourl2 $branch2 downstream
+
+# Compress sources and get build information
+pushd upstream >/dev/null
+echo "-- from $(pwd)"
+echo "~~~ Create source tarball"
+git archive --format=tar --prefix=${pkgname}/ $branch1 | gzip -5 >../downstream/${pkgname}.tar.gz
+build_date=$(date +"%Y%m%d")
+gitdate=$(git log -1 --format="%cd" --date=short | tr -d '-')
+gitver=$(git log -1 --format="%h")
+popd >/dev/null
+
+# Create spec file and build SRPM
+echo "~~~ Copy downstream to work"
+rm -rf work
+/usr/bin/cp -fR downstream work
+
+pushd work >/dev/null
+pwd=$(pwd)
+echo "-- from ${pwd}"
+
+echo "~~ Create ${pkgname}.spec"
+/usr/bin/cp -f ${pkgname}.spec ${pkgname}.spec.in
+/usr/bin/cat ${pkgname}.spec.in | sed -e "s,@BUILD_DATE@,$build_date," -e "s,@GIT_DATE@,$gitdate,g" -e "s,@GIT_VERSION@,$gitver," > ${pkgname}.spec
+/usr/bin/rm -f ${pkgname}.spec.in
+
+echo "~~ Build SRPM"
+rpmbuild --define "_sourcedir ${pwd}" --define "_specdir ${pwd}" \
+    --define "_builddir ${pwd}" --define "_srcrpmdir ${pwd}" \
+    --define "_rpmdir ${pwd}" --define "_buildrootdir ${pwd}/.build" \
+    -bs ${pkgname}.spec || exit $?
+popd >/dev/null

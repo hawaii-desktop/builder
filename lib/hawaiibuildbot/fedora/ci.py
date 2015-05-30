@@ -19,6 +19,7 @@
 
 import os, re
 
+from buildbot import config
 from buildbot.steps.shell import ShellCommand
 from buildbot.plugins import steps
 from buildbot.process.buildstep import ShellMixin
@@ -28,38 +29,42 @@ from twisted.internet import defer
 
 from mock import MockBuildSRPM, MockChain
 
-class PrepareSources(ShellCommand):
+class MakeSRPM(ShellCommand):
     """
-    Create a tarball of the upstream sources and create the spec file.
+    Clone upstream and downstream git repositories,
+    create spec file and tarball, build the SRPM.
     """
 
-    def __init__(self, pkgname, **kwargs):
+    description = ["building srpm"]
+    descriptionDone = ["srpm built"]
+
+    def __init__(self, pkgname=None, repoinfo=None, **kwargs):
         ShellCommand.__init__(self, **kwargs)
-        self.command = ["../../helpers/mksrc", pkgname]
-        self.name = "{} prepare".format(pkgname)
 
-class SourcePackage(MockBuildSRPM):
-    """
-    Create a SRPM from sources using mock.
-    """
+        if not pkgname:
+            config.error("You must specify a package name")
+        if not repoinfo:
+            config.error("You must specify repository information")
 
-    def __init__(self, arch, distro, pkgname, **kwargs):
-        root = "fedora-{}-{}".format(distro, arch)
-        resultdir = "../srpm"
-        spec = "{}.spec".format(pkgname)
-        MockBuildSRPM.__init__(self, root=root, resultdir=resultdir, spec=spec, **kwargs)
+        self.name = "{} srpm".format(pkgname)
 
-        self.arch = arch
-        self.distro = distro
-        self.pkgname = pkgname
-        self.name = "{} srpm {}".format(self.pkgname, root)
+        repourl1 = repoinfo["upstream"]["repourl"]
+        branch1 = repoinfo["upstream"].get("branch", "master")
+        repourl2 = repoinfo["downstream"]["repourl"]
+        branch2 = repoinfo["downstream"].get("branch", "master")
+
+        self.command = ["../../helpers/make-srpm", pkgname,
+                        repourl1, branch1, repourl2, branch2]
 
 class BuildSourcePackages(ShellMixin, steps.BuildStep):
     """
-    Move SRPMs to a common location and chain build them.
+    Collect SRPMs and start mockchain on them.
     """
 
-    name = "chain"
+    name = "buildsrpms"
+
+    description = ["collecting srpms"]
+    descriptionDone = ["srpms sent to mockchain"]
 
     def __init__(self, pkgnames, arch, distro, **kwargs):
         kwargs = self.setupShellMixin(kwargs, prohibitArgs=["command"])
@@ -76,7 +81,7 @@ class BuildSourcePackages(ShellMixin, steps.BuildStep):
         pkg_info = []
         for pkgname in self.pkgnames:
             # Spec file path
-            path = "{}/downstream/{}.spec".format(pkgname, pkgname)
+            path = "{}/work/{}.spec".format(pkgname, pkgname)
             # Retrieve NVR
             cmd = yield self._makeCommand(["../helpers/spec-nvr", path])
             yield self.runCommand(cmd)
@@ -85,34 +90,47 @@ class BuildSourcePackages(ShellMixin, steps.BuildStep):
                 defer.returnValue(FAILURE)
             n, e, v, r = cmd.stdout.strip().split(" ")
             # Populate list
-            pkg_info.append({"name": n, "epoch": e, "version": v, "release": r})
+            pkg_info.append({"name": n, "epoch": e, "version": v, "release": r,
+                             "pkgname": pkgname, "pkgdir": pkgname + "/work"})
+        buffer = ""
+        for pkg in pkg_info:
+            buffer += "\t{} {}:{}-{}\n".format(pkg["name"], pkg["epoch"], pkg["version"], pkg["release"])
         self.setProperty("pkg_info", pkg_info, "MoveSourcePackages")
-        yield log.addStdout(u"Package information: {}\n".format(pkg_info))
+        yield log.addStdout(u"Package information:\n{}\n\n".format(buffer))
 
         # Find SRPMs
         srpms = []
         for pkg in pkg_info:
             # Find the artifacts
-            path = "{}/srpm".format(pkgname)
-            cmd = yield self._makeCommand(["/usr/bin/find", path, "-type", "f", "-name", "*.src.rpm"])
+            cmd = yield self._makeCommand(["/usr/bin/find", pkg["pkgdir"], "-type", "f", "-name", "*.src.rpm"])
             yield self.runCommand(cmd)
             if cmd.didFail():
                 defer.returnValue(FAILURE)
 
             # Add artifact to the list
             artifacts = cmd.stdout.strip().split(" ")
-            yield log.addStdout(u"Artifacts for {}: {}\n".format(pkg["name"], artifacts))
+            buffer = ""
+            for artifact in artifacts:
+                buffer += "\t{}\n".format(artifact)
+            yield log.addStdout(u"Artifacts for {}:\n{}\n".format(pkg["pkgname"], buffer))
             if pkg["epoch"] == "(none)":
                 r = re.compile(r'.*\-{}\-{}\.src\.rpm'.format(pkg["version"], pkg["release"]))
             else:
                 r = re.compile(r'.*\-{}:{}\-{}\.src\.rpm'.format(pkg["epoch"], pkg["version"], pkg["release"]))
             matching_artifacts = filter(r.match, artifacts)
-            yield log.addStdout(u"Matching artifacts for {}: {}\n".format(pkg["name"], matching_artifacts))
             if len(matching_artifacts) == 0:
-                yield log.addStderr(u"No matching artifacts found for {}\n".format(pkg["name"]))
+                yield log.addStderr(u"No matching artifacts found for {}\n".format(pkg["pkgname"]))
                 defer.returnValue(FAILURE)
+            buffer = ""
+            for artifact in matching_artifacts:
+                buffer += "\t{}\n".format(artifact)
+            yield log.addStdout(u"Matching artifacts for {}:\n{}\n".format(pkg["pkgname"], buffer))
             srpms += matching_artifacts
-        yield log.addStdout(u"SRPMs: {}\n".format(srpms))
+
+        buffer = ""
+        for srpm in srpms:
+            buffer += "\t{}\n".format(srpm)
+        yield log.addStdout(u"\nSRPMs:\n{}".format(buffer))
 
         # Chain build
         root = "fedora-{}-{}".format(self.distro, self.arch)

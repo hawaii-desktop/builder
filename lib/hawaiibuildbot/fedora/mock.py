@@ -184,4 +184,4 @@ class MockChain(Mock):
             self.command += ["-l", localrepo]
         if recursive:
             self.command.append("--recurse")
-        self.command.append(" ".join(srpms))
+        self.command += srpms

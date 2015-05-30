@@ -40,7 +40,7 @@ class CiFactory(BuildFactory):
         BuildFactory.__init__(self, [])
 
         # Copy helpers
-        for helper in ("mksrc", "spec-nvr"):
+        for helper in ("make-srpm", "spec-nvr"):
             self.addStep(steps.FileDownload(name="helper " + helper,
                                             mastersrc="helpers/fedora/" + helper,
                                             slavedest="../helpers/" + helper,
@@ -48,19 +48,8 @@ class CiFactory(BuildFactory):
 
         # Build SRPMs
         for pkgname in sources.keys():
-            self.addStep(Git(name="{} upstream".format(pkgname),
-                             repourl=sources[pkgname]["upstream"]["repourl"],
-                             branch=sources[pkgname]["upstream"].get("branch", "master"),
-                             mode="incremental", workdir="build/{}/upstream".format(pkgname)))
-            self.addStep(Git(name="{} downstream".format(pkgname),
-                             repourl=sources[pkgname]["downstream"]["repourl"],
-                             branch=sources[pkgname]["downstream"].get("branch", "master"),
-                             mode="incremental", workdir="build/{}/downstream".format(pkgname)))
-            self.addStep(ci.PrepareSources(pkgname=pkgname, workdir="build/{}".format(pkgname)))
-            self.addStep(ci.SourcePackage(pkgname=pkgname, arch=arch, distro=distro,
-                                          workdir="build/{}/downstream".format(pkgname)))
-            self.addStep(ShellCommand(name="{} clean".format(pkgname),
-                                      command=["rm", "-rf", "build/{}/results".format(pkgname)]))
+            self.addStep(ci.MakeSRPM(pkgname=pkgname, repoinfo=sources[pkgname],
+                                     workdir="build/{}".format(pkgname)))
 
         # Chain build packages
         self.addStep(ci.BuildSourcePackages(pkgnames=sources.keys(), arch=arch,
