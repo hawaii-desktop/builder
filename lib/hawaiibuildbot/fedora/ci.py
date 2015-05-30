@@ -116,7 +116,8 @@ class BuildSourcePackages(ShellMixin, steps.BuildStep):
 
         # Chain build
         root = "fedora-{}-{}".format(self.distro, self.arch)
-        step = MockChain(root=root, localrepo="../repository", resultdir="../results", srpms=srpms)
+        step = MockChain(root=root, recursive=True, srpms=srpms,
+                         localrepo="../repository", resultdir="../results")
         self.build.addStepsAfterCurrentStep([step])
 
         defer.returnValue(SUCCESS)
