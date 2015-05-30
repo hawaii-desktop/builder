@@ -114,17 +114,9 @@ class BuildSourcePackages(ShellMixin, steps.BuildStep):
             srpms += matching_artifacts
         yield log.addStdout(u"SRPMs: {}\n".format(srpms))
 
-        # Move all SRPMs
-        for srpm in srpms:
-            cmd = yield self._makeCommand(["mv", "-f", srpm, "srpms"])
-            yield self.runCommand(cmd)
-            if cmd.didFail():
-                defer.returnValue(FAILURE)
-
         # Chain build
-        srpms = [os.path.basename(x) for x in srpms]
         root = "fedora-{}-{}".format(self.distro, self.arch)
-        step = MockChain(root=root, resultdir="../results", srpms=srpms, workdir="build/srpms")
+        step = MockChain(root=root, resultdir="../results", srpms=srpms)
         self.build.addStepsAfterCurrentStep([step])
 
         defer.returnValue(SUCCESS)

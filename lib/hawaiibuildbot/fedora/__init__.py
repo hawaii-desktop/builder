@@ -29,12 +29,11 @@ class CiFactory(BuildFactory):
     Factory to build a CI packages.
     Logic:
       - Copy all needed helpers from master to slave
-      - Create common area for all SRPMs
       - For each package:
         - Clone sources
         - Prepare sources (spec file and tarball)
         - Build SRPM
-      - Move all SRPMs to the common area and chain build
+      - Chain build all SRPMs
     """
 
     def __init__(self, sources, arch, distro):
@@ -46,9 +45,6 @@ class CiFactory(BuildFactory):
                                             mastersrc="helpers/fedora/" + helper,
                                             slavedest="../helpers/" + helper,
                                             mode=0755))
-
-        # Create SRPMS common area
-        self.addStep(ShellCommand(name="srpmsdir", command=["sh", "-c", "rm -fr srpms && mkdir -p srpms"]))
 
         # Build SRPMs
         for pkgname in sources.keys():
