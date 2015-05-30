@@ -147,4 +147,4 @@ class ChainBuild(ShellCommand):
     def __init__(self, root, srpms, **kwargs):
         ShellCommand.__init__(self, **kwargs)
         self.name = "mockchain {}".format(root)
-        self.command = ["/usr/bin/mockchain", "--root", root, " ".join(srpms)]
+        self.command = ["/usr/bin/mockchain", "--root", root, "--tmp_prefix=buildbot", " ".join(srpms)]
