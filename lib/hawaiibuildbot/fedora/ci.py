@@ -20,12 +20,13 @@
 import os, re
 
 from buildbot.steps.shell import ShellCommand
-from buildbot.steps.package.rpm.mock import MockBuildSRPM
 from buildbot.plugins import steps
 from buildbot.process.buildstep import ShellMixin
 from buildbot.status.results import *
 
 from twisted.internet import defer
+
+from mock import MockBuildSRPM
 
 class PrepareSources(ShellCommand):
     """
