@@ -124,7 +124,7 @@ class BuildSourcePackages(ShellMixin, steps.BuildStep):
         # Chain build
         srpms = [os.path.basename(x) for x in srpms]
         root = "fedora-{}-{}".format(self.distro, self.arch)
-        step = ChainBuild(root=root, srpms=srpms, workdir="srpms")
+        step = ChainBuild(root=root, srpms=srpms, workdir="build/srpms")
         self.build.addStepsAfterCurrentStep([step])
 
         defer.returnValue(SUCCESS)
