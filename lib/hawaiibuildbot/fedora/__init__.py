@@ -19,51 +19,49 @@
 
 from buildbot.process.factory import BuildFactory
 from buildbot.steps.source.git import Git
+from buildbot.steps.shell import ShellCommand
+from buildbot.plugins import steps
 
-from repo import *
-from sources import *
-from buildsteps import *
+import ci
 
 class CiFactory(BuildFactory):
     """
-    Factory to build a repository of the Hawaii CI for a certain architecture.
-    Strategoy:
-        - Copy all the helpers from master to slave
-        - Create or update local repository
-        - Clone upstream and downstream sources and prepare the
-          spec file and source tarball
-        - Scan the repository to find packages that have already been built
-        - Scan the sources to retrieve package information
-        - Determine which packages need to be built and order the list
-          based on dependencies
-        - Build SRPMs
-        - Build RPMs
+    Factory to build a CI packages.
+    Logic:
+      - Copy all needed helpers from master to slave
+      - Create common area for all SRPMs
+      - For each package:
+        - Clone sources
+        - Prepare sources (spec file and tarball)
+        - Build SRPM
+      - Move all SRPMs to the common area and chain build
     """
 
-    def __init__(self, sources, arch):
+    def __init__(self, sources, arch, distro):
         BuildFactory.__init__(self, [])
 
         # Copy helpers
-        for helper in ("createrepo", "mksrc", "srpm-nvr", "spec-nvr",
-                       "spec-provides", "spec-requires", "needs-rebuild"):
+        for helper in ("mksrc", "spec-nvr"):
             self.addStep(steps.FileDownload(name="helper " + helper,
                                             mastersrc="helpers/fedora/" + helper,
                                             slavedest="../helpers/" + helper,
                                             mode=0755))
 
-        # Create or update local repository
-        self.addStep(CreateRepo(repodir="repository"))
+        # Create SRPMS common area
+        self.addStep(ShellCommand(name="srpmsdir", command=["sh", "-c", "rm -fr srpms && mkdir -p srpms"]))
 
-        # Clone all sources and prepare the spec file and source tarball
+        # Build SRPMs
         for pkgname in sources.keys():
             self.addStep(Git(name="{} upstream".format(pkgname), repourl=sources[pkgname]["upstreamsrc"],
-                             mode="incremental", workdir="{}/upstream".format(pkgname)))
+                             mode="incremental", workdir="build/{}/upstream".format(pkgname)))
             self.addStep(Git(name="{} downstream".format(pkgname), repourl=sources[pkgname]["downstreamsrc"],
-                             mode="incremental", workdir="{}/downstream".format(pkgname)))
-            self.addStep(PrepareSources(pkgname, workdir=pkgname))
+                             mode="incremental", workdir="build/{}/downstream".format(pkgname)))
+            self.addStep(ci.PrepareSources(pkgname=pkgname, workdir="build/{}".format(pkgname)))
+            self.addStep(ci.SourcePackage(pkgname=pkgname, arch=arch, distro=distro,
+                                          workdir="build/{}/downstream".format(pkgname)))
+            self.addStep(ShellCommand(name="{} clean".format(pkgname),
+                                      command=["rm", "-rf", "build/{}/results".format(pkgname)]))
 
-        # Scan the repository to find which packages have already been built
-        self.addStep(RepositoryScan(repodir="../repository"))
-
-        # Scan sources and build
-        self.addStep(SourcesScan(pkgnames=sources.keys(), arch=arch, distro="22"))
+        # Chain build packages
+        self.addStep(ci.BuildSourcePackages(pkgnames=sources.keys(), arch=arch,
+                                            distro=distro))

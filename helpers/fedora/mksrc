@@ -31,17 +31,19 @@ fi
 #  - downstream: RPM packaging stuff
 #
 
-# Copy the packaging directory
-rm -rf work
-cp -R downstream work
+pushd upstream
 
 # Compress sources
-(cd upstream; git archive --format=tar --prefix=${pkgname}/ HEAD | gzip -5 >../work/${pkgname}.tar.gz)
+git archive --format=tar --prefix=${pkgname}/ HEAD | gzip -5 >../downstream/${pkgname}.tar.gz
 
-# Prepare spec file
-pushd upstream
+# Build information
 build_date=$(date +"%Y%m%d")
 gitdate=$(git log -1 --format="%cd" --date=short | tr -d '-')
 gitver=$(git log -1 --format="%h")
+
 popd
-cat downstream/${pkgname}.spec | sed -e "s,@BUILD_DATE@,$build_date," -e "s,@GIT_DATE@,$gitdate,g" -e "s,@GIT_VERSION@,$gitver," > work/${pkgname}.spec
+
+# Create spec file
+cp downstream/${pkgname}.spec downstream/${pkgname}.spec.in
+cat downstream/${pkgname}.spec.in | sed -e "s,@BUILD_DATE@,$build_date," -e "s,@GIT_DATE@,$gitdate,g" -e "s,@GIT_VERSION@,$gitver," > downstream/${pkgname}.spec
+rm -f downstream/${pkgname}.spec.in
