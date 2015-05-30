@@ -138,13 +138,3 @@ class BuildSourcePackages(ShellMixin, steps.BuildStep):
         cmd = yield self._makeCommand(command, **kwargs)
         yield self.runCommand(cmd)
         defer.returnValue(not cmd.didFail())
-
-class ChainBuild(ShellCommand):
-    """
-    Build RPMS using mockchain.
-    """
-
-    def __init__(self, root, srpms, **kwargs):
-        ShellCommand.__init__(self, **kwargs)
-        self.name = "mockchain {}".format(root)
-        self.command = ["/usr/bin/mockchain", "--root", root, "--tmp_prefix=buildbot", " ".join(srpms)]
