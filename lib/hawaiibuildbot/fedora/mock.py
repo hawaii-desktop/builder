@@ -160,3 +160,40 @@ class MockRebuild(Mock):
             config.error("Please specify a srpm")
 
         self.command += ["--rebuild", self.srpm]
+
+class MockChain(Mock):
+    """
+    Rebuild a bunch of source RPMs with mockchain.
+    """
+
+    name = "mockchain"
+
+    description = ["mockchain rebuilding srpms"]
+    descriptionDone = ["mockchain rebuild srpms"]
+
+    def __init__(self, srpms=[], **kwargs):
+        Mock.__init__(self, resultdir="", **kwargs)
+
+        if not srpms or len(srpms) == 0:
+            config.error("Please specify a list of srpms")
+
+        self.command = ["/usr/bin/mockchain", "--root", self.root, "--tmp_prefix=buildbot", " ".join(srpms)]
+
+        self.addLogObserver("stdio",
+            logobserver.LineConsumerLogObserver(self.logConsumer))
+
+    def logConsumer(self):
+        r = re.compile(r"^results dir: (.+)$")
+        while True:
+            stream, line = yield
+            m = r.search(line)
+            if m:
+                self.resultdir = m.group(1)
+                # Observe mock logs now that we have them
+                for lname in self.mock_logfiles:
+                    self.logfiles[lname] = self.build.path_module.join(self.resultdir,
+                                                                       lname)
+
+    def start(self):
+        # Observe state log
+        self.addLogObserver("state.log", MockStateObserver())

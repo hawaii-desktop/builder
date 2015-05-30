@@ -26,7 +26,7 @@ from buildbot.status.results import *
 
 from twisted.internet import defer
 
-from mock import MockBuildSRPM
+from mock import MockBuildSRPM, MockChain
 
 class PrepareSources(ShellCommand):
     """
@@ -124,7 +124,7 @@ class BuildSourcePackages(ShellMixin, steps.BuildStep):
         # Chain build
         srpms = [os.path.basename(x) for x in srpms]
         root = "fedora-{}-{}".format(self.distro, self.arch)
-        step = ChainBuild(root=root, srpms=srpms, workdir="build/srpms")
+        step = MockChain(root=root, srpms=srpms, workdir="build/srpms")
         self.build.addStepsAfterCurrentStep([step])
 
         defer.returnValue(SUCCESS)
