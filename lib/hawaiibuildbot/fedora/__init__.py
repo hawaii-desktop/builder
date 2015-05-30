@@ -48,9 +48,13 @@ class CiFactory(BuildFactory):
 
         # Build SRPMs
         for pkgname in sources.keys():
-            self.addStep(Git(name="{} upstream".format(pkgname), repourl=sources[pkgname]["upstreamsrc"],
+            self.addStep(Git(name="{} upstream".format(pkgname),
+                             repourl=sources[pkgname]["upstream"]["repourl"],
+                             branch=sources[pkgname]["upstream"].get("branch", "master"),
                              mode="incremental", workdir="build/{}/upstream".format(pkgname)))
-            self.addStep(Git(name="{} downstream".format(pkgname), repourl=sources[pkgname]["downstreamsrc"],
+            self.addStep(Git(name="{} downstream".format(pkgname),
+                             repourl=sources[pkgname]["downstream"]["repourl"],
+                             branch=sources[pkgname]["downstream"].get("branch", "master"),
                              mode="incremental", workdir="build/{}/downstream".format(pkgname)))
             self.addStep(ci.PrepareSources(pkgname=pkgname, workdir="build/{}".format(pkgname)))
             self.addStep(ci.SourcePackage(pkgname=pkgname, arch=arch, distro=distro,
