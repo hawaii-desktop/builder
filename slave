@@ -29,4 +29,5 @@ fi
 
 export PYTHONPATH=$(pwd)/lib
 source ~/buildbot/env/bin/activate
+export PATH=$basedir/env/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin
 buildslave $what $basedir/slaves/$slave
