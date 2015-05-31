@@ -28,5 +28,5 @@ if [ -z "$what" -o -z "$slave" ]; then
 fi
 
 export PYTHONPATH=$(pwd)/lib
-source ~/buildbot/buildbotenv/bin/activate
+source ~/buildbot/env/bin/activate
 buildslave $what $basedir/slaves/$slave
