@@ -28,6 +28,6 @@ if [ -z "$what" -o -z "$slave" ]; then
 fi
 
 export PYTHONPATH=$(pwd)/lib
-source ~/buildbot/env/bin/activate
+source $basedir/env/bin/activate
 export PATH=$basedir/env/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin
 buildslave $what $basedir/slaves/$slave

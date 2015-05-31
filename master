@@ -28,5 +28,5 @@ if [ -z "$what" ]; then
 fi
 
 export PYTHONPATH=$(pwd)/lib
-source ~/buildbot/env/bin/activate
+source $basedir/env/bin/activate
 buildbot $what $basedir/master
