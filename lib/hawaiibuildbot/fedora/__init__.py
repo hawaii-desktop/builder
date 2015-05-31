@@ -40,7 +40,7 @@ class CiFactory(BuildFactory):
         BuildFactory.__init__(self, [])
 
         # Copy helpers
-        for helper in ("make-srpm", "spec-nvr"):
+        for helper in ("make-srpm", "spec-nvr", "spec-provides", "spec-requires"):
             self.addStep(steps.FileDownload(name="helper " + helper,
                                             mastersrc="helpers/fedora/" + helper,
                                             slavedest="../helpers/" + helper,

@@ -18,6 +18,7 @@
 #
 
 import os, re
+import networkx as nx
 
 from buildbot import config
 from buildbot.steps.shell import ShellCommand
@@ -89,12 +90,50 @@ class BuildSourcePackages(ShellMixin, steps.BuildStep):
                 yield log.addStderr(u"Unable to determine NVR from \"{}\"\n".format(path))
                 defer.returnValue(FAILURE)
             n, e, v, r = cmd.stdout.strip().split(" ")
+            # Retrieve provides
+            cmd = yield self._makeCommand(["../helpers/spec-provides", path])
+            yield self.runCommand(cmd)
+            if cmd.didFail():
+                yield log.addStderr(u"Unable to determine provides from \"{}\"\n".format(path))
+                defer.returnValue(FAILURE)
+            provides = []
+            for i in cmd.stdout.split("\n"):
+                provides.append(i.split(" = ")[0])
+            # Retrieve requires
+            cmd = yield self._makeCommand(["../helpers/spec-requires", path])
+            yield self.runCommand(cmd)
+            if cmd.didFail():
+                yield log.addStderr(u"Unable to determine requires from \"{}\"\n".format(path))
+                defer.returnValue(FAILURE)
+            requires = []
+            for i in cmd.stdout.split("\n"):
+                requires.append(i.split(" ")[0])
             # Populate list
             pkg_info.append({"name": n, "epoch": e, "version": v, "release": r,
+                             "provides": provides, "requires": requires,
                              "pkgname": pkgname, "pkgdir": pkgname + "/work"})
+
+        # Update the list of dependencies removing those provided by the system
+        for pkg in pkg_info:
+            deps = []
+            for dep in pkg["requires"]:
+                providers = [npkg for npkg in pkg_info if dep in npkg["provides"] or npkg["name"] == dep]
+                if len(providers) > 0:
+                    deps.append(providers[0]["name"])
+            pkg["requires"] = deps
+
+        # Log package information
         buffer = ""
         for pkg in pkg_info:
-            buffer += "\t{} {}:{}-{}\n".format(pkg["name"], pkg["epoch"], pkg["version"], pkg["release"])
+            buffer += "\t- {} {}:{}-{}\n".format(pkg["name"], pkg["epoch"], pkg["version"], pkg["release"])
+            if len(pkg["provides"]) > 0:
+                buffer += "\t\t- Provides:\n"
+                for provide in pkg["provides"]:
+                    buffer += "\t\t\t- {}\n".format(provide)
+            if len(pkg["requires"]) > 0:
+                buffer += "\t\t- Requires:\n"
+                for require in pkg["requires"]:
+                    buffer += "\t\t\t- {}\n".format(require)
         self.setProperty("pkg_info", pkg_info, "MoveSourcePackages")
         yield log.addStdout(u"Package information:\n{}\n\n".format(buffer))
 
@@ -125,16 +164,40 @@ class BuildSourcePackages(ShellMixin, steps.BuildStep):
             for artifact in matching_artifacts:
                 buffer += "\t{}\n".format(artifact)
             yield log.addStdout(u"Matching artifacts for {}:\n{}\n".format(pkg["pkgname"], buffer))
+
+            # Add matching artifacts to the list
+            pkg["srpms"] = matching_artifacts
             srpms += matching_artifacts
 
-        buffer = ""
-        for srpm in srpms:
-            buffer += "\t{}\n".format(srpm)
-        yield log.addStdout(u"\nSRPMs:\n{}".format(buffer))
+        # Sort package names by dependencies
+        # XXX: This won't totally work because some packages requires pkgconfig
+        #      packages but we list actual package names only on provides.
+        names = [pkg["name"] for pkg in pkg_info]
+        graph = nx.DiGraph()
+        for pkg in pkg_info:
+            if len(pkg["requires"]) == 0:
+                graph.add_node(pkg["name"])
+            else:
+                for dep in pkg["requires"]:
+                    if dep != pkg["name"]:
+                        graph.add_edge(dep, pkg["name"])
+        sorted_names = nx.topological_sort(graph)
+        yield log.addStdout(u"Sorted packages:\n\t- {}\n".format("\n\t- ".join(sorted_names)))
+
+        # Sort SRPMs by dependencies
+        sorted_srpms = []
+        for name in sorted_names:
+            for pkg in pkg_info:
+                if pkg["name"] == name:
+                    sorted_srpms += pkg["srpms"]
+                    break
+
+        # Log the list of sorted SRPMs
+        yield log.addStdout(u"\nSRPMs:\n\t- {}\n".format("\n\t- ".join(sorted_srpms)))
 
         # Chain build
         root = "fedora-{}-{}".format(self.distro, self.arch)
-        step = MockChain(root=root, recursive=True, srpms=srpms,
+        step = MockChain(root=root, recursive=True, srpms=sorted_srpms,
                          localrepo="../repository", resultdir="../results")
         self.build.addStepsAfterCurrentStep([step])
 
