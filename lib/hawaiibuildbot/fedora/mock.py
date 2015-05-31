@@ -76,6 +76,45 @@ class Mock(ShellCommand):
         if self.resultdir:
             self.command += ["--resultdir", self.resultdir]
 
+    def getConfiguration(self, ccache=True, yum_cache=True, root_cache=True,
+                         tmpfs=True, nosync=False, sign=True, gpg_name=None, gpg_path=None):
+        config = """
+config_opts['nosync'] = """ + str(nosync) + """
+config_opts['plugin_conf']['package_state_enable'] = False
+config_opts['plugin_conf']['ccache_enable'] = """ + str(ccache) + """
+config_opts['plugin_conf']['ccache_opts'] = {}
+config_opts['plugin_conf']['ccache_opts']['max_cache_size'] = '4G'
+config_opts['plugin_conf']['ccache_opts']['compress'] = None
+config_opts['plugin_conf']['ccache_opts']['dir'] = "%(cache_topdir)s/%(root)s/ccache/u%(chrootuid)s/"
+config_opts['plugin_conf']['yum_cache_enable'] = """ + str(yum_cache) + """
+config_opts['plugin_conf']['yum_cache_opts'] = {}
+config_opts['plugin_conf']['yum_cache_opts']['max_age_days'] = 30
+config_opts['plugin_conf']['yum_cache_opts']['max_metadata_age_days'] = 30
+config_opts['plugin_conf']['yum_cache_opts']['dir'] = "%(cache_topdir)s/%(root)s/%(package_manager)s_cache/"
+config_opts['plugin_conf']['yum_cache_opts']['target_dir'] "/var/cache/%(package_manager)s/"
+config_opts['plugin_conf']['yum_cache_opts']['online'] = True
+config_opts['plugin_conf']['root_cache_enable'] = """ + str(root_cache) + """
+config_opts['plugin_conf']['root_cache_opts'] = {}
+config_opts['plugin_conf']['root_cache_opts']['age_check'] = True
+config_opts['plugin_conf']['root_cache_opts']['max_age_days'] = 15
+config_opts['plugin_conf']['root_cache_opts']['dir'] = "%(cache_topdir)s/%(root)s/root_cache/"
+config_opts['plugin_conf']['root_cache_opts']['compress_program'] = "pigz"
+config_opts['plugin_conf']['root_cache_opts']['extension'] = ".gz"
+config_opts['plugin_conf']['root_cache_opts']['exclude_dirs'] = ["./proc", "./sys", "./dev",
+                                                                 "./tmp/ccache", "./var/cache/yum" ]
+config_opts['plugin_conf']['tmpfs_enable'] = """ + str(tmpfs) + """
+config_opts['plugin_conf']['tmpfs_opts'] = {}
+config_opts['plugin_conf']['tmpfs_opts']['required_ram_mb'] = 1024
+config_opts['plugin_conf']['tmpfs_opts']['max_fs_size'] = '768m'
+config_opts['plugin_conf']['tmpfs_opts']['mode'] = '0755'
+config_opts['plugin_conf']['tmpfs_opts']['keep_mounted'] = False
+config_opts['plugin_conf']['sign_enable'] = """ + str(sign) + """
+config_opts['plugin_conf']['sign_opts'] = {}
+config_opts['plugin_conf']['sign_opts']['cmd'] = 'rpmsign'
+config_opts['plugin_conf']['sign_opts']['opts'] = '--addsign %(rpms)s -D "%%_gpg_name """ + str(gpg_name) + """" -D "%%_gpg_path """ + str(gpg_path) + """'
+"""
+        return config
+
     def start(self):
         # Observe mock logs
         if self.resultdir:
