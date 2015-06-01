@@ -23,6 +23,7 @@ from buildbot.steps.shell import ShellCommand
 from buildbot.plugins import steps
 
 import ci
+import image
 
 class CiFactory(BuildFactory):
     """
@@ -54,3 +55,26 @@ class CiFactory(BuildFactory):
         # Chain build packages
         self.addStep(ci.BuildSourcePackages(pkgnames=sources.keys(), arch=arch,
                                             distro=distro))
+
+class ImageFactory(BuildFactory):
+    """
+    Factory to spin images.
+    Logic:
+      - Flatten kickstart file
+      - Run the creator over the flattened kickstart file
+    """
+
+    def __init__(self, repourl, arch, distro):
+        git = Git(repourl=repourl, mode="incremental", workdir="kickstarts")
+        BuildFactory.__init__(self, [git])
+
+        import datetime
+        today = datetime.datetime.now().strftime("%Y%m%d")
+
+        # Flatten kickstart and create image
+        if arch in ("i386", "x86_64"):
+            self.addStep(image.FlattenKickstart(filename="../kickstarts/hawaii-livecd.ks"))
+            self.addStep(image.CreateLiveCd(arch=arch, distro=distro,
+                                            title="Hawaii", product="Hawaii",
+                                            imgname="hawaii", version=today))
+        # TODO: Create an appliance for arm
