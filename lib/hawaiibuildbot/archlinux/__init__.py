@@ -35,7 +35,6 @@ class RepositoryFactory(BuildFactory):
         BuildFactory.__init__(self, sources)
 
         # Download the helpers
-        self.addStep(steps.MakeDirectory(name="CreateHelpersDir", dir="helpers"))
         for helper in ("pkgdepends", "pkgprovides", "pkgversion", "ccm-setup"):
             self.addStep(steps.FileDownload(name="DownloadHelper " + helper,
                                             mastersrc="helpers/archlinux/" + helper,
