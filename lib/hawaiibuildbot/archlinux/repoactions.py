@@ -31,7 +31,8 @@ class RepositoryScan(ShellMixin, BuildStep):
     """
     Scans a repository to find packages and build them.
     """
-    name = "RepositoryScan"
+
+    name = "repo-scan"
     description = "Scan a repository and build packages not yet built"
     packages = []
 

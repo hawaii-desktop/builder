@@ -31,7 +31,8 @@ class PushSourceChanges(ShellMixin, BuildStep):
     When a git ArchLinux package is built the pkgver field is updated,
     make sure those changes are committed and pushed back.
     """
-    name = "PushSourceChanges"
+
+    name = "git-push"
     description = "Push package updates back"
 
     def __init__(self, **kwargs):

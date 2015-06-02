@@ -25,7 +25,7 @@ from buildbot.status.results import *
 
 from twisted.internet import defer
 
-class PrepareChrootAction(ShellMixin, steps.BuildStep):
+class PrepareChroot(ShellMixin, steps.BuildStep):
     """
     Create or update the chroot for the requested architecture.
     See https://wiki.archlinux.org/index.php/DeveloperWiki:Building_in_a_Clean_Chroot
@@ -35,7 +35,7 @@ class PrepareChrootAction(ShellMixin, steps.BuildStep):
     def __init__(self, arch, **kwargs):
         steps.BuildStep.__init__(self, haltOnFailure=True, **kwargs)
         self.arch = arch
-        self.name = "PrepareChroot %s" % self.arch
+        self.name = "chroot %s" % self.arch
         self.cachedir = os.path.join(self.workdir, "..", "chroot")
         self.chrootdir = "root"
 
@@ -94,7 +94,7 @@ class CcmAction(ShellMixin, steps.BuildStep):
         steps.BuildStep.__init__(self, haltOnFailure=True, **kwargs)
         self.arch = arch
         action_map = {"c": "Create", "u": "Update", "s": "Build"}
-        self.name = "Ccm{} {}".format(action_map[action], self.arch)
+        self.name = "ccm{} {}".format(action_map[action], self.arch)
         self.action = action
 
     @defer.inlineCallbacks
@@ -134,7 +134,7 @@ class PrepareCcm(CcmAction):
 
     def __init__(self, arch, **kwargs):
         CcmAction.__init__(self, arch, "c", **kwargs)
-        self.name = "PrepareCcm {}".format(self.arch)
+        self.name = "prepare-ccm {}".format(self.arch)
 
     @defer.inlineCallbacks
     def run(self):

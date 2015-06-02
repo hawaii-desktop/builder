@@ -34,13 +34,14 @@ class BinaryPackageBuild(CcmAction):
     Build a package in a clean chroot.
     See https://wiki.archlinux.org/index.php/DeveloperWiki:Building_in_a_Clean_Chroot
     """
+
     description = "Build a package in a clean chroot"
     artifacts = []
     ccm = True
 
     def __init__(self, name, arch, depends, provides, **kwargs):
         CcmAction.__init__(self, arch=arch, action="s", **kwargs)
-        self.name = "BinaryPackage {} {}".format(name, arch)
+        self.name = "pkg {} {}".format(name, arch)
         self.pkgname = name
         self.arch = arch
         self.depends = depends

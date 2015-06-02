@@ -36,16 +36,16 @@ class RepositoryFactory(BuildFactory):
 
         # Download the helpers
         for helper in ("pkgdepends", "pkgprovides", "pkgversion", "ccm-setup"):
-            self.addStep(steps.FileDownload(name="DownloadHelper " + helper,
+            self.addStep(steps.FileDownload(name="helper " + helper,
                                             mastersrc="helpers/archlinux/" + helper,
                                             slavedest="../helpers/" + helper,
                                             mode=0755))
         # Create a directory to hold the packages that have been built
-        self.addStep(steps.MakeDirectory(name="CreateRepositoryDir", dir="repository"))
+        self.addStep(steps.MakeDirectory(name="mkdir-repository", dir="repository"))
         # Create or update the chroot
         self.addStep(PrepareCcm(arch=arch))
         # Copy the list of packages to build from slave to master
-        self.addStep(steps.FileUpload("buildinfo.yml", "tmp/buildinfo.yml", name="UploadBuildYaml"))
+        self.addStep(steps.FileUpload("buildinfo.yml", "tmp/buildinfo.yml", name="buildinfo-upload"))
         # Scan repository and find packages to build
         self.addStep(RepositoryScan(channel="ci", arch=arch))
         # Push back changes to version control
