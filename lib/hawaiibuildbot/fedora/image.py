@@ -89,5 +89,5 @@ class CreateLiveCd(ShellCommand):
         cmd = ["/usr/bin/livecd-creator", "--releasever=" + self.distro,
                "--title=" + self.title, "--product=" + self.product,
                "-c", "/tmp/flattened.ks", "-f", filename, "-d", "-v",
-               "--cache", "/tmp/buildbot-livecd"]
+               "--cache", "/var/cache/buildbot-livecd"]
         self.command = ["pkexec",] + cmd
