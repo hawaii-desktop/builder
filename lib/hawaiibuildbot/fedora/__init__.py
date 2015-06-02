@@ -77,4 +77,7 @@ class ImageFactory(BuildFactory):
             self.addStep(image.CreateLiveCd(arch=arch, distro=distro,
                                             title="Hawaii", product="Hawaii",
                                             imgname="hawaii", version=today))
-        # TODO: Create an appliance for arm
+        elif arch in ("armhfp",):
+            self.addStep(image.FlattenKickstart(filename="../kickstarts/hawaii-arm.ks"))
+            self.addStep(image.CreateAppliance(arch=arch, distro=distro,
+                                               title="Hawaii", version=today))

@@ -91,3 +91,68 @@ class CreateLiveCd(ShellCommand):
                "-c", "/tmp/flattened.ks", "-f", filename, "-d", "-v",
                "--cache", "/var/cache/buildbot-livecd"]
         self.command = ["pkexec",] + cmd
+
+class CreateAppliance(ShellCommand):
+    """
+    Create an appliance.
+    """
+
+    name = "appliance-creator"
+
+    description = ["creating appliance"]
+    descriptionDone = ["appliance created"]
+
+    haltOnFailure = True
+    flunkOnFailure = True
+
+    renderables = ["resultdir",]
+
+    logfilename = "appliance.log"
+
+    resultdir = "../results"
+    cachedir = "../cache"
+
+    arch = None
+    distro = None
+    title = None
+    version = None
+
+    def __init__(self, arch=None, distro=None, title=None, version=None, **kwargs):
+        ShellCommand.__init__(self, **kwargs)
+
+        self.arch = arch
+        if not self.arch:
+            config.error("You must specify the architecture")
+        self.distro = distro
+        if not self.distro:
+            config.error("You must specify the distribution")
+        self.title = title
+        if not self.title:
+            config.error("You must specify a title")
+        self.version = version
+        if not self.version:
+            config.error("You must specify the version")
+
+    def start(self):
+        # Observe log
+        self.logfiles[self.logfilename] = \
+            self.build.path_module.join(self.resultdir, self.logfilename)
+
+        # Remove old log
+        cmd = remotecommand.RemoteCommand("rmdir", {"dir": self.logfiles[self.logfilename]})
+        d = self.runCommand(cmd)
+
+        # Command
+        resultdir = self.build.path_module.abspath(self.resultdir)
+        cachedir = self.build.path_module.abspath(self.cachedir)
+        name = "{}-{}-{}".format(self.title, self.version, self.arch)
+        cmd = ["appliance-creator", "--logfile", self.logfiles[self.logfile], "--cache", cachedir,
+               "-d", "-v", "-o", resultdir, "--format=raw", "--checksum",
+               "--name", name, "--version", self.distro, "--release", self.version,
+               "-c", "/tmp/flattened.ks"]
+        self.command = ["pkexec",] + cmd
+
+        @d.addCallback
+        def removeDone(cmd):
+            ShellCommand.start(self)
+        d.addErrback(self.failed)
