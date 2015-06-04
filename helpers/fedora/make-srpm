@@ -49,7 +49,7 @@ clone() {
         git pull
         popd >/dev/null
     else
-        git clone -b $branch $repourl $dirname
+        git clone --depth 1 -b $branch $repourl $dirname
     fi
 }
 
