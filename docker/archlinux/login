@@ -18,20 +18,17 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-# Log into container  (username: admin   password: admin)
-# ssh -p $(docker port $CONTAINER_ID 22 | cut -d: -f 2) admin@localhost
+CONTAINER_ID=$1
 
-nslave=$1
-
-if [ -z "$nslave" ]; then
-    echo "Usage: $0 <nslave>"
+if [ -z "$CONTAINER_ID" ]; then
+    echo "Usage: $0 <CONTAINER_ID>"
     exit 1
 fi
 
-sudo pacman -S --noconfirm docker
-sudo systemctl start docker
-sudo systemctl enable docker
-sudo docker build -t buildbot - < slave.Dockerfile
-CONTAINER_ID=$(docker run -d -p 22 buildbot-slave${nslave})
-
-echo "buildbot slave container: $CONTAINER_ID"
+# Log into container  (username: admin   password: admin)
+port=$(sudo docker port $CONTAINER_ID 22 | cut -d: -f 2)
+if [ -z "$port" ]; then
+    echo "No port for container $CONTAINER_ID"
+    exit 1
+fi
+ssh -p $port admin@localhost

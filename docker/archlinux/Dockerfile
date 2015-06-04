@@ -24,13 +24,17 @@
 
 # Base docker image
 from base/archlinux:latest
+maintainer Pier Luigi Fiorini <pierluigi.fiorini@gmail.com>
 
 # Update
+run pacman -Sy
+run pacman -S --noconfirm archlinux-keyring
+run pacman-key --populate archlinux
 run pacman -Syu --noconfirm
+run pacman-db-upgrade
 
-# Install buildbot and its dependencies
-run pacman -S --noconfirm base base-devel git sudo openssh python2-pip
-run pip2 install buildbot buildbot_slave
+# Install build tools and supervisor
+run pacman -S --noconfirm base-devel git sudo openssh python2 python2-pip supervisor
 
 # Set ssh superuser (username: admin   password: admin)
 run mkdir /data
@@ -38,30 +42,32 @@ run useradd -m -d /data/buildbot -p sa1aY64JOY94w admin
 run sed -Ei 's/adm:x:4:/admin:x:4:admin/' /etc/group
 run sed -Ei 's/(\%admin ALL=\(ALL\) )ALL/\1 NOPASSWD:ALL/' /etc/sudoers
 
+# Install Python modules
+run pip2 install --upgrade pip
+run pip2 install mock pyaml networkx twisted
+
+# Install buildbot
+run cd /data/buildbot; sudo -u admin sh -c \
+    "git clone https://github.com/buildbot/buildbot src"
+run cd /data/buildbot/src/slave; python2 setup.py install
+
 # Create buildbot configuration
 run cd /data/buildbot; sudo -u admin sh -c \
-    "buildslave create-slave slave localhost:9989 slave1 password"
+    "buildslave create-slave slave @MASTER@ @SLAVE@ password"
 
-# Enable ssh
-run mkdir -p /etc/systemd/system/multi-user.target.wants
-run ln -s /usr/lib/systemd/system/sshd.service /etc/systemd/system/multi-user.target.wants/sshd.service
-
-# Set buildbot master service and enable it
+# Set buildbot and ssh services
+run mkdir -p /etc/supervisor/conf.d
+run /bin/echo -e "[program:sshd]\ncommand=/usr/sbin/sshd -D\n" > \
+    /etc/supervisor/conf.d/sshd.conf
 run /bin/echo -e "\
-[Unit]\n\
-Description=Buildbot Master\n\
-\n\
-[Service]\n\
-ExecStart=twistd --nodaemon --no_save -y /data/buildbot/slave/buildbot.tac\n\
-User=admin\n\
-\n\
-[Install]\n\
-WantedBy=multi-user.target\n" > \
-    /etc/systemd/system/multi-user.target.wants/buildbot-slave.service
+[program:buildslave]\n\
+command=twistd --nodaemon --no_save -y buildbot.tac\n\
+directory=/data/buildbot/slave\n\
+user=admin\n" > \
+    /etc/supervisor/conf.d/buildbot.conf
 
 # Expose container port 22 to a random port in the host
 expose 22
 
 # Run supervisord
-#cmd ["/usr/bin/supervisord", "-n"]
-cmd ["/sbin/init"]
+cmd ["/usr/bin/supervisord", "-n"]
