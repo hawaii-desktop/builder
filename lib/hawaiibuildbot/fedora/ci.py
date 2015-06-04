@@ -67,6 +67,10 @@ class BuildSourcePackages(ShellMixin, steps.BuildStep):
     description = ["collecting srpms"]
     descriptionDone = ["srpms sent to mockchain"]
 
+    # XXX: This won't totally work because some packages requires pkgconfig
+    #      packages but we list actual package names only on provides.
+    sort_by_deps = False
+
     def __init__(self, pkgnames, arch, distro, **kwargs):
         kwargs = self.setupShellMixin(kwargs, prohibitArgs=["command"])
         steps.BuildStep.__init__(self, haltOnFailure=True, **kwargs)
@@ -170,18 +174,19 @@ class BuildSourcePackages(ShellMixin, steps.BuildStep):
             srpms += matching_artifacts
 
         # Sort package names by dependencies
-        # XXX: This won't totally work because some packages requires pkgconfig
-        #      packages but we list actual package names only on provides.
         names = [pkg["name"] for pkg in pkg_info]
-        graph = nx.DiGraph()
-        for pkg in pkg_info:
-            if len(pkg["requires"]) == 0:
-                graph.add_node(pkg["name"])
-            else:
-                for dep in pkg["requires"]:
-                    if dep != pkg["name"]:
-                        graph.add_edge(dep, pkg["name"])
-        sorted_names = nx.topological_sort(graph)
+        if self.sort_by_deps:
+            graph = nx.DiGraph()
+            for pkg in pkg_info:
+                if len(pkg["requires"]) == 0:
+                    graph.add_node(pkg["name"])
+                else:
+                    for dep in pkg["requires"]:
+                        if dep != pkg["name"]:
+                            graph.add_edge(dep, pkg["name"])
+            sorted_names = nx.topological_sort(graph)
+        else:
+            sorted_names = names
         yield log.addStdout(u"Sorted packages:\n\t- {}\n".format("\n\t- ".join(sorted_names)))
 
         # Sort SRPMs by dependencies
