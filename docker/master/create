@@ -21,10 +21,14 @@
 # Log into container  (username: admin   password: admin)
 # ssh -p $(docker port $CONTAINER_ID 22 | cut -d: -f 2) admin@localhost
 
-sudo pacman -S --noconfirm docker
+if [ -f /etc/fedora-release ]; then
+    sudo dnf install -y docker
+else
+    sudo pacman -S --noconfirm docker
+fi
 sudo systemctl start docker
 sudo systemctl enable docker
-sudo docker build -t buildbot - < master.Dockerfile
+sudo docker build -t buildbot - < Dockerfile
 CONTAINER_ID=$(docker run -d -p 8010:8010 -p 9089:9089 -p 22 buildbot-master)
 
 echo "buildbot master container: $CONTAINER_ID"
