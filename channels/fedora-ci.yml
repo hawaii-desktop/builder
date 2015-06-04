@@ -1,0 +1,178 @@
+qt5-qtbase-git:
+  downstream:
+    repourl: https://bitbucket.org/hawaii-fedora-ci/qt5-qtbase-git.git
+  upstream:
+    branch: dev
+    repourl: git://code.qt.io/qt/qtbase.git
+qt5-qttools-git:
+  downstream:
+    repourl: https://bitbucket.org/hawaii-fedora-ci/qt5-qttools-git.git
+  upstream:
+    branch: dev
+    repourl: git://code.qt.io/qt/qttools.git
+qt5-qtdoc-git:
+  downstream:
+    repourl: https://bitbucket.org/hawaii-fedora-ci/qt5-qtdoc-git.git
+  upstream:
+    branch: dev
+    repourl: git://code.qt.io/qt/qtdoc.git
+qt5-qttranslations-git:
+  downstream:
+    repourl: https://bitbucket.org/hawaii-fedora-ci/qt5-qttranslations-git.git
+  upstream:
+    branch: dev
+    repourl: git://code.qt.io/qt/qttranslations.git
+qt5-qtxmlpatterns-git:
+  downstream:
+    repourl: https://bitbucket.org/hawaii-fedora-ci/qt5-qtxmlpatterns-git.git
+  upstream:
+    branch: dev
+    repourl: git://code.qt.io/qt/qtxmlpatterns.git
+qt5-qtdeclarative-git:
+  downstream:
+    repourl: https://bitbucket.org/hawaii-fedora-ci/qt5-qtdeclarative-git.git
+  upstream:
+    branch: dev
+    repourl: git://code.qt.io/qt/qtdeclarative.git
+qt5-qtwayland-git:
+  downstream:
+    repourl: https://bitbucket.org/hawaii-fedora-ci/qt5-qtwayland-git.git
+  upstream:
+    branch: '5.5'
+    repourl: git://code.qt.io/qt/qtwayland.git
+qt5-qtimageformats-git:
+  downstream:
+    repourl: https://bitbucket.org/hawaii-fedora-ci/qt5-qtimageformats-git.git
+  upstream:
+    branch: dev
+    repourl: git://code.qt.io/qt/qtimageformats.git
+qt5-qtsvg-git:
+  downstream:
+    repourl: https://bitbucket.org/hawaii-fedora-ci/qt5-qtsvg-git.git
+  upstream:
+    branch: dev
+    repourl: git://code.qt.io/qt/qtsvg.git
+qt5-qtquickcontrols-git:
+  downstream:
+    repourl: https://bitbucket.org/hawaii-fedora-ci/qt5-qtquickcontrols-git.git
+  upstream:
+    branch: dev
+    repourl: git://code.qt.io/qt/qtquickcontrols.git
+qt5-qtgraphicaleffects-git:
+  downstream:
+    repourl: https://bitbucket.org/hawaii-fedora-ci/qt5-qtgraphicaleffects-git.git
+  upstream:
+    branch: dev
+    repourl: git://code.qt.io/qt/qtgraphicaleffects.git
+qt5-qtx11extras-git:
+  downstream:
+    repourl: https://bitbucket.org/hawaii-fedora-ci/qt5-qtx11extras-git.git
+  upstream:
+    branch: dev
+    repourl: git://code.qt.io/qt/qtx11extras.git
+qt5-qtmultimedia-git:
+  downstream:
+    repourl: https://bitbucket.org/hawaii-fedora-ci/qt5-qtmultimedia-git.git
+  upstream:
+    branch: dev
+    repourl: git://code.qt.io/qt/qtmultimedia.git
+qt5-qtconnectivity-git:
+  downstream:
+    repourl: https://bitbucket.org/hawaii-fedora-ci/qt5-qtconnectivity-git.git
+  upstream:
+    branch: dev
+    repourl: git://code.qt.io/qt/qtconnectivity.git
+qt5-qtlocation-git:
+  downstream:
+    repourl: https://bitbucket.org/hawaii-fedora-ci/qt5-qtlocation-git.git
+  upstream:
+    branch: dev
+    repourl: git://code.qt.io/qt/qtlocation.git
+qt5-qtsensors-git:
+  downstream:
+    repourl: https://bitbucket.org/hawaii-fedora-ci/qt5-qtsensors-git.git
+  upstream:
+    branch: dev
+    repourl: git://code.qt.io/qt/qtsensors.git
+qt5-qtserialport-git:
+  downstream:
+    repourl: https://bitbucket.org/hawaii-fedora-ci/qt5-qtserialport-git.git
+  upstream:
+    branch: dev
+    repourl: git://code.qt.io/qt/qtserialport.git
+qt5-qtscript-git:
+  downstream:
+    repourl: https://bitbucket.org/hawaii-fedora-ci/qt5-qtscript-git.git
+  upstream:
+    branch: dev
+    repourl: git://code.qt.io/qt/qtscript.git
+qt5-qtquick1-git:
+  downstream:
+    repourl: https://bitbucket.org/hawaii-fedora-ci/qt5-qtquick1-git.git
+  upstream:
+    branch: dev
+    repourl: git://code.qt.io/qt/qtquick1.git
+qt5-qtwebchannel-git:
+  downstream:
+    repourl: https://bitbucket.org/hawaii-fedora-ci/qt5-qtwebchannel-git.git
+  upstream:
+    branch: dev
+    repourl: git://code.qt.io/qt/qtwebchannel.git
+qt5-qtwebsockets-git:
+  downstream:
+    repourl: https://bitbucket.org/hawaii-fedora-ci/qt5-qtwebsockets-git.git
+  upstream:
+    branch: dev
+    repourl: git://code.qt.io/qt/qtwebsockets.git
+qt5-qtwebkit-git:
+  downstream:
+    repourl: https://bitbucket.org/hawaii-fedora-ci/qt5-qtwebkit-git.git
+  upstream:
+    branch: dev
+    repourl: git://code.qt.io/qt/qtwebkit.git
+faba-icon-theme-git:
+  downstream:
+    repourl: https://bitbucket.org/hawaii-fedora-ci/faba-icon-theme-git.git
+  upstream:
+    repourl: git://github.com/moka-project/faba-icon-theme.git
+hawaii-icon-theme-git:
+  downstream:
+    repourl: https://bitbucket.org/hawaii-fedora-ci/hawaii-icon-theme-git.git
+  upstream:
+    repourl: git://github.com/hawaii-desktop/hawaii-icon-themes.git
+hawaii-wallpapers-git:
+  downstream:
+    repourl: https://bitbucket.org/hawaii-fedora-ci/hawaii-wallpapers-git.git
+  upstream:
+    repourl: git://github.com/hawaii-desktop/hawaii-wallpapers.git
+greenisland-git:
+  downstream:
+    repourl: https://bitbucket.org/hawaii-fedora-ci/greenisland-git.git
+  upstream:
+    repourl: git://github.com/greenisland/greenisland.git
+hawaii-shell-git:
+  downstream:
+    repourl: https://bitbucket.org/hawaii-fedora-ci/hawaii-shell-git.git
+  upstream:
+    repourl: git://github.com/hawaii-desktop/hawaii-shell.git
+hawaii-system-preferences-git:
+  downstream:
+    repourl: https://bitbucket.org/hawaii-fedora-ci/hawaii-system-preferences-git.git
+  upstream:
+    repourl: git://github.com/hawaii-desktop/hawaii-system-preferences.git
+hawaii-baseapps-git:
+  downstream:
+    repourl: https://bitbucket.org/hawaii-fedora-ci/hawaii-baseapps-git.git
+  upstream:
+    repourl: git://github.com/hawaii-desktop/hawaii-baseapps.git
+hawaii-widget-styles-git:
+  downstream:
+    repourl: https://bitbucket.org/hawaii-fedora-ci/hawaii-widget-styles-git.git
+  upstream:
+    repourl: git://github.com/hawaii-desktop/hawaii-widget-styles.git
+sddm-git:
+  downstream:
+    repourl: https://bitbucket.org/hawaii-fedora-ci/sddm-git.git
+  upstream:
+    repourl: git://github.com/sddm/sddm.git
+
