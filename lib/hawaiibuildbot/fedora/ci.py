@@ -186,7 +186,8 @@ class BuildSourcePackages(ShellMixin, steps.BuildStep):
                             graph.add_edge(dep, pkg["name"])
             sorted_names = nx.topological_sort(graph)
         else:
-            sorted_names = names
+            d = OrderedDict(sorted(names.items(), key=lambda x: x[1]["ord"]))
+            sorted_names = [pkg["name"] for pkg in d]
         yield log.addStdout(u"Sorted packages:\n\t- {}\n".format("\n\t- ".join(sorted_names)))
 
         # Sort SRPMs by dependencies
