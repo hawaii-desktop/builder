@@ -124,13 +124,6 @@ qt5-qtscript-git:
     branch: dev
     repourl: git://code.qt.io/qt/qtscript.git
     pollInterval: 604800
-qt5-qtquick1-git:
-  downstream:
-    repourl: https://bitbucket.org/hawaii-fedora-ci/qt5-qtquick1-git.git
-  upstream:
-    branch: dev
-    repourl: git://code.qt.io/qt/qtquick1.git
-    pollInterval: 604800
 qt5-qtwebchannel-git:
   downstream:
     repourl: https://bitbucket.org/hawaii-fedora-ci/qt5-qtwebchannel-git.git
@@ -151,6 +144,13 @@ qt5-qtwebkit-git:
   upstream:
     branch: dev
     repourl: git://code.qt.io/qt/qtwebkit.git
+    pollInterval: 604800
+qt5-qtquick1-git:
+  downstream:
+    repourl: https://bitbucket.org/hawaii-fedora-ci/qt5-qtquick1-git.git
+  upstream:
+    branch: dev
+    repourl: git://code.qt.io/qt/qtquick1.git
     pollInterval: 604800
 faba-icon-theme-git:
   downstream:
