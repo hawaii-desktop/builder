@@ -89,13 +89,12 @@ pwd=$(pwd)
 echo "-- from ${pwd}"
 
 echo "~~ Create ${pkgname}.spec"
-/usr/bin/cp -f ${pkgname}.spec ${pkgname}.spec.in
 /usr/bin/cat ${pkgname}.spec.in | sed -e "s,@BUILD_DATE@,$build_date," -e "s,@GIT_DATE@,$gitdate,g" -e "s,@GIT_VERSION@,$gitver," > ${pkgname}.spec
-/usr/bin/rm -f ${pkgname}.spec.in
 
 echo "~~ Build SRPM"
 rpmbuild --define "_sourcedir ${pwd}" --define "_specdir ${pwd}" \
     --define "_builddir ${pwd}" --define "_srcrpmdir ${pwd}" \
     --define "_rpmdir ${pwd}" --define "_buildrootdir ${pwd}/.build" \
     -bs ${pkgname}.spec || exit $?
+/usr/bin/rm -f ${pkgname}.spec.in
 popd >/dev/null
