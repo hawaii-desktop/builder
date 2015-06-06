@@ -5,6 +5,7 @@ qt5-qtbase-git:
     branch: dev
     repourl: git://code.qt.io/qt/qtbase.git
     pollInterval: 604800
+  ord: 1
 qt5-qttools-git:
   downstream:
     repourl: https://bitbucket.org/hawaii-fedora-ci/qt5-qttools-git.git
@@ -12,6 +13,7 @@ qt5-qttools-git:
     branch: dev
     repourl: git://code.qt.io/qt/qttools.git
     pollInterval: 604800
+  ord: 2
 qt5-qtdoc-git:
   downstream:
     repourl: https://bitbucket.org/hawaii-fedora-ci/qt5-qtdoc-git.git
@@ -19,6 +21,7 @@ qt5-qtdoc-git:
     branch: dev
     repourl: git://code.qt.io/qt/qtdoc.git
     pollInterval: 604800
+  ord: 3
 qt5-qttranslations-git:
   downstream:
     repourl: https://bitbucket.org/hawaii-fedora-ci/qt5-qttranslations-git.git
@@ -26,6 +29,7 @@ qt5-qttranslations-git:
     branch: dev
     repourl: git://code.qt.io/qt/qttranslations.git
     pollInterval: 604800
+  ord: 4
 qt5-qtxmlpatterns-git:
   downstream:
     repourl: https://bitbucket.org/hawaii-fedora-ci/qt5-qtxmlpatterns-git.git
@@ -33,6 +37,7 @@ qt5-qtxmlpatterns-git:
     branch: dev
     repourl: git://code.qt.io/qt/qtxmlpatterns.git
     pollInterval: 604800
+  ord: 5
 qt5-qtdeclarative-git:
   downstream:
     repourl: https://bitbucket.org/hawaii-fedora-ci/qt5-qtdeclarative-git.git
@@ -40,6 +45,7 @@ qt5-qtdeclarative-git:
     branch: dev
     repourl: git://code.qt.io/qt/qtdeclarative.git
     pollInterval: 604800
+  ord: 6
 qt5-qtwayland-git:
   downstream:
     repourl: https://bitbucket.org/hawaii-fedora-ci/qt5-qtwayland-git.git
@@ -47,6 +53,7 @@ qt5-qtwayland-git:
     branch: '5.5'
     repourl: git://code.qt.io/qt/qtwayland.git
     pollInterval: 86400
+  ord: 7
 qt5-qtimageformats-git:
   downstream:
     repourl: https://bitbucket.org/hawaii-fedora-ci/qt5-qtimageformats-git.git
@@ -54,6 +61,7 @@ qt5-qtimageformats-git:
     branch: dev
     repourl: git://code.qt.io/qt/qtimageformats.git
     pollInterval: 604800
+  ord: 8
 qt5-qtsvg-git:
   downstream:
     repourl: https://bitbucket.org/hawaii-fedora-ci/qt5-qtsvg-git.git
@@ -61,6 +69,7 @@ qt5-qtsvg-git:
     branch: dev
     repourl: git://code.qt.io/qt/qtsvg.git
     pollInterval: 604800
+  ord: 9
 qt5-qtquickcontrols-git:
   downstream:
     repourl: https://bitbucket.org/hawaii-fedora-ci/qt5-qtquickcontrols-git.git
@@ -68,6 +77,7 @@ qt5-qtquickcontrols-git:
     branch: dev
     repourl: git://code.qt.io/qt/qtquickcontrols.git
     pollInterval: 604800
+  ord: 10
 qt5-qtgraphicaleffects-git:
   downstream:
     repourl: https://bitbucket.org/hawaii-fedora-ci/qt5-qtgraphicaleffects-git.git
@@ -75,6 +85,7 @@ qt5-qtgraphicaleffects-git:
     branch: dev
     repourl: git://code.qt.io/qt/qtgraphicaleffects.git
     pollInterval: 604800
+  ord: 11
 qt5-qtx11extras-git:
   downstream:
     repourl: https://bitbucket.org/hawaii-fedora-ci/qt5-qtx11extras-git.git
@@ -82,6 +93,7 @@ qt5-qtx11extras-git:
     branch: dev
     repourl: git://code.qt.io/qt/qtx11extras.git
     pollInterval: 604800
+  ord: 12
 qt5-qtmultimedia-git:
   downstream:
     repourl: https://bitbucket.org/hawaii-fedora-ci/qt5-qtmultimedia-git.git
@@ -89,6 +101,7 @@ qt5-qtmultimedia-git:
     branch: dev
     repourl: git://code.qt.io/qt/qtmultimedia.git
     pollInterval: 604800
+  ord: 13
 qt5-qtconnectivity-git:
   downstream:
     repourl: https://bitbucket.org/hawaii-fedora-ci/qt5-qtconnectivity-git.git
@@ -96,6 +109,7 @@ qt5-qtconnectivity-git:
     branch: dev
     repourl: git://code.qt.io/qt/qtconnectivity.git
     pollInterval: 604800
+  ord: 14
 qt5-qtlocation-git:
   downstream:
     repourl: https://bitbucket.org/hawaii-fedora-ci/qt5-qtlocation-git.git
@@ -103,6 +117,7 @@ qt5-qtlocation-git:
     branch: dev
     repourl: git://code.qt.io/qt/qtlocation.git
     pollInterval: 604800
+  ord: 15
 qt5-qtsensors-git:
   downstream:
     repourl: https://bitbucket.org/hawaii-fedora-ci/qt5-qtsensors-git.git
@@ -110,6 +125,7 @@ qt5-qtsensors-git:
     branch: dev
     repourl: git://code.qt.io/qt/qtsensors.git
     pollInterval: 604800
+  ord: 16
 qt5-qtserialport-git:
   downstream:
     repourl: https://bitbucket.org/hawaii-fedora-ci/qt5-qtserialport-git.git
@@ -117,6 +133,7 @@ qt5-qtserialport-git:
     branch: dev
     repourl: git://code.qt.io/qt/qtserialport.git
     pollInterval: 604800
+  ord: 17
 qt5-qtscript-git:
   downstream:
     repourl: https://bitbucket.org/hawaii-fedora-ci/qt5-qtscript-git.git
@@ -124,6 +141,7 @@ qt5-qtscript-git:
     branch: dev
     repourl: git://code.qt.io/qt/qtscript.git
     pollInterval: 604800
+  ord: 18
 qt5-qtwebchannel-git:
   downstream:
     repourl: https://bitbucket.org/hawaii-fedora-ci/qt5-qtwebchannel-git.git
@@ -131,6 +149,7 @@ qt5-qtwebchannel-git:
     branch: dev
     repourl: git://code.qt.io/qt/qtwebchannel.git
     pollInterval: 604800
+  ord: 19
 qt5-qtwebsockets-git:
   downstream:
     repourl: https://bitbucket.org/hawaii-fedora-ci/qt5-qtwebsockets-git.git
@@ -138,6 +157,7 @@ qt5-qtwebsockets-git:
     branch: dev
     repourl: git://code.qt.io/qt/qtwebsockets.git
     pollInterval: 604800
+  ord: 20
 qt5-qtwebkit-git:
   downstream:
     repourl: https://bitbucket.org/hawaii-fedora-ci/qt5-qtwebkit-git.git
@@ -145,6 +165,7 @@ qt5-qtwebkit-git:
     branch: dev
     repourl: git://code.qt.io/qt/qtwebkit.git
     pollInterval: 604800
+  ord: 21
 qt5-qtquick1-git:
   downstream:
     repourl: https://bitbucket.org/hawaii-fedora-ci/qt5-qtquick1-git.git
@@ -152,54 +173,64 @@ qt5-qtquick1-git:
     branch: dev
     repourl: git://code.qt.io/qt/qtquick1.git
     pollInterval: 604800
+  ord: 22
 captiva-icon-theme-git:
   downstream:
     repourl: https://bitbucket.org/hawaii-fedora-ci/captiva-icon-theme-git.git
   upstream:
     repourl: git://github.com/captiva-project/captiva-icon-theme.git
+  ord: 23
 faba-icon-theme-git:
   downstream:
     repourl: https://bitbucket.org/hawaii-fedora-ci/faba-icon-theme-git.git
   upstream:
     repourl: git://github.com/moka-project/faba-icon-theme.git
+  ord: 24
 hawaii-icon-theme-git:
   downstream:
     repourl: https://bitbucket.org/hawaii-fedora-ci/hawaii-icon-theme-git.git
   upstream:
     repourl: git://github.com/hawaii-desktop/hawaii-icon-themes.git
+  ord: 25
 hawaii-wallpapers-git:
   downstream:
     repourl: https://bitbucket.org/hawaii-fedora-ci/hawaii-wallpapers-git.git
   upstream:
     repourl: git://github.com/hawaii-desktop/hawaii-wallpapers.git
+  ord: 26
 greenisland-git:
   downstream:
     repourl: https://bitbucket.org/hawaii-fedora-ci/greenisland-git.git
   upstream:
     repourl: git://github.com/greenisland/greenisland.git
+  ord: 27
 hawaii-shell-git:
   downstream:
     repourl: https://bitbucket.org/hawaii-fedora-ci/hawaii-shell-git.git
   upstream:
     repourl: git://github.com/hawaii-desktop/hawaii-shell.git
+  ord: 28
 hawaii-system-preferences-git:
   downstream:
     repourl: https://bitbucket.org/hawaii-fedora-ci/hawaii-system-preferences-git.git
   upstream:
     repourl: git://github.com/hawaii-desktop/hawaii-system-preferences.git
+  ord: 29
 hawaii-baseapps-git:
   downstream:
     repourl: https://bitbucket.org/hawaii-fedora-ci/hawaii-baseapps-git.git
   upstream:
     repourl: git://github.com/hawaii-desktop/hawaii-baseapps.git
+  ord: 30
 hawaii-widget-styles-git:
   downstream:
     repourl: https://bitbucket.org/hawaii-fedora-ci/hawaii-widget-styles-git.git
   upstream:
     repourl: git://github.com/hawaii-desktop/hawaii-widget-styles.git
+  ord: 31
 sddm-git:
   downstream:
     repourl: https://bitbucket.org/hawaii-fedora-ci/sddm-git.git
   upstream:
     repourl: git://github.com/sddm/sddm.git
-
+  ord: 32
