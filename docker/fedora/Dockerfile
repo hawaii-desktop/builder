@@ -42,7 +42,7 @@ run dnf install -y createrepo
 # User (username: admin   password: admin)
 run mkdir /data
 run useradd -m -d /data/buildbot -p sa1aY64JOY94w admin
-run /bin/echo "%admin ALL=(ALL) ALL NOPASSWD: ALL" >>/etc/sudoers
+run /bin/echo "admin ALL=(ALL) NOPASSWD: ALL" >>/etc/sudoers
 run usermod -G mock -a admin
 
 # Enable root and ssh access
@@ -64,15 +64,14 @@ run cd /data/buildbot; sudo -u admin sh -c \
     "buildslave create-slave slave @MASTER@ @SLAVE@ password"
 
 # Set buildbot and ssh services
-run mkdir -p /etc/supervisor/conf.d
 run /bin/echo -e "[program:sshd]\ncommand=/usr/sbin/sshd -D\n" > \
-    /etc/supervisor/conf.d/sshd.conf
+    /etc/supervisord.d/sshd.ini
 run /bin/echo -e "\
 [program:buildslave]\n\
 command=twistd --nodaemon --no_save -y buildbot.tac\n\
 directory=/data/buildbot/slave\n\
 user=admin\n" > \
-    /etc/supervisor/conf.d/buildbot.conf
+    /etc/supervisord.d/buildbot.ini
 
 # Expose container port 22 to a random port in the host
 expose 22
