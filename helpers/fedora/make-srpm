@@ -46,6 +46,7 @@ clone() {
 
     if [ -d $dirname ]; then
         pushd $dirname >/dev/null
+        git checkout $branch
         git pull
         popd >/dev/null
     else
@@ -55,24 +56,24 @@ clone() {
 
 #
 # Under the cwd (build/$PKGNAME) we have a couple of directories:
-#  - upstream: upstream sources
+#  - $pkgname: upstream sources
 #  - downstream: RPM packaging stuff
 #  - work: Working copy
 #
 
 # Sanity check
-mkclonedir upstream
+mkclonedir $pkgname
 mkclonedir downstream
 
 # Clone
-clone $repourl1 $branch1 upstream
+clone $repourl1 $branch1 $pkgname
 clone $repourl2 $branch2 downstream
 
 # Compress sources and get build information
-pushd upstream >/dev/null
-echo "-- from $(pwd)"
 echo "~~~ Create source tarball"
-git archive --format=tar --prefix=${pkgname}/ $branch1 | gzip -5 >../downstream/${pkgname}.tar.gz
+tar -cJf downstream/${pkgname}.tar.xz ${pkgname}
+pushd $pkgname >/dev/null
+echo "-- from $(pwd)"
 build_date=$(date +"%Y%m%d")
 gitdate=$(git log -1 --format="%cd" --date=short | tr -d '-')
 gitver=$(git log -1 --format="%h")
