@@ -152,6 +152,11 @@ qt5-qtquick1-git:
     branch: dev
     repourl: git://code.qt.io/qt/qtquick1.git
     pollInterval: 604800
+captiva-icon-theme-git:
+  downstream:
+    repourl: https://bitbucket.org/hawaii-fedora-ci/captiva-icon-theme-git.git
+  upstream:
+    repourl: git://github.com/captiva-project/captiva-icon-theme.git
 faba-icon-theme-git:
   downstream:
     repourl: https://bitbucket.org/hawaii-fedora-ci/faba-icon-theme-git.git
