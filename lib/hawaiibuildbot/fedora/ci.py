@@ -71,10 +71,10 @@ class BuildSourcePackages(ShellMixin, steps.BuildStep):
     #      packages but we list actual package names only on provides.
     sort_by_deps = False
 
-    def __init__(self, pkgnames, arch, distro, **kwargs):
+    def __init__(self, sources, arch, distro, **kwargs):
         kwargs = self.setupShellMixin(kwargs, prohibitArgs=["command"])
         steps.BuildStep.__init__(self, haltOnFailure=True, **kwargs)
-        self.pkgnames = pkgnames
+        self.sources = sources
         self.arch = arch
         self.distro = distro
 
@@ -82,9 +82,15 @@ class BuildSourcePackages(ShellMixin, steps.BuildStep):
     def run(self):
         log = yield self.addLog("logs")
 
+        if self.sort_by_deps:
+            sources = self.sources
+        else:
+            from collections import OrderedDict
+            sources = OrderedDict(sorted(self.sources.items(), key=lambda x: x[1]["ord"]))
+
         # Make a list with package information
         pkg_info = []
-        for pkgname in self.pkgnames:
+        for pkgname in sources.keys():
             # Spec file path
             path = "{}/work/{}.spec".format(pkgname, pkgname)
             # Retrieve NVR
@@ -186,8 +192,7 @@ class BuildSourcePackages(ShellMixin, steps.BuildStep):
                             graph.add_edge(dep, pkg["name"])
             sorted_names = nx.topological_sort(graph)
         else:
-            d = OrderedDict(sorted(names.items(), key=lambda x: x[1]["ord"]))
-            sorted_names = [pkg["name"] for pkg in d]
+            sorted_names = names
         yield log.addStdout(u"Sorted packages:\n\t- {}\n".format("\n\t- ".join(sorted_names)))
 
         # Sort SRPMs by dependencies

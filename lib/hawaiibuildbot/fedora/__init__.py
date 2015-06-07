@@ -53,8 +53,7 @@ class CiFactory(BuildFactory):
                                      workdir="build/{}".format(pkgname)))
 
         # Chain build packages
-        self.addStep(ci.BuildSourcePackages(pkgnames=sources.keys(), arch=arch,
-                                            distro=distro))
+        self.addStep(ci.BuildSourcePackages(sources=sources, arch=arch, distro=distro))
 
 class ImageFactory(BuildFactory):
     """
