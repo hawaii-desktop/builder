@@ -21,16 +21,16 @@
 # Log into container  (username: admin   password: admin)
 # ssh -p $(docker port $CONTAINER_ID 22 | cut -d: -f 2) admin@localhost
 
-container=$1
+image=$1
 admin=$2
 host=$3
 
-if [ -z "$container" -o -z "$admin" -o -z "$host" ]; then
-    echo "Usage: $0 <container id> <admin> <host>"
+if [ -z "$image" -o -z "$admin" -o -z "$host" ]; then
+    echo "Usage: $0 <image id> <admin> <host>"
     echo
-    echo "Example: $0 dcb77354 'Some Guy <some@guy.com>' 'Fedora x86_64 Container #1'"
+    echo "Example: $0 x86_64-fedora-01 'Some Guy <some@guy.com>' 'Fedora x86_64 Container #1'"
     exit 1
 fi
 
-sudo docker exec $container "echo $admin >/data/buildbot/slave/info/admin"
-sudo docker exec $container "echo $host >/data/buildbot/slave/info/host"
+echo $admin | sudo docker run -i $image /bin/bash -c "cat >/data/buildbot/slave/info/admin"
+echo $host | sudo docker run -i $image /bin/bash -c "cat >/data/buildbot/slave/info/host"
