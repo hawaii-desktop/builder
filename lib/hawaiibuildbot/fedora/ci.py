@@ -32,6 +32,11 @@
 
 from buildbot import config
 from buildbot.steps.shell import ShellCommand
+from buildbot.process.buildstep import ShellMixin
+from buildbot.plugins import steps
+from buildbot.status.results import SUCCESS, FAILURE
+
+from twisted.internet import defer
 
 from buildbot.steps.package.rpm.mock import Mock
 
