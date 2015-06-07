@@ -30,4 +30,5 @@ fi
 export PYTHONPATH=$(pwd)/lib
 source $basedir/env/bin/activate
 export PATH=$basedir/env/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin
+export LC_ALL=C
 buildslave $what $basedir/slaves/$slave

@@ -29,4 +29,5 @@ fi
 
 export PYTHONPATH=$(pwd)/lib
 source $basedir/env/bin/activate
+export LC_ALL=C
 buildbot $what $basedir/master
