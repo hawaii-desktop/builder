@@ -70,9 +70,8 @@ mkclonedir downstream
 clone $repourl1 $branch1 $pkgname
 clone $repourl2 $branch2 downstream
 
-# Compress sources and get build information
-echo "~~~ Create source tarball"
-tar -cJf downstream/${pkgname}.tar.xz ${pkgname}
+# Get build information
+echo "~~~ Get build information"
 pushd $pkgname >/dev/null
 echo "-- from $(pwd)"
 build_date=$(date +"%Y%m%d")
@@ -80,22 +79,33 @@ gitdate=$(git log -1 --format="%cd" --date=short | tr -d '-')
 gitver=$(git log -1 --format="%h")
 popd >/dev/null
 
-# Create spec file and build SRPM
+# Sync downstream to work
 echo "~~~ Copy downstream to work"
-rm -rf work
-/usr/bin/cp -fR downstream work
+/usr/bin/rsync -az --delete downstream/ work/ || exit $?
 
+# Create spec file
 pushd work >/dev/null
-pwd=$(pwd)
-echo "-- from ${pwd}"
-
 echo "~~ Create ${pkgname}.spec"
 /usr/bin/cat ${pkgname}.spec.in | sed -e "s,@BUILD_DATE@,$build_date," -e "s,@GIT_DATE@,$gitdate,g" -e "s,@GIT_VERSION@,$gitver," > ${pkgname}.spec
+[ $? -ne 0 ] && exit $?
+popd >/dev/null
 
+# Exit if we already have the SRPM
+pushd work >/dev/null
+specbasename=$(rpmspec -q --srpm --qf "%{name}-%{version}-%{release}\n" ${pkgname}.spec)
+[ -f ${specbasename}.src.rpm ] && exit 0
+popd >/dev/null
+
+# Compress sources and get build information
+echo "~~~ Create source tarball"
+tar -cJf work/${pkgname}.tar.xz ${pkgname}
+
+# Build SRPM
+pushd work >/dev/null
+pwd=$(pwd)
 echo "~~ Build SRPM"
 rpmbuild --define "_sourcedir ${pwd}" --define "_specdir ${pwd}" \
     --define "_builddir ${pwd}" --define "_srcrpmdir ${pwd}" \
     --define "_rpmdir ${pwd}" --define "_buildrootdir ${pwd}/.build" \
     -bs ${pkgname}.spec || exit $?
-/usr/bin/rm -f ${pkgname}.spec.in
 popd >/dev/null
