@@ -80,8 +80,6 @@ class CiPackageFactory(BuildFactory):
     def __init__(self, pkg, arch, distro, channel):
         BuildFactory.__init__(self, [])
 
-        from buildbot.steps.package.rpm.mock import Mock
-
         # Mock properties
         root = "fedora-{}-{}".format(distro, arch)
         resultdir = "../results"
