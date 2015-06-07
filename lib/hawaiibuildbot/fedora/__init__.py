@@ -31,43 +31,14 @@
 #
 
 from buildbot.process.factory import BuildFactory
-from buildbot.steps.source.git import Git
 from buildbot.steps.shell import ShellCommand
 from buildbot.plugins import steps
 
 import ci
 import image
-from rpmbuild import SRPMBuild
+import rpmbuild
 
-class CiFactory(BuildFactory):
-    """
-    Factory to build a CI packages.
-    Logic:
-      - Copy all needed helpers from master to slave
-      - For each package:
-        - Clone sources
-        - Prepare sources (spec file and tarball)
-        - Build SRPM
-      - Chain build all SRPMs
-    """
-
-    def __init__(self, sources, arch, distro):
-        BuildFactory.__init__(self, [])
-
-        # Copy helpers
-        for helper in ("make-srpm", "spec-nvr", "spec-provides", "spec-requires"):
-            self.addStep(steps.FileDownload(name="helper " + helper,
-                                            mastersrc="helpers/fedora/" + helper,
-                                            slavedest="../helpers/" + helper,
-                                            mode=0755))
-
-        # Build SRPMs
-        for pkgname in sources.keys():
-            self.addStep(ci.MakeSRPM(pkgname=pkgname, repoinfo=sources[pkgname],
-                                     workdir="build/{}".format(pkgname)))
-
-        # Chain build packages
-        self.addStep(ci.BuildSourcePackages(sources=sources, arch=arch, distro=distro))
+from hawaiibuildbot.common.sources import Git
 
 class PackageFactory(BuildFactory):
     """
@@ -81,17 +52,6 @@ class PackageFactory(BuildFactory):
     def __init__(self, pkg, arch, distro):
         BuildFactory.__init__(self, [])
 
-        from buildbot.steps.package.rpm.mock import Mock
-
-        # Custom Mock step that rebuild the SRPM
-        class Rebuild(Mock):
-            def __init__(self, **kwargs):
-                Mock.__init__(self, **kwargs)
-            def start(self):
-                srpm = self.getProperty("srpm")
-                self.command += ["--rebuild", srpm]
-                Mock.start(self)
-
         # Mock properties
         root = "fedora-{}-{}".format(distro, arch)
         resultdir = "../results"
@@ -100,9 +60,50 @@ class PackageFactory(BuildFactory):
         self.addStep(Git(repourl=pkg["repourl"], branch=pkg.get("branch", "master"),
                          method="fresh", mode="full"))
         # Build SRPM
-        self.addStep(SRPMBuild(specfile=pkg["name"] + ".spec"))
+        self.addStep(rpmbuild.SRPMBuild(specfile=pkg["name"] + ".spec"))
         # Rebuild SRPM
-        self.addStep(Rebuild(root=root, resultdir=resultdir))
+        self.addStep(ci.MockRebuild(root=root, resultdir=resultdir))
+
+class CiPackageFactory(BuildFactory):
+    """
+    Factory to build a single package from CI.
+    Logic:
+      - Update upstream sources
+      - Update packaging sources
+      - Create upstream tarball on the packaging directory
+      - Build SRPM
+      - Rebuild SRPM with mock
+      - TODO: Update repository on master
+    """
+
+    def __init__(self, pkg, arch, distro):
+        BuildFactory.__init__(self, [])
+
+        from buildbot.steps.package.rpm.mock import Mock
+
+        # Mock properties
+        root = "fedora-{}-{}".format(distro, arch)
+        resultdir = "../results"
+
+        # Fetch upstream sources
+        self.addStep(Git(name="git upstream",
+                         repourl=pkg["upstream"]["repourl"],
+                         branch=pkg["upstream"].get("branch", "master"),
+                         method="fresh", mode="full", workdir=pkg["name"]))
+        # Fetch packaging sources
+        self.addStep(Git(name="git packaging",
+                         repourl=pkg["downstream"]["repourl"],
+                         branch=pkg["downstream"].get("branch", "master"),
+                         method="fresh", mode="full"))
+        # Create sources tarball
+        self.addStep(ci.TarXz(filename="{}.tar.xz".format(pkg["name"]),
+                              srcdir="../" + pkg["name"]))
+        # Build SRPM
+        self.addStep(rpmbuild.SRPMBuild(specfile=pkg["name"] + ".spec",
+                                        vcsRevision=True))
+        # Rebuild SRPM
+        self.addStep(ci.MockRebuild(root=root, resultdir=resultdir,
+                                    vcsRevision=True))
 
 class ImageFactory(BuildFactory):
     """
