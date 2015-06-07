@@ -19,7 +19,7 @@
 #
 
 # Base docker image
-from fedora:latest
+from fedora:22
 maintainer Pier Luigi Fiorini <pierluigi.fiorini@gmail.com>
 
 # Update
@@ -29,6 +29,7 @@ run dnf update -y
 run dnf install -y make gcc git sudo openssh-server
 run dnf install -y python-devel python-pip
 run dnf install -y supervisor
+run dnf install -y rsync
 
 # Install mock and rpmbuild
 run dnf install -y mock rpm-build
@@ -39,42 +40,29 @@ run dnf install -y livecd-tools appliance-tools fedora-kickstarts spin-kickstart
 # Install repository tools
 run dnf install -y createrepo
 
-# User (username: admin   password: admin)
-run mkdir /data
-run useradd -m -d /data/buildbot -p sa1aY64JOY94w admin
-run /bin/echo "admin ALL=(ALL) NOPASSWD: ALL" >>/etc/sudoers
-run usermod -G mock -a admin
-
-# Enable root and ssh access
-run mkdir -p /run/sshd
-run /bin/echo "root:password" | /usr/sbin/chpasswd
-run /usr/bin/sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' -i /etc/pam.d/sshd
+# Create data area
+run mkdir -p /data/buildbot
 
 # Install Python modules
 run pip install --upgrade pip
 run pip install mock pyaml networkx twisted
 
 # Install buildbot
-run cd /data/buildbot; sudo -u admin sh -c \
-    "git clone https://github.com/buildbot/buildbot src"
+run cd /data/buildbot; \
+    git clone https://github.com/buildbot/buildbot src
 run cd /data/buildbot/src/slave; python setup.py install
 
 # Create buildbot configuration
-run cd /data/buildbot; sudo -u admin sh -c \
-    "buildslave create-slave slave @MASTER@ @SLAVE@ password"
+run cd /data/buildbot; \
+    buildslave create-slave slave @MASTER@ @SLAVE@ password
 
-# Set buildbot and ssh services
-run /bin/echo -e "[program:sshd]\ncommand=/usr/sbin/sshd -D\n" > \
-    /etc/supervisord.d/sshd.ini
+# Create buildbot service
 run /bin/echo -e "\
 [program:buildslave]\n\
 command=twistd --nodaemon --no_save -y buildbot.tac\n\
 directory=/data/buildbot/slave\n\
-user=admin\n" > \
+environment=LC_ALL=\"C\"\n" > \
     /etc/supervisord.d/buildbot.ini
-
-# Expose container port 22 to a random port in the host
-expose 22
 
 # Run supervisord
 cmd ["/usr/bin/supervisord", "-n"]
