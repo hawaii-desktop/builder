@@ -30,4 +30,5 @@
 # $END_LICENSE$
 #
 
+import sources
 import utils
