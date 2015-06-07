@@ -1,0 +1,17 @@
+Hawaii GPL Exception version 1.0
+
+Section 7 Exception
+
+Attribution Requirement
+
+This license does not grant any license or rights to use the "Hawaii"
+name or logo, nor any other trademark.
+
+You are not authorized to use the name "Hawaii" or the name of any
+project that is part of "Hawaii", or the names of any author or
+contributor for publicity purposes, without written authorization.
+
+However, in addition to the other notice obligations of this License,
+all copies of any covered work conveyed by you must include on each
+user interface screen and in the Appropriate Legal Notices the
+following text: "Powered by Hawaii".
