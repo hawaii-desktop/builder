@@ -40,21 +40,64 @@ import rpmbuild
 
 from hawaiibuildbot.common.sources import Git
 
-class PackageFactory(BuildFactory):
+class BasePackageFactory(BuildFactory):
+    """
+    Abstract class for all package factories.
+    Provides basic configuration and steps for a local repository
+    and upload to master.
+    """
+
+    def __init__(self, pkg, arch, distro, channel):
+        BuildFactory.__init__(self, [])
+
+        # Mock properties
+        self.root = "fedora-{}-{}".format(distro, arch)
+        self.resultdir = "../results"
+
+        # Other properties
+        self.repodir = "repository/{}/{}".format(channel, arch)
+        self.arch = arch
+        self.distro = distro
+        self.channel = channel
+
+        # Make sure the local repository is available
+        self.addStep(ShellCommand(name="local repo",
+                                  command="mkdir -p ../../%s/{noarch,source,%s}" % (self.repodir, arch)))
+
+    def updateLocalRepository(self):
+        # Update local repository
+        for rpmset in (("src.rpm", "source"), ("noarch.rpm", "noarch"), (self.arch + ".rpm", self.arch)):
+            dst = "../../{}/{}".format(self.repodir, rpmset[1])
+            self.addStep(ShellCommand(name="mv " + rpmset[0],
+                                      command="find %s -type f -name *.%s -exec mv -f {} %s \\;" % (self.resultdir, rpmset[0], dst)))
+        self.addStep(ShellCommand(name="createrepo",
+                                  command="createrepo -v --deltas --num-deltas 5 --compress-type xz ../../{}".format(self.repodir)))
+
+    def uploadToMaster(self):
+        # Update repository on master
+        import datetime
+        today = datetime.datetime.now().strftime("%Y%m%d")
+        src = "../../{}".format(self.repodir)
+        dst = "public_html/{}/{}/{}".format(self.channel, self.arch, today)
+        self.addStep(steps.MasterShellCommand(name="clean repo", command="rm -rf " + dst))
+        self.addStep(steps.DirectoryUpload(name="upload repo", compress="gz",
+                                           slavesrc=src, masterdest=dst))
+        self.addStep(steps.MasterShellCommand(name="repo permission",
+                                              command="chmod a+rX -R " + dst))
+
+class PackageFactory(BasePackageFactory):
     """
     Factory to build a single package.
     Logic:
       - Update sources
       - Build SRPM
       - Rebuild SRPM with mock
+      - Update local repository
+      - Upload repository to master
     """
 
-    def __init__(self, pkg, arch, distro):
-        BuildFactory.__init__(self, [])
-
-        # Mock properties
-        root = "fedora-{}-{}".format(distro, arch)
-        resultdir = "../results"
+    def __init__(self, pkg, arch, distro, channel):
+        BasePackageFactory.__init__(self, pkg, arch, distro, channel)
 
         # Fetch sources
         self.addStep(Git(repourl=pkg["repourl"], branch=pkg.get("branch", "master"),
@@ -62,9 +105,13 @@ class PackageFactory(BuildFactory):
         # Build SRPM
         self.addStep(rpmbuild.SRPMBuild(specfile=pkg["name"] + ".spec"))
         # Rebuild SRPM
-        self.addStep(ci.MockRebuild(root=root, resultdir=resultdir))
+        self.addStep(ci.MockRebuild(root=self.root, resultdir=self.resultdir))
+        # Update local repository
+        self.updateLocalRepository()
+        # Update repository on master
+        self.uploadToMaster()
 
-class CiPackageFactory(BuildFactory):
+class CiPackageFactory(BasePackageFactory):
     """
     Factory to build a single package from CI.
     Logic:
@@ -74,22 +121,11 @@ class CiPackageFactory(BuildFactory):
       - Build SRPM
       - Rebuild SRPM with mock
       - Update local repository
-      - TODO: Update repository on master
+      - Upload repository to master
     """
 
     def __init__(self, pkg, arch, distro, channel):
-        BuildFactory.__init__(self, [])
-
-        # Mock properties
-        root = "fedora-{}-{}".format(distro, arch)
-        resultdir = "../results"
-
-        # Other properties
-        repodir = "repository/{}/{}".format(channel, arch)
-
-        # Make sure the local repository is available
-        self.addStep(ShellCommand(name="local repo",
-                                  command="mkdir -p ../../%s/{noarch,source,%s}" % (repodir, arch)))
+        BasePackageFactory.__init__(self, pkg, arch, distro, channel)
 
         # Fetch upstream sources
         self.addStep(Git(name="git upstream",
@@ -108,26 +144,12 @@ class CiPackageFactory(BuildFactory):
         self.addStep(rpmbuild.SRPMBuild(specfile=pkg["name"] + ".spec",
                                         vcsRevision=True))
         # Rebuild SRPM
-        self.addStep(ci.MockRebuild(root=root, resultdir=resultdir,
-                                    repodir="../" + repodir, vcsRevision=True))
+        self.addStep(ci.MockRebuild(root=self.root, resultdir=self.resultdir,
+                                    repodir="../" + self.repodir, vcsRevision=True))
         # Update local repository
-        for rpmset in (("src.rpm", "source"), ("noarch.rpm", "noarch"), ("%s.rpm" % arch, arch)):
-            src = "{}/*.{}".format(resultdir, rpmset[0])
-            dst = "../../{}/{}".format(repodir, rpmset[1])
-            self.addStep(ShellCommand(name="mv " + rpmset[0],
-                                      command=["bash", "-c", "[ -f {} ] && mv {} {} || exit 0".format(src, src, dst)]))
-        self.addStep(ShellCommand(name="createrepo",
-                                  command="createrepo -v --deltas --num-deltas 5 --compress-type xz ../../{}".format(repodir)))
-
+        self.updateLocalRepository()
         # Update repository on master
-        import datetime
-        today = datetime.datetime.now().strftime("%Y%m%d")
-        src = "../../{}".format(repodir)
-        dst = "public_html/{}/{}/{}".format(channel, arch, today)
-        self.addStep(steps.DirectoryUpload(name="upload repo", compress="gz",
-                                           slavesrc=src, masterdest=dst))
-        self.addStep(steps.MasterShellCommand(name="remote permission",
-                                              command="chmod a+rX -R " + dst))
+        self.uploadToMaster()
 
 class ImageFactory(BuildFactory):
     """
