@@ -45,21 +45,41 @@ class MockRebuild(Mock):
     Custom Mock step that rebuild the SRPM.
     """
 
-    def __init__(self, vcsRevision=False, **kwargs):
+    def __init__(self, repodir=None, vcsRevision=False, **kwargs):
         Mock.__init__(self, **kwargs)
+        self.repodir = repodir
         self.vcsRevision = vcsRevision
 
     def start(self):
+        if self.repodir:
+            self.command = ["mockchain", "--root", self.root]
+            if self.resultdir:
+                self.command += ["-m", "--resultdir=" + self.resultdir]
+
+            builddir = self.getProperty("builddir")
+            relpath = self.build.path_module.join(builddir, self.repodir)
+            abspath = self.build.path_module.abspath(relpath)
+            self.command += ["-a", "file://" + abspath]
+
         if self.vcsRevision:
             date = self.getProperty("got_date")
             revision = self.getProperty("got_shortrev")
-            self.command += ["--define", "_checkout %sgit%s" % (date, revision)]
+            if self.repodir:
+                self.command += ["-m", "--define=_checkout %sgit%s" % (date, revision)]
+            else:
+                self.command += ["--define", "_checkout %sgit%s" % (date, revision)]
 
         for k in ("vendor", "packager", "distribution"):
-            self.command += ["--define", "{} Hawaii".format(k)]
+            if self.repodir:
+                self.command += ["-m", "--define=%s Hawaii" % k]
+            else:
+                self.command += ["--define", "%s Hawaii" % k]
 
         srpm = self.getProperty("srpm")
-        self.command += ["--rebuild", srpm]
+        if self.repodir:
+            self.command.append(srpm)
+        else:
+            self.command += ["--rebuild", srpm]
 
         Mock.start(self)
 

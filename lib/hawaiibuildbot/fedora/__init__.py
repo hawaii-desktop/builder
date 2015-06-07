@@ -87,7 +87,11 @@ class CiPackageFactory(BuildFactory):
         resultdir = "../results"
 
         # Other properties
-        repodir = "../../repository/{}/{}".format(channel, arch)
+        repodir = "repository/{}/{}".format(channel, arch)
+
+        # Make sure the local repository is available
+        self.addStep(ShellCommand(name="local repo",
+                                  command="mkdir -p ../../%s/{noarch,source,%s}" % (repodir, arch)))
 
         # Fetch upstream sources
         self.addStep(Git(name="git upstream",
@@ -107,17 +111,15 @@ class CiPackageFactory(BuildFactory):
                                         vcsRevision=True))
         # Rebuild SRPM
         self.addStep(ci.MockRebuild(root=root, resultdir=resultdir,
-                                    vcsRevision=True))
+                                    repodir="../" + repodir, vcsRevision=True))
         # Update local repository
-        self.addStep(ShellCommand(name="mkdir",
-                                  command="mkdir -p %s/{noarch,source,%s}" % (repodir, arch)))
         for rpmset in (("src.rpm", "source"), ("noarch.rpm", "noarch"), ("%s.rpm" % arch, arch)):
             src = "{}/*.{}".format(resultdir, rpmset[0])
-            dst = "{}/{}".format(repodir, rpmset[1])
+            dst = "../../{}/{}".format(repodir, rpmset[1])
             self.addStep(ShellCommand(name="mv " + rpmset[0],
                                       command=["bash", "-c", "[ -f {} ] && mv {} {} || exit 0".format(src, src, dst)]))
         self.addStep(ShellCommand(name="createrepo",
-                                  command="createrepo -v --deltas --num-deltas 5 --compress-type xz {}".format(repodir)))
+                                  command="createrepo -v --deltas --num-deltas 5 --compress-type xz ../../{}".format(repodir)))
         # TODO: Update repository on master
 
 class ImageFactory(BuildFactory):
