@@ -44,6 +44,20 @@ class MockStateObserver(logobserver.LogLineObserver):
                 self.step.descriptionSuffix = None
             self.step.step_status.setText(self.step.describe(False))
 
+class MockChainStateObserver(logobserver.LogLineObserver):
+    _line_re = re.compile(r'^.*(Start|Finish): (.*)$')
+
+    def outLineReceived(self, line):
+        m = self._line_re.search(line.strip())
+        if m:
+            what = m.group(1)
+            state = m.group(2)
+            if what == "Start":
+                self.step.descriptionSuffix = ["[%s]" % state]
+            else:
+                self.step.descriptionSuffix = None
+            self.step.step_status.setText(self.step.describe(False))
+
 class Mock(ShellCommand):
     """
     Executes a mock command.
@@ -224,3 +238,25 @@ class MockChain(Mock):
         if recursive:
             self.command.append("--recurse")
         self.command += srpms
+
+    def start(self):
+        # Observe mockchain logs
+        if self.resultdir:
+            for lname in self.mock_logfiles:
+                self.logfiles[lname] = self.build.path_module.join(self.resultdir,
+                                                                   lname)
+        else:
+            for lname in self.mock_logfiles:
+                self.logfiles[lname] = lname
+        self.addLogObserver("state.log", MockChainStateObserver())
+
+        # Remove old logs
+        cmd = remotecommand.RemoteCommand("rmdir", {"dir":
+                                                    map(lambda l: self.build.path_module.join("build", self.logfiles[l]),
+                                                        self.mock_logfiles)})
+        d = self.runCommand(cmd)
+
+        @d.addCallback
+        def removeDone(cmd):
+            ShellCommand.start(self)
+        d.addErrback(self.failed)
