@@ -37,6 +37,7 @@ from buildbot.plugins import steps
 
 import ci
 import image
+from rpmbuild import SRPMBuild
 
 class CiFactory(BuildFactory):
     """
@@ -67,6 +68,41 @@ class CiFactory(BuildFactory):
 
         # Chain build packages
         self.addStep(ci.BuildSourcePackages(sources=sources, arch=arch, distro=distro))
+
+class PackageFactory(BuildFactory):
+    """
+    Factory to build a single package.
+    Logic:
+      - Update sources
+      - Build SRPM
+      - Rebuild SRPM with mock
+    """
+
+    def __init__(self, pkg, arch, distro):
+        BuildFactory.__init__(self, [])
+
+        from buildbot.steps.package.rpm.mock import Mock
+
+        # Custom Mock step that rebuild the SRPM
+        class Rebuild(Mock):
+            def __init__(self, **kwargs):
+                Mock.__init__(self, **kwargs)
+            def start(self):
+                srpm = self.getProperty("srpm")
+                self.command += ["--rebuild", srpm]
+                Mock.start(self)
+
+        # Mock properties
+        root = "fedora-{}-{}".format(distro, arch)
+        resultdir = "../results"
+
+        # Fetch sources
+        self.addStep(Git(repourl=pkg["repourl"], branch=pkg.get("branch", "master"),
+                         method="fresh", mode="full"))
+        # Build SRPM
+        self.addStep(SRPMBuild(specfile=pkg["name"] + ".spec"))
+        # Rebuild SRPM
+        self.addStep(Rebuild(root=root, resultdir=resultdir))
 
 class ImageFactory(BuildFactory):
     """

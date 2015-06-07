@@ -1,0 +1,5 @@
+- name: hawaii-release
+  repourl: https://bitbucket.org/hawaii-fedora/hawaii-release.git
+- name: hawaii-plymouth-theme
+  repourl: https://bitbucket.org/hawaii-fedora/hawaii-plymouth-theme.git
+  enabled: False
