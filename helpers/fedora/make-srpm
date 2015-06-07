@@ -46,6 +46,7 @@ clone() {
 
     if [ -d $dirname ]; then
         pushd $dirname >/dev/null
+        git fetch origin
         git checkout $branch
         git pull
         popd >/dev/null
