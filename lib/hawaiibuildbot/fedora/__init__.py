@@ -151,6 +151,21 @@ class CiPackageFactory(BasePackageFactory):
         # Update repository on master
         self.uploadToMaster()
 
+class RepositoryFactory(BuildFactory):
+    """
+    Factory to build a complete repository for a
+    specific architecture.
+    """
+
+    def __init__(self, pkgs, arch):
+        BuildFactory.__init__(self, [])
+
+        for pkg in pkgs:
+            trigger = "{}-{}-fedora-trigger".format(pkg["name"], arch)
+            self.addStep(steps.Trigger(schedulerNames=[trigger],
+                                       waitForFinish=True,
+                                       updateSourceStamp=True))
+
 class ImageFactory(BuildFactory):
     """
     Factory to spin images.
