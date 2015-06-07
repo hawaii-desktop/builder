@@ -120,7 +120,16 @@ class CiPackageFactory(BuildFactory):
                                       command=["bash", "-c", "[ -f {} ] && mv {} {} || exit 0".format(src, src, dst)]))
         self.addStep(ShellCommand(name="createrepo",
                                   command="createrepo -v --deltas --num-deltas 5 --compress-type xz ../../{}".format(repodir)))
-        # TODO: Update repository on master
+
+        # Update repository on master
+        import datetime
+        today = datetime.datetime.now().strftime("%Y%m%d")
+        src = "../../{}".format(repodir)
+        dst = "public_html/{}/{}/{}".format(channel, arch, today)
+        self.addStep(steps.DirectoryUpload(name="upload repo", compress="gz",
+                                           slavesrc=src, masterdest=dst))
+        self.addStep(steps.MasterShellCommand(name="remote permission",
+                                              command="chmod a+rX -R " + dst))
 
 class ImageFactory(BuildFactory):
     """
