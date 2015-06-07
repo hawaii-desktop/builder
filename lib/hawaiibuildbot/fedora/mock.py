@@ -221,8 +221,8 @@ class MockChain(Mock):
 
     name = "mockchain"
 
-    description = ["mockchain rebuilding srpms"]
-    descriptionDone = ["mockchain rebuild srpms"]
+    description = ["mockchain"]
+    descriptionDone = ["mockchain complete"]
 
     def __init__(self, localrepo=None, recursive=False, srpms=[], **kwargs):
         Mock.__init__(self, **kwargs)
