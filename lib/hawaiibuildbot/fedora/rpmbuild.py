@@ -45,21 +45,31 @@ class SRPMBuild(ShellCommand):
 
     def __init__(self, specfile=None, topdir="`pwd`", builddir="`pwd`",
                  rpmdir="`pwd`", sourcedir="`pwd`", specdir="`pwd`",
-                 srcrpmdir="`pwd`", **kwargs):
+                 srcrpmdir="`pwd`", vcsRevision=False, **kwargs):
         ShellCommand.__init__(self, **kwargs)
 
         self.specfile = specfile
         if not self.specfile:
             config.error("You must specify a specfile")
 
+        self.vcsRevision = vcsRevision
+
         self.command = 'rpmbuild ' \
             '--define "_topdir %s" --define "_builddir %s" ' \
             '--define "_rpmdir %s" --define "_sourcedir %s" ' \
-            '--define "_specdir %s" --define "_srcrpmdir %s" ' \
-            '-bs %s' % (topdir, builddir, rpmdir, sourcedir,
-                        specdir, srcrpmdir, self.specfile)
+            '--define "_specdir %s" --define "_srcrpmdir %s"' % \
+            (topdir, builddir, rpmdir, sourcedir, specdir, srcrpmdir)
 
         self.addLogObserver("stdio", logobserver.LineConsumerLogObserver(self.logConsumer))
+
+    def start(self):
+        if self.vcsRevision:
+            date = self.getProperty("got_date")
+            revision = self.getProperty("got_shortrev")
+            checkout = "{}git{}".format(date, revision)
+            self.command += ' --define "_checkout %s"' % checkout
+        self.command += " -bs " + self.specfile
+        ShellCommand.start(self)
 
     # Read-only properties
     srpm = property(lambda self: self._srpm)
