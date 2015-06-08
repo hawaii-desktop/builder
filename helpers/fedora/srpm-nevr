@@ -44,7 +44,7 @@ if [ ! -f $srpm ]; then
 fi
 
 name=$(/usr/bin/rpm -qp --qf "%{name}\n" $srpm | sed -e 's,^(none)$,,g')
-epoch=$(/usr/bin/rpm -qp --qf "%{epoch}\n" $srpm)
+epoch=$(/usr/bin/rpm -qp --qf "%{epoch}\n" $srpm | sed -e 's,^(none)$,0,g')
 version=$(/usr/bin/rpm -qp --qf "%{version}\n" $srpm | sed -e 's,^(none)$,,g')
 release=$(/usr/bin/rpm -qp --qf "%{release}\n" $srpm | sed -e 's,^(none)$,,g')
 

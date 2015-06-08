@@ -44,7 +44,7 @@ if [ ! -f $spec ]; then
 fi
 
 name=$(/usr/bin/rpmspec -q --srpm --qf "%{name}\n" $spec | sed -e 's,^(none)$,,g')
-epoch=$(/usr/bin/rpmspec -q --srpm --qf "%{epoch}\n" $spec)
+epoch=$(/usr/bin/rpmspec -q --srpm --qf "%{epoch}\n" $spec | sed -e 's,^(none)$,0,g')
 version=$(/usr/bin/rpmspec -q --srpm --qf "%{version}\n" $spec | sed -e 's,^(none)$,,g')
 release=$(/usr/bin/rpmspec -q --srpm --qf "%{release}\n" $spec | sed -e 's,^(none)$,,g')
 
