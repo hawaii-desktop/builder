@@ -99,3 +99,43 @@ class TarXz(ShellCommand):
             config.error("You must specify a source directory")
 
         self.command = ["tar", "-cJf", filename, srcdir]
+
+class BuildNeeded(ShellMixin, steps.BuildStep):
+    """
+    Determine whether we previously built the latest package version.
+    """
+
+    name = "build-needed"
+
+    def __init__(self, repodir=None, **kwargs):
+        kwargs = self.setupShellMixin(kwargs, prohibitArgs=["command"])
+        steps.BuildStep.__init__(self, haltOnFailure=True, **kwargs)
+
+        self.repodir = repodir
+        if not self.repodir:
+            config.error("You must specify a repository directory")
+
+    @defer.inlineCallbacks
+    def run(self):
+        log = yield self.addLog("logs")
+
+        # Determine NEVR from spec file
+        srpm = self.getProperty("srpm")
+        cmd = yield self._makeCommand(["../helpers/needs-rebuild", srpm, self.repodir])
+        yield self.runCommand(cmd)
+        if cmd.didFail():
+            yield log.addStderr(u"Unable to determine whether {} will be built\n".format(srpm))
+            defer.returnValue(FAILURE)
+        result = cmd.stdout.strip()
+        if result not in ("yes", "no"):
+            yield log.addStderr(u"Unable to determine whether {} will be built\n".format(srpm))
+            defer.returnValue(FAILURE)
+        self.setProperty("build_needed", result == "yes", "BuildNeeded")
+        defer.returnValue(SUCCESS)
+
+    def _makeCommand(self, args, **kwargs):
+        return self.makeRemoteShellCommand(collectStdout=True, collectStderr=True,
+            command=args, **kwargs)
+
+def isBuildNeeded(step):
+    return step.build.getProperty("build_needed")

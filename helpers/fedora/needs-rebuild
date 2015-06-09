@@ -31,17 +31,103 @@
 # $END_LICENSE$
 #
 
-evr1=$1
-evr2=$2
+target_srpm=$1
+repodir=$2
 
-if [ -z "$evr1" -o -z "$evr2" ]; then
-    echo "Usage: $0 <EVR1> <EVR2>"
+if [ -z "$target_srpm" -o -z "$repodir" ]; then
+    echo "Usage: $0 <SRPM> <REPODIR>"
     exit 1
 fi
 
+if [ ! -f $target_srpm ]; then
+    echo "SRPM \"$target_srpm\" not found!"
+    exit 1
+fi
+
+if [ ! -d $repodir ]; then
+    echo "Repository \"$repodir\" not found!"
+    exit 1
+fi
+
+#
+# EVR from spec file
+#
+spec_evr() {
+    epoch=$(/usr/bin/rpmspec -q --srpm --qf "%{epoch}\n" $spec | sed -e 's,^(none)$,0,g')
+    version=$(/usr/bin/rpmspec -q --srpm --qf "%{version}\n" $spec | sed -e 's,^(none)$,,g')
+    release=$(/usr/bin/rpmspec -q --srpm --qf "%{release}\n" $spec | sed -e 's,^(none)$,,g')
+
+    if [ -z "$version" -o -z "$release" ]; then
+        echo "Unable to retrieve EVR from \"$spec\""
+        exit 1
+    fi
+
+    echo "${epoch}:${version}-${release}"
+}
+
+#
+# NEVR from SRPM
+#
+srpm_name() {
+    srpm=$1
+
+    if [ ! -f $srpm ]; then
+        echo "Source RPM \"$srpm\" not found!"
+        exit 1
+    fi
+
+    /usr/bin/rpm -qp --qf "%{name}\n" $srpm | sed -e 's,^(none)$,,g'
+}
+
+srpm_evr() {
+    srpm=$1
+
+    if [ ! -f $srpm ]; then
+        echo "Source RPM \"$srpm\" not found!"
+        exit 1
+    fi
+
+    name=$(/usr/bin/rpm -qp --qf "%{name}\n" $srpm | sed -e 's,^(none)$,,g')
+    epoch=$(/usr/bin/rpm -qp --qf "%{epoch}\n" $srpm | sed -e 's,^(none)$,0,g')
+    version=$(/usr/bin/rpm -qp --qf "%{version}\n" $srpm | sed -e 's,^(none)$,,g')
+    release=$(/usr/bin/rpm -qp --qf "%{release}\n" $srpm | sed -e 's,^(none)$,,g')
+
+    if [ -z "$name" -o -z "$epoch" -o -z "$version" -o -z "$release" ]; then
+        echo "Unable to retrieve NEVR from \"$srpm\""
+        exit 1
+    fi
+
+    echo "${epoch}:${version}-${release}"
+}
+
+#
+# Find the SRPM with the highest version
+#
+name=$(srpm_name $target_srpm)
+srpms=$(find ${repodir}/source -type f -name "${name}*.src.rpm")
+if [ $? -ne 0 ]; then
+    echo "Unable to find SRPMs, exiting..."
+    exit $?
+fi
+
+last_evr=""
+for srpm in $srpms; do
+    evr=$(srpm_evr $srpm)
+
+    if [ -z "$last_evr" ]; then
+        last_evr=$evr
+    else
+        # rpmdev-vercmp returns 11 when EVR1 > EVR2
+        /usr/bin/rpmdev-vercmp $evr $last_evr 2>&1 >/dev/null
+        if [ $? -eq 11 ]; then
+            last_evr=$evr
+        fi
+    fi
+done
+
 # Compare EVR1 with EVR2, we assume EVR1 is from the spec file and EVR2
 # is from the last build
-/usr/bin/rpmdev-vercmp $evr1 $evr2 2>&1 >/dev/null
+/usr/bin/rpmdev-vercmp $(srpm_evr $target_srpm) $last_evr 2>&1 >/dev/null
 
 # Return a string saying "yes" or "no", return "yes" when
 # EVR1 is greater than EVR2

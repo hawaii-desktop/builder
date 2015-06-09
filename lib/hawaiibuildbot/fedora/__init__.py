@@ -69,9 +69,11 @@ class BasePackageFactory(BuildFactory):
         for rpmset in (("src.rpm", "source"), ("noarch.rpm", "noarch"), (self.arch + ".rpm", self.arch)):
             dst = "../../{}/{}".format(self.repodir, rpmset[1])
             self.addStep(ShellCommand(name="mv " + rpmset[0],
-                                      command="find %s -type f -name *.%s -exec mv -f {} %s \\;" % (self.resultdir, rpmset[0], dst)))
+                                      command="find %s -type f -name *.%s -exec mv -f {} %s \\;" % (self.resultdir, rpmset[0], dst),
+                                      doStepIf=ci.isBuildNeeded))
         self.addStep(ShellCommand(name="createrepo",
-                                  command="createrepo -v --deltas --num-deltas 5 --compress-type xz ../../{}".format(self.repodir)))
+                                  command="createrepo -v --deltas --num-deltas 5 --compress-type xz ../../{}".format(self.repodir),
+                                  doStepIf=ci.isBuildNeeded))
 
     def uploadToMaster(self):
         # Update repository on master
@@ -79,16 +81,20 @@ class BasePackageFactory(BuildFactory):
         today = datetime.datetime.now().strftime("%Y%m%d")
         src = "../../{}".format(self.repodir)
         dst = "public_html/{}/{}/{}".format(self.channel, self.arch, today)
-        self.addStep(steps.MasterShellCommand(name="clean repo", command="rm -rf " + dst))
+        self.addStep(steps.MasterShellCommand(name="clean repo", command="rm -rf " + dst,
+                                              doStepIf=ci.isBuildNeeded))
         self.addStep(steps.DirectoryUpload(name="upload repo", compress="gz",
-                                           slavesrc=src, masterdest=dst))
+                                           slavesrc=src, masterdest=dst,
+                                           doStepIf=ci.isBuildNeeded))
         self.addStep(steps.MasterShellCommand(name="repo permission",
-                                              command="chmod a+rX -R " + dst))
+                                              command="chmod a+rX -R " + dst,
+                                              doStepIf=ci.isBuildNeeded))
 
 class PackageFactory(BasePackageFactory):
     """
     Factory to build a single package.
     Logic:
+      - Copy helpers
       - Update sources
       - Build SRPM
       - Rebuild SRPM with mock
@@ -99,13 +105,22 @@ class PackageFactory(BasePackageFactory):
     def __init__(self, pkg, arch, distro, channel):
         BasePackageFactory.__init__(self, pkg, arch, distro, channel)
 
+        # Copy helpers
+        for helper in ("needs-rebuild", ):
+            self.addStep(steps.FileDownload(name="helper " + helper,
+                                            mastersrc="helpers/fedora/" + helper,
+                                            slavedest="../helpers/" + helper,
+                                            mode=0755))
         # Fetch sources
         self.addStep(Git(repourl=pkg["repourl"], branch=pkg.get("branch", "master"),
                          method="fresh", mode="full"))
         # Build SRPM
         self.addStep(rpmbuild.SRPMBuild(specfile=pkg["name"] + ".spec"))
+        # Determine whether we need to build this package
+        self.addStep(ci.BuildNeeded(repodir="../../" + self.repodir))
         # Rebuild SRPM
-        self.addStep(ci.MockRebuild(root=self.root, resultdir=self.resultdir))
+        self.addStep(ci.MockRebuild(root=self.root, resultdir=self.resultdir,
+                                    doStepIf=ci.isBuildNeeded))
         # Update local repository
         self.updateLocalRepository()
         # Update repository on master
@@ -115,6 +130,7 @@ class CiPackageFactory(BasePackageFactory):
     """
     Factory to build a single package from CI.
     Logic:
+      - Copy helpers
       - Update upstream sources
       - Update packaging sources
       - Create upstream tarball on the packaging directory
@@ -127,6 +143,12 @@ class CiPackageFactory(BasePackageFactory):
     def __init__(self, pkg, arch, distro, channel):
         BasePackageFactory.__init__(self, pkg, arch, distro, channel)
 
+        # Copy helpers
+        for helper in ("needs-rebuild", ):
+            self.addStep(steps.FileDownload(name="helper " + helper,
+                                            mastersrc="helpers/fedora/" + helper,
+                                            slavedest="../helpers/" + helper,
+                                            mode=0755))
         # Fetch upstream sources
         self.addStep(Git(name="git upstream",
                          repourl=pkg["upstream"]["repourl"],
@@ -143,9 +165,12 @@ class CiPackageFactory(BasePackageFactory):
         # Build SRPM
         self.addStep(rpmbuild.SRPMBuild(specfile=pkg["name"] + ".spec",
                                         vcsRevision=True))
+        # Determine whether we need to build this package
+        self.addStep(ci.BuildNeeded(repodir="../../" + self.repodir))
         # Rebuild SRPM
         self.addStep(ci.MockRebuild(root=self.root, resultdir=self.resultdir,
-                                    repodir="../" + self.repodir, vcsRevision=True))
+                                    repodir="../" + self.repodir, vcsRevision=True,
+                                    doStepIf=ci.isBuildNeeded))
         # Update local repository
         self.updateLocalRepository()
         # Update repository on master
