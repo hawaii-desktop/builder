@@ -151,16 +151,18 @@ class CiPackageFactory(BasePackageFactory):
                                             mastersrc="helpers/fedora/" + helper,
                                             slavedest="../helpers/" + helper,
                                             mode=0755))
-        # Fetch upstream sources
-        self.addStep(Git(name="git upstream",
-                         repourl=pkg["upstream"]["repourl"],
-                         branch=pkg["upstream"].get("branch", "master"),
-                         method="fresh", mode="full", workdir=pkg["name"]))
         # Fetch packaging sources
         self.addStep(Git(name="git packaging",
                          repourl=pkg["downstream"]["repourl"],
                          branch=pkg["downstream"].get("branch", "master"),
                          method="fresh", mode="full"))
+        # Fetch upstream sources (must be after fetching the packaging so
+        # that the last properties set by Git refers to upstream and can
+        # be used later)
+        self.addStep(Git(name="git upstream",
+                         repourl=pkg["upstream"]["repourl"],
+                         branch=pkg["upstream"].get("branch", "master"),
+                         method="fresh", mode="full", workdir=pkg["name"]))
         # Determine whether we need to build this package
         self.addStep(ci.BuildNeeded(specfile=pkg["name"] + ".spec",
                                     repodir="../../" + self.repodir))
