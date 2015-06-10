@@ -31,16 +31,16 @@
 # $END_LICENSE$
 #
 
-target_srpm=$1
+specfilename=$1
 repodir=$2
 
-if [ -z "$target_srpm" -o -z "$repodir" ]; then
-    echo "Usage: $0 <SRPM> <REPODIR>"
+if [ -z "$specfilename" -o -z "$repodir" ]; then
+    echo "Usage: $0 <SPEC> <REPODIR>"
     exit 1
 fi
 
-if [ ! -f $target_srpm ]; then
-    echo "SRPM \"$target_srpm\" not found!"
+if [ ! -f $specfilename ]; then
+    echo "File \"$specfilename\" not found!"
     exit 1
 fi
 
@@ -49,17 +49,37 @@ if [ ! -d $repodir ]; then
     exit 1
 fi
 
+# Get source package name
+name=$(/usr/bin/rpmspec -q --srpm --qf "%{name}\n" $specfilename | sed -e 's,^(none)$,,g')
+if [ $? -ne 0 ]; then
+    echo "Unable to get name from spec fiel \"$specfilename\""
+    exit $?
+fi
+
 #
 # EVR from spec file
 #
 spec_evr() {
+    spec=$1
+
     epoch=$(/usr/bin/rpmspec -q --srpm --qf "%{epoch}\n" $spec | sed -e 's,^(none)$,0,g')
     version=$(/usr/bin/rpmspec -q --srpm --qf "%{version}\n" $spec | sed -e 's,^(none)$,,g')
     release=$(/usr/bin/rpmspec -q --srpm --qf "%{release}\n" $spec | sed -e 's,^(none)$,,g')
 
-    if [ -z "$version" -o -z "$release" ]; then
+    if [ -z "$epoch" -o -z "$version" -o -z "$release" ]; then
         echo "Unable to retrieve EVR from \"$spec\""
         exit 1
+    fi
+
+    echo $release | grep -q "%{_checkout}"
+    if [ $? -eq 0 ]; then
+        # This is a CI package, replace %{_checkout} with the actual release
+        pushd ../${name}-git >/dev/null
+        gitdate=$(git log -1 --format="%cd" --date=short | tr -d '-')
+        gitver=$(git log -1 --format="%h")
+        checkout="${gitdate}git${gitver}"
+        release=$(echo $release | sed -e "s,%{_checkout},$checkout,g")
+        popd >/dev/null
     fi
 
     echo "${epoch}:${version}-${release}"
@@ -76,6 +96,11 @@ srpm_name() {
         exit 1
     fi
 
+    if [ -z "$name" ]; then
+        echo "Unable to retrieve name from \"$srpm\""
+        exit 1
+    fi
+
     /usr/bin/rpm -qp --qf "%{name}\n" $srpm | sed -e 's,^(none)$,,g'
 }
 
@@ -87,12 +112,11 @@ srpm_evr() {
         exit 1
     fi
 
-    name=$(/usr/bin/rpm -qp --qf "%{name}\n" $srpm | sed -e 's,^(none)$,,g')
     epoch=$(/usr/bin/rpm -qp --qf "%{epoch}\n" $srpm | sed -e 's,^(none)$,0,g')
     version=$(/usr/bin/rpm -qp --qf "%{version}\n" $srpm | sed -e 's,^(none)$,,g')
     release=$(/usr/bin/rpm -qp --qf "%{release}\n" $srpm | sed -e 's,^(none)$,,g')
 
-    if [ -z "$name" -o -z "$epoch" -o -z "$version" -o -z "$release" ]; then
+    if [ -z "$epoch" -o -z "$version" -o -z "$release" ]; then
         echo "Unable to retrieve NEVR from \"$srpm\""
         exit 1
     fi
@@ -100,10 +124,12 @@ srpm_evr() {
     echo "${epoch}:${version}-${release}"
 }
 
+# Determine version from spec file
+
+
 #
 # Find the SRPM with the highest version
 #
-name=$(srpm_name $target_srpm)
 srpms=$(find ${repodir}/source -type f -name "${name}*.src.rpm")
 if [ $? -ne 0 ]; then
     echo "Unable to find SRPMs, exiting..."
@@ -125,9 +151,17 @@ for srpm in $srpms; do
     fi
 done
 
+# If no SRPM was found we need to build
+if [ -z "$last_evr" ]; then
+    echo "yes"
+    exit 0
+fi
+
 # Compare EVR1 with EVR2, we assume EVR1 is from the spec file and EVR2
 # is from the last build
-/usr/bin/rpmdev-vercmp $(srpm_evr $target_srpm) $last_evr 2>&1 >/dev/null
+evr=$(spec_evr $specfilename)
+#echo "Compare $evr to $last_evr" >/dev/stderr
+/usr/bin/rpmdev-vercmp $evr $last_evr 2>&1 >/dev/null
 
 # Return a string saying "yes" or "no", return "yes" when
 # EVR1 is greater than EVR2

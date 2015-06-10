@@ -114,10 +114,12 @@ class PackageFactory(BasePackageFactory):
         # Fetch sources
         self.addStep(Git(repourl=pkg["repourl"], branch=pkg.get("branch", "master"),
                          method="fresh", mode="full"))
-        # Build SRPM
-        self.addStep(rpmbuild.SRPMBuild(specfile=pkg["name"] + ".spec"))
         # Determine whether we need to build this package
-        self.addStep(ci.BuildNeeded(repodir="../../" + self.repodir))
+        self.addStep(ci.BuildNeeded(specfile=pkg["name"] + ".spec",
+                                    repodir="../../" + self.repodir))
+        # Build SRPM
+        self.addStep(rpmbuild.SRPMBuild(specfile=pkg["name"] + ".spec",
+                                        doStepIf=ci.isBuildNeeded))
         # Rebuild SRPM
         self.addStep(ci.MockRebuild(root=self.root, resultdir=self.resultdir,
                                     doStepIf=ci.isBuildNeeded))
@@ -159,14 +161,17 @@ class CiPackageFactory(BasePackageFactory):
                          repourl=pkg["downstream"]["repourl"],
                          branch=pkg["downstream"].get("branch", "master"),
                          method="fresh", mode="full"))
+        # Determine whether we need to build this package
+        self.addStep(ci.BuildNeeded(specfile=pkg["name"] + ".spec",
+                                    repodir="../../" + self.repodir))
         # Create sources tarball
         self.addStep(ci.TarXz(filename="{}.tar.xz".format(pkg["name"]),
-                              srcdir="../" + pkg["name"]))
+                              srcdir="../" + pkg["name"],
+                              doStepIf=ci.isBuildNeeded))
         # Build SRPM
         self.addStep(rpmbuild.SRPMBuild(specfile=pkg["name"] + ".spec",
-                                        vcsRevision=True))
-        # Determine whether we need to build this package
-        self.addStep(ci.BuildNeeded(repodir="../../" + self.repodir))
+                                        vcsRevision=True,
+                                        doStepIf=ci.isBuildNeeded))
         # Rebuild SRPM
         self.addStep(ci.MockRebuild(root=self.root, resultdir=self.resultdir,
                                     repodir="../" + self.repodir, vcsRevision=True,

@@ -107,10 +107,13 @@ class BuildNeeded(ShellMixin, steps.BuildStep):
 
     name = "build-needed"
 
-    def __init__(self, repodir=None, **kwargs):
+    def __init__(self, specfile=None, repodir=None, **kwargs):
         kwargs = self.setupShellMixin(kwargs, prohibitArgs=["command"])
         steps.BuildStep.__init__(self, haltOnFailure=True, **kwargs)
 
+        self.specfile = specfile
+        if not self.specfile:
+            config.error("You must specify a spec file")
         self.repodir = repodir
         if not self.repodir:
             config.error("You must specify a repository directory")
@@ -120,15 +123,14 @@ class BuildNeeded(ShellMixin, steps.BuildStep):
         log = yield self.addLog("logs")
 
         # Determine NEVR from spec file
-        srpm = self.getProperty("srpm")
-        cmd = yield self._makeCommand(["../helpers/needs-rebuild", srpm, self.repodir])
+        cmd = yield self._makeCommand(["../helpers/needs-rebuild", self.specfile, self.repodir])
         yield self.runCommand(cmd)
         if cmd.didFail():
-            yield log.addStderr(u"Unable to determine whether {} will be built\n".format(srpm))
+            yield log.addStderr(u"Unable to determine whether {} will be built\n".format(self.specfile))
             defer.returnValue(FAILURE)
         result = cmd.stdout.strip()
         if result not in ("yes", "no"):
-            yield log.addStderr(u"Unable to determine whether {} will be built\n".format(srpm))
+            yield log.addStderr(u"Unable to determine whether {} will be built\n".format(self.specfile))
             defer.returnValue(FAILURE)
         self.setProperty("build_needed", result == "yes", "BuildNeeded")
         defer.returnValue(SUCCESS)
