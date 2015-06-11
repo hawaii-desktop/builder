@@ -59,6 +59,7 @@ class BasePackageFactory(BuildFactory):
         self.resultdir = "../results"
 
         # Other properties
+        self.repourl = "http://localhost:9999/{}/{}".format(channel, arch)
         self.repodir = "repository/{}/{}".format(channel, arch)
         self.arch = arch
         self.distro = distro
@@ -125,6 +126,7 @@ class PackageFactory(BasePackageFactory):
                                         doStepIf=ci.isBuildNeeded))
         # Rebuild SRPM
         self.addStep(ci.MockRebuild(root=self.root, resultdir=self.resultdir,
+                                    repourl=self.repourl,
                                     doStepIf=ci.isBuildNeeded))
         # Update local repository
         self.updateLocalRepository()
@@ -172,7 +174,7 @@ class CiPackageFactory(BasePackageFactory):
                                         doStepIf=ci.isBuildNeeded))
         # Rebuild SRPM
         self.addStep(ci.MockRebuild(root=self.root, resultdir=self.resultdir,
-                                    repodir="../" + self.repodir, vcsRevision=True,
+                                    repourl=self.repourl, vcsRevision=True,
                                     doStepIf=ci.isBuildNeeded))
         # Update local repository
         self.updateLocalRepository()
