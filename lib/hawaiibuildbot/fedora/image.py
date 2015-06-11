@@ -99,11 +99,11 @@ class CreateLiveCd(ShellCommand):
         filename = "{}-{}-{}".format(self.imgname, self.version, self.arch)[:32]
 
         # Command
-        cmd = ["/usr/bin/livecd-creator", "--releasever=" + self.distro,
+        cmd = ["livecd-creator", "--releasever=" + self.distro,
                "--title=" + self.title, "--product=" + self.product,
                "-c", "flattened.ks", "-f", filename, "-d", "-v",
                "--cache", "../cache"]
-        self.command = ["pkexec",] + cmd
+        self.command = ["sudo",] + cmd
 
 class CreateAppliance(ShellCommand):
     """
@@ -163,7 +163,7 @@ class CreateAppliance(ShellCommand):
                "-d", "-v", "-o", resultdir, "--format=raw", "--checksum",
                "--name", name, "--version", self.distro, "--release", self.version,
                "-c", "flattened.ks"]
-        self.command = ["pkexec",] + cmd
+        self.command = ["sudo",] + cmd
 
         @d.addCallback
         def removeDone(cmd):
