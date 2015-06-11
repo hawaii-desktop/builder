@@ -68,6 +68,14 @@ run cd /data/buildbot/src/slave; python setup.py install
 run cd /data/buildbot; \
     buildslave create-slave slave @MASTER@ @SLAVE@ password
 
+# Web server for local repository
+run /bin/echo -e "\
+[program:webserver]\n\
+command=twistd --nodaemon --no_save --pidfile webserver.pid web --path repository --port 9999 --logfile webserver.log\n\
+directory=/data/buildbot/slave\n\
+environment=LC_ALL=\"C\"\n" > \
+    /etc/supervisord.d/webserver.ini
+
 # Create buildbot service
 run /bin/echo -e "\
 [program:buildslave]\n\
