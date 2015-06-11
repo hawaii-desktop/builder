@@ -52,7 +52,7 @@ class FlattenKickstart(ShellCommand):
         if not self.filename:
             config.error("You must specify a kickstart file name")
 
-        self.command = ["ksflatten", "-c", self.filename, "-o", "/tmp/flattened.ks"]
+        self.command = ["ksflatten", "-c", self.filename, "-o", "flattened.ks"]
 
 class CreateLiveCd(ShellCommand):
     """
@@ -101,8 +101,8 @@ class CreateLiveCd(ShellCommand):
         # Command
         cmd = ["/usr/bin/livecd-creator", "--releasever=" + self.distro,
                "--title=" + self.title, "--product=" + self.product,
-               "-c", "/tmp/flattened.ks", "-f", filename, "-d", "-v",
-               "--cache", "/var/cache/buildbot-livecd"]
+               "-c", "flattened.ks", "-f", filename, "-d", "-v",
+               "--cache", "../cache"]
         self.command = ["pkexec",] + cmd
 
 class CreateAppliance(ShellCommand):
@@ -162,7 +162,7 @@ class CreateAppliance(ShellCommand):
         cmd = ["appliance-creator", "--logfile", self.logfiles[self.logfile], "--cache", cachedir,
                "-d", "-v", "-o", resultdir, "--format=raw", "--checksum",
                "--name", name, "--version", self.distro, "--release", self.version,
-               "-c", "/tmp/flattened.ks"]
+               "-c", "flattened.ks"]
         self.command = ["pkexec",] + cmd
 
         @d.addCallback
