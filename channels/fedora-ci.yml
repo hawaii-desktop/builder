@@ -5,26 +5,12 @@
     branch: dev
     repourl: git://code.qt.io/qt/qtbase.git
     pollInterval: 604800
-- name: qt5-qttools-git
-  downstream:
-    repourl: https://bitbucket.org/hawaii-fedora-ci/qt5-qttools-git.git
-  upstream:
-    branch: dev
-    repourl: git://code.qt.io/qt/qttools.git
-    pollInterval: 604800
 - name: qt5-qtdoc-git
   downstream:
     repourl: https://bitbucket.org/hawaii-fedora-ci/qt5-qtdoc-git.git
   upstream:
     branch: dev
     repourl: git://code.qt.io/qt/qtdoc.git
-    pollInterval: 604800
-- name: qt5-qttranslations-git
-  downstream:
-    repourl: https://bitbucket.org/hawaii-fedora-ci/qt5-qttranslations-git.git
-  upstream:
-    branch: dev
-    repourl: git://code.qt.io/qt/qttranslations.git
     pollInterval: 604800
 - name: qt5-qtxmlpatterns-git
   downstream:
@@ -145,12 +131,26 @@
     branch: dev
     repourl: git://code.qt.io/qt/qtwebkit.git
     pollInterval: 604800
+- name: qt5-qttools-git
+  downstream:
+    repourl: https://bitbucket.org/hawaii-fedora-ci/qt5-qttools-git.git
+  upstream:
+    branch: dev
+    repourl: git://code.qt.io/qt/qttools.git
+    pollInterval: 604800
 - name: qt5-qtquick1-git
   downstream:
     repourl: https://bitbucket.org/hawaii-fedora-ci/qt5-qtquick1-git.git
   upstream:
     branch: dev
     repourl: git://code.qt.io/qt/qtquick1.git
+    pollInterval: 604800
+- name: qt5-qttranslations-git
+  downstream:
+    repourl: https://bitbucket.org/hawaii-fedora-ci/qt5-qttranslations-git.git
+  upstream:
+    branch: dev
+    repourl: git://code.qt.io/qt/qttranslations.git
     pollInterval: 604800
 - name: captiva-icon-theme-git
   downstream:
