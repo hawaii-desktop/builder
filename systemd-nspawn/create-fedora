@@ -53,7 +53,7 @@ path="/srv/buildbot/$name"
 run="systemd-nspawn -D $path"
 
 # Create the container
-pkgs="systemd passwd dnf fedora-release vim-minimal make gcc git sudo python-devel python-pip rsync mock rpm-build livecd-tools appliance-tools fedora-kickstarts spin-kickstarts"
+pkgs="systemd passwd dnf fedora-release vim-minimal make gcc git sudo python-devel python-pip rsync mock rpm-build rpmdevtools livecd-tools appliance-tools fedora-kickstarts spin-kickstarts"
 mkdir -p $path 
 dnf -y --releasever=22 --nogpg --installroot=$path --disablerepo="*" --enablerepo=fedora install $pkgs || exit $?
 
