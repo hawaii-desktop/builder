@@ -43,8 +43,8 @@ run dnf install -y python-devel python-pip
 run dnf install -y supervisor
 run dnf install -y rsync
 
-# Install mock and rpmbuild
-run dnf install -y mock rpm-build
+# Install development tools
+run dnf install -y mock rpm-build rpmdevtools
 
 # Install live CD and appliance tools
 run dnf install -y livecd-tools appliance-tools fedora-kickstarts spin-kickstarts
