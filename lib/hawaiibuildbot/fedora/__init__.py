@@ -45,6 +45,10 @@ class BasePackageFactory(BuildFactory):
     Abstract class for all package factories.
     Provides basic configuration and steps for a local repository
     and upload to master.
+
+    Steps performed by constructor:
+      - Create directory for local repository
+      - Copy helpers
     """
 
     def __init__(self, pkg, arch, distro, channel):
@@ -63,6 +67,12 @@ class BasePackageFactory(BuildFactory):
         # Make sure the local repository is available
         self.addStep(ShellCommand(name="local repo",
                                   command="mkdir -p ../../%s/{noarch,source,%s}" % (self.repodir, arch)))
+        # Copy helpers
+        for helper in ("needs-rebuild", ):
+            self.addStep(steps.FileDownload(name="helper " + helper,
+                                            mastersrc="helpers/fedora/" + helper,
+                                            slavedest="../helpers/" + helper,
+                                            mode=0755))
 
     def updateLocalRepository(self):
         # Update local repository
@@ -94,7 +104,6 @@ class PackageFactory(BasePackageFactory):
     """
     Factory to build a single package.
     Logic:
-      - Copy helpers
       - Update sources
       - Build SRPM
       - Rebuild SRPM with mock
@@ -105,12 +114,6 @@ class PackageFactory(BasePackageFactory):
     def __init__(self, pkg, arch, distro, channel):
         BasePackageFactory.__init__(self, pkg, arch, distro, channel)
 
-        # Copy helpers
-        for helper in ("needs-rebuild", ):
-            self.addStep(steps.FileDownload(name="helper " + helper,
-                                            mastersrc="helpers/fedora/" + helper,
-                                            slavedest="../helpers/" + helper,
-                                            mode=0755))
         # Fetch sources
         self.addStep(Git(repourl=pkg["repourl"], branch=pkg.get("branch", "master"),
                          method="fresh", mode="full"))
@@ -132,7 +135,6 @@ class CiPackageFactory(BasePackageFactory):
     """
     Factory to build a single package from CI.
     Logic:
-      - Copy helpers
       - Update upstream sources
       - Update packaging sources
       - Create upstream tarball on the packaging directory
@@ -145,12 +147,6 @@ class CiPackageFactory(BasePackageFactory):
     def __init__(self, pkg, arch, distro, channel):
         BasePackageFactory.__init__(self, pkg, arch, distro, channel)
 
-        # Copy helpers
-        for helper in ("needs-rebuild", ):
-            self.addStep(steps.FileDownload(name="helper " + helper,
-                                            mastersrc="helpers/fedora/" + helper,
-                                            slavedest="../helpers/" + helper,
-                                            mode=0755))
         # Fetch packaging sources
         self.addStep(Git(name="git packaging",
                          repourl=pkg["downstream"]["repourl"],
