@@ -82,8 +82,8 @@ class BasePackageFactory(BuildFactory):
             self.addStep(ShellCommand(name="mv " + rpmset[0],
                                       command="find %s -type f -name *.%s -exec mv -f {} %s \\;" % (self.resultdir, rpmset[0], dst),
                                       doStepIf=ci.isBuildNeeded))
-        self.addStep(ShellCommand(name="createrepo",
-                                  command="createrepo -v --deltas --num-deltas 5 --compress-type xz ../../{}".format(self.repodir),
+        self.addStep(ShellCommand(name="update-repo",
+                                  command="../helpers/update-repo ../../{}".format(self.repodir),
                                   doStepIf=ci.isBuildNeeded))
 
     def uploadToMaster(self):
@@ -98,7 +98,7 @@ class BasePackageFactory(BuildFactory):
                                            slavesrc=src, masterdest=dst,
                                            doStepIf=ci.isBuildNeeded))
         self.addStep(steps.MasterShellCommand(name="repo permission",
-                                              command="chmod a+rX -R " + dst,
+                                              command="chmod -R u=rwx,g=rwx,o=rx " + dst,
                                               doStepIf=ci.isBuildNeeded))
 
 class PackageFactory(BasePackageFactory):
