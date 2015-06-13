@@ -122,6 +122,8 @@ class PackageFactory(BasePackageFactory):
         self.addStep(ci.BuildNeeded(specfile=pkg["name"] + ".spec",
                                     repodir="../../" + self.repodir))
         # Build SRPM
+        self.addStep(ShellCommand(name="spectool",
+                                  command="spectool -g -A {}.spec".format(pkg["name"])))
         self.addStep(rpmbuild.SRPMBuild(specfile=pkg["name"] + ".spec",
                                         doStepIf=ci.isBuildNeeded))
         # Rebuild SRPM
