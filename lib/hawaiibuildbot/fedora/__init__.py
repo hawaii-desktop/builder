@@ -69,7 +69,7 @@ class BasePackageFactory(BuildFactory):
         self.addStep(ShellCommand(name="local repo",
                                   command="mkdir -p ../../%s/{noarch,source,%s}" % (self.repodir, arch)))
         # Copy helpers
-        for helper in ("needs-rebuild", ):
+        for helper in ("needs-rebuild", "update-repo"):
             self.addStep(steps.FileDownload(name="helper " + helper,
                                             mastersrc="helpers/fedora/" + helper,
                                             slavedest="../helpers/" + helper,
