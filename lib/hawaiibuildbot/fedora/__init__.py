@@ -207,8 +207,17 @@ class ImageFactory(BuildFactory):
       - Run the creator over the flattened kickstart file
     """
 
-    def __init__(self, repourl, arch, distro):
+    def __init__(self, repourl=None, distro=None, profile=None, arch=None):
         BuildFactory.__init__(self, [])
+
+        if not repourl:
+            config.error("You must specify the repository URL")
+        if not distro:
+            config.error("You must specify the distro")
+        if not profile:
+            config.error("You must specify the profile")
+        if not arch:
+            config.error("You must specify the architecture")
 
         import datetime
         today = datetime.datetime.now().strftime("%Y%m%d")
