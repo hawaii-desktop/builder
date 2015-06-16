@@ -54,7 +54,7 @@ fi
 sudo systemctl start docker
 sudo systemctl enable docker
 cat Dockerfile | sed -e "s/@MASTER@/$master/g" -e "s/@SLAVE@/$name/g" | sudo docker build -t $name -
-CONTAINER_ID=$(sudo docker run -d -p 22 $name)
+CONTAINER_ID=$(sudo docker run -d $name)
 
 sudo docker commit $CONTAINER_ID $name
 
