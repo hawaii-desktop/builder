@@ -44,7 +44,7 @@ run dnf install -y supervisor
 run dnf install -y rsync
 
 # Install development tools
-run dnf install -y mock rpm-build rpmdevtools
+run dnf install -y mock rpm-build rpmdevtools repoview
 
 # Install live CD and appliance tools
 run dnf install -y livecd-tools appliance-tools fedora-kickstarts spin-kickstarts
