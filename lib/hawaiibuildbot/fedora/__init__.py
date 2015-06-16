@@ -60,14 +60,15 @@ class BasePackageFactory(BuildFactory):
 
         # Other properties
         self.repourl = "http://localhost:9999/{}/{}".format(channel, arch)
-        self.repodir = "repository/{}/{}".format(channel, arch)
+        self.reporootdir = "repository/fedora"
+        self.repodir = "{}/{}".format(self.reporootdir, arch)
         self.arch = arch
         self.distro = distro
         self.channel = channel
 
         # Make sure the local repository is available
         self.addStep(ShellCommand(name="local repo",
-                                  command="mkdir -p ../../%s/{noarch,source,%s}" % (self.repodir, arch)))
+                                  command="mkdir -p ../../%s/packages" % self.repodir))
         # Copy helpers
         for helper in ("needs-rebuild", "update-repo"):
             self.addStep(steps.FileDownload(name="helper " + helper,
@@ -77,27 +78,43 @@ class BasePackageFactory(BuildFactory):
 
     def updateLocalRepository(self):
         # Update local repository
-        for rpmset in (("src.rpm", "source"), ("noarch.rpm", "noarch"), (self.arch + ".rpm", self.arch)):
-            dst = "../../{}/{}".format(self.repodir, rpmset[1])
-            self.addStep(ShellCommand(name="mv " + rpmset[0],
-                                      command="find %s -type f -name *.%s -exec mv -f {} %s \\;" % (self.resultdir, rpmset[0], dst),
-                                      doStepIf=ci.isBuildNeeded))
+        self.addStep(ShellCommand(name="mv src.rpm",
+                                  command="find %s -type f -name *.src.rpm -exec mv -f {} ../../%s/source \\;" % (self.resultdir, self.reporootdir),
+                                  doStepIf=ci.isBuildNeeded))
+        self.addStep(ShellCommand(name="mv *.rpm",
+                                  command="find %s -type f -name *.rpm -exec mv -f {} ../../%s/packages \\;" % (self.resultdir, self.repodir),
+                                  doStepIf=ci.isBuildNeeded))
         self.addStep(ShellCommand(name="update-repo",
                                   command="../helpers/update-repo ../../{}".format(self.repodir),
                                   doStepIf=ci.isBuildNeeded))
 
-    def uploadToMaster(self):
+    def uploadSourcesToMaster(self):
+        # Update repository on master
+        import datetime
+        today = datetime.datetime.now().strftime("%Y%m%d")
+        src = "../../{}/source".format(self.reporootdir)
+        dst = "public_html/fedora/{}/source".format(today)
+        self.addStep(steps.MasterShellCommand(name="sources clear", command="rm -rf " + dst,
+                                              doStepIf=ci.isBuildNeeded))
+        self.addStep(steps.DirectoryUpload(name="sources upload", compress="gz",
+                                           slavesrc=src, masterdest=dst,
+                                           doStepIf=ci.isBuildNeeded))
+        self.addStep(steps.MasterShellCommand(name="sources permission",
+                                              command="chmod -R u=rwx,g=rwx,o=rx " + dst,
+                                              doStepIf=ci.isBuildNeeded))
+
+    def uploadBinariesToMaster(self):
         # Update repository on master
         import datetime
         today = datetime.datetime.now().strftime("%Y%m%d")
         src = "../../{}".format(self.repodir)
-        dst = "public_html/{}/{}/{}".format(self.channel, self.arch, today)
-        self.addStep(steps.MasterShellCommand(name="clean repo", command="rm -rf " + dst,
+        dst = "public_html/fedora/{}/{}".format(today, self.arch)
+        self.addStep(steps.MasterShellCommand(name="binaries clear", command="rm -rf " + dst,
                                               doStepIf=ci.isBuildNeeded))
-        self.addStep(steps.DirectoryUpload(name="upload repo", compress="gz",
+        self.addStep(steps.DirectoryUpload(name="binaries upload", compress="gz",
                                            slavesrc=src, masterdest=dst,
                                            doStepIf=ci.isBuildNeeded))
-        self.addStep(steps.MasterShellCommand(name="repo permission",
+        self.addStep(steps.MasterShellCommand(name="binaries permission",
                                               command="chmod -R u=rwx,g=rwx,o=rx " + dst,
                                               doStepIf=ci.isBuildNeeded))
 
@@ -120,7 +137,7 @@ class PackageFactory(BasePackageFactory):
                          method="fresh", mode="full"))
         # Determine whether we need to build this package
         self.addStep(ci.BuildNeeded(specfile=pkg["name"] + ".spec",
-                                    repodir="../../" + self.repodir))
+                                    repodir="../../{}".format(self.reporootdir)))
         # Build SRPM
         self.addStep(ShellCommand(name="spectool",
                                   command="spectool -g -A {}.spec".format(pkg["name"])))
@@ -133,7 +150,8 @@ class PackageFactory(BasePackageFactory):
         # Update local repository
         self.updateLocalRepository()
         # Update repository on master
-        self.uploadToMaster()
+        self.uploadSourcesToMaster()
+        self.uploadBinariesToMaster()
 
 class CiPackageFactory(BasePackageFactory):
     """
@@ -165,7 +183,7 @@ class CiPackageFactory(BasePackageFactory):
                          method="fresh", mode="full", workdir=pkg["name"]))
         # Determine whether we need to build this package
         self.addStep(ci.BuildNeeded(specfile=pkg["name"] + ".spec",
-                                    repodir="../../" + self.repodir))
+                                    repodir="../../{}".format(self.reporootdir)))
         # Create sources tarball
         self.addStep(ci.TarXz(filename="{}.tar.xz".format(pkg["name"]),
                               srcdir="../" + pkg["name"],
@@ -181,7 +199,8 @@ class CiPackageFactory(BasePackageFactory):
         # Update local repository
         self.updateLocalRepository()
         # Update repository on master
-        self.uploadToMaster()
+        self.uploadSourcesToMaster()
+        self.uploadBinariesToMaster()
 
 class RepositoryFactory(BuildFactory):
     """
