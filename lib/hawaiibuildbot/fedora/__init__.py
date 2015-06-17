@@ -212,7 +212,7 @@ class RepositoryFactory(BuildFactory):
         BuildFactory.__init__(self, [])
 
         for pkg in pkgs:
-            trigger = "{}-{}-fedora-trigger".format(pkg["name"], arch)
+            trigger = "trigger-fedora-{}-{}".format(arch, pkg["name"])
             self.addStep(steps.Trigger(schedulerNames=[trigger],
                                        waitForFinish=True,
                                        updateSourceStamp=True))
