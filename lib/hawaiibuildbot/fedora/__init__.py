@@ -85,8 +85,7 @@ class BasePackageFactory(BuildFactory):
                                   command="find %s -type f -name *.rpm -exec mv -f {} ../../%s/packages \\;" % (self.resultdir, self.repodir),
                                   doStepIf=ci.isBuildNeeded))
         self.addStep(ShellCommand(name="update-repo",
-                                  command="../helpers/update-repo ../../{}".format(self.repodir),
-                                  doStepIf=ci.isBuildNeeded))
+                                  command="../helpers/update-repo ../../{}".format(self.repodir)))
 
     def uploadSourcesToMaster(self):
         # Update repository on master
@@ -94,14 +93,11 @@ class BasePackageFactory(BuildFactory):
         today = datetime.datetime.now().strftime("%Y%m%d")
         src = "../../{}/source".format(self.reporootdir)
         dst = "public_html/fedora/{}/source".format(today)
-        self.addStep(steps.MasterShellCommand(name="sources clear", command="rm -rf " + dst,
-                                              doStepIf=ci.isBuildNeeded))
+        self.addStep(steps.MasterShellCommand(name="sources clear", command="rm -rf " + dst))
         self.addStep(steps.DirectoryUpload(name="sources upload", compress="gz",
-                                           slavesrc=src, masterdest=dst,
-                                           doStepIf=ci.isBuildNeeded))
+                                           slavesrc=src, masterdest=dst))
         self.addStep(steps.MasterShellCommand(name="sources permission",
-                                              command="chmod -R u=rwx,g=rwx,o=rx " + dst,
-                                              doStepIf=ci.isBuildNeeded))
+                                              command="chmod -R u=rwx,g=rwx,o=rx " + dst))
 
     def uploadBinariesToMaster(self):
         # Update repository on master
@@ -109,14 +105,11 @@ class BasePackageFactory(BuildFactory):
         today = datetime.datetime.now().strftime("%Y%m%d")
         src = "../../{}".format(self.repodir)
         dst = "public_html/fedora/{}/{}".format(today, self.arch)
-        self.addStep(steps.MasterShellCommand(name="binaries clear", command="rm -rf " + dst,
-                                              doStepIf=ci.isBuildNeeded))
+        self.addStep(steps.MasterShellCommand(name="binaries clear", command="rm -rf " + dst))
         self.addStep(steps.DirectoryUpload(name="binaries upload", compress="gz",
-                                           slavesrc=src, masterdest=dst,
-                                           doStepIf=ci.isBuildNeeded))
+                                           slavesrc=src, masterdest=dst))
         self.addStep(steps.MasterShellCommand(name="binaries permission",
-                                              command="chmod -R u=rwx,g=rwx,o=rx " + dst,
-                                              doStepIf=ci.isBuildNeeded))
+                                              command="chmod -R u=rwx,g=rwx,o=rx " + dst))
 
 class PackageFactory(BasePackageFactory):
     """
