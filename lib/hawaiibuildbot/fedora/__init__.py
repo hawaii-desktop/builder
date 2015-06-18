@@ -97,7 +97,7 @@ class BasePackageFactory(BuildFactory):
         self.addStep(steps.DirectoryUpload(name="sources upload", compress="gz",
                                            slavesrc=src, masterdest=dst))
         self.addStep(steps.MasterShellCommand(name="sources permission",
-                                              command="chmod -R u=rwx,g=rwx,o=rx " + dst))
+                                              command="find %s -type d -exec chmod -R u=rwx,g=rwx,o=rx {} \\;" % dst))
 
     def uploadBinariesToMaster(self):
         # Update repository on master
@@ -109,7 +109,7 @@ class BasePackageFactory(BuildFactory):
         self.addStep(steps.DirectoryUpload(name="binaries upload", compress="gz",
                                            slavesrc=src, masterdest=dst))
         self.addStep(steps.MasterShellCommand(name="binaries permission",
-                                              command="chmod -R u=rwx,g=rwx,o=rx " + dst))
+                                              command="find %s -type d -exec chmod -R u=rwx,g=rwx,o=rx {} \\;" % dst))
 
 class PackageFactory(BasePackageFactory):
     """
