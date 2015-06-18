@@ -68,6 +68,7 @@ class BasePackageFactory(BuildFactory):
 
         # Make sure the local repository is available
         self.addStep(ShellCommand(name="local repo",
+                                  logEnviron=False,
                                   command="mkdir -p ../../%s/packages" % self.repodir))
         # Copy helpers
         for helper in ("needs-rebuild", "update-repo"):
@@ -79,12 +80,15 @@ class BasePackageFactory(BuildFactory):
     def updateLocalRepository(self):
         # Update local repository
         self.addStep(ShellCommand(name="mv src.rpm",
+                                  logEnviron=False,
                                   command="find %s -type f -name *.src.rpm -exec mv -f {} ../../%s/source \\;" % (self.resultdir, self.reporootdir),
                                   doStepIf=ci.isBuildNeeded))
         self.addStep(ShellCommand(name="mv *.rpm",
+                                  logEnviron=False,
                                   command="find %s -type f -name *.rpm -exec mv -f {} ../../%s/packages \\;" % (self.resultdir, self.repodir),
                                   doStepIf=ci.isBuildNeeded))
         self.addStep(ShellCommand(name="update-repo",
+                                  logEnviron=False,
                                   command="../helpers/update-repo ../../{}".format(self.repodir)))
 
     def uploadSourcesToMaster(self):
@@ -133,6 +137,7 @@ class PackageFactory(BasePackageFactory):
                                     repodir="../../{}".format(self.reporootdir)))
         # Build SRPM
         self.addStep(ShellCommand(name="spectool",
+                                  logEnviron=False,
                                   command="spectool -g -A {}.spec".format(pkg["name"])))
         self.addStep(rpmbuild.SRPMBuild(specfile=pkg["name"] + ".spec",
                                         doStepIf=ci.isBuildNeeded))
