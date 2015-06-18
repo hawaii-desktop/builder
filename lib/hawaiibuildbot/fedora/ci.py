@@ -45,6 +45,10 @@ class MockRebuild(Mock):
     Custom Mock step that rebuild the SRPM.
     """
 
+    alwaysRun = False
+    haltOnFailure = True
+    flunkOnFailure = True
+
     def __init__(self, repourl=None, vcsRevision=False, **kwargs):
         Mock.__init__(self, **kwargs)
         self.repourl = repourl
@@ -87,6 +91,10 @@ class TarXz(ShellCommand):
 
     name = "tar"
 
+    alwaysRun = False
+    haltOnFailure = True
+    flunkOnFailure = True
+
     def __init__(self, filename=None, srcdir=None, **kwargs):
         ShellCommand.__init__(self, **kwargs)
 
@@ -103,6 +111,10 @@ class BuildNeeded(ShellMixin, steps.BuildStep):
     """
 
     name = "build-needed"
+
+    alwaysRun = False
+    haltOnFailure = True
+    flunkOnFailure = True
 
     def __init__(self, specfile=None, repodir=None, **kwargs):
         kwargs = self.setupShellMixin(kwargs, prohibitArgs=["command"])
