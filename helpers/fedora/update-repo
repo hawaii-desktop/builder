@@ -38,7 +38,7 @@ import rpmUtils.miscutils as rpmutils
 def find_garbage(repodir):
     print "==> Find garbage on {}".format(repodir)
     garbage = []
-    for path in ("source", "noarch", "i386", "x86_64"):
+    for path in ("source", "i386/packages", "x86_64/packages"):
         # Skip missing directories
         fullpath = os.path.join(repodir, path)
         if not os.path.isdir(fullpath):
@@ -71,7 +71,11 @@ def clean(repodir, garbage):
     for filename in garbage:
         print("Remove {}".format(filename))
         os.unlink(filename)
-    # Regenerate metadata
+
+# Regenerate metadata
+def createrepo(repodir):
+    if not os.path.exists(repodir):
+        return
     drpms_path = os.path.join(repodir, "drpms")
     if os.path.isdir(drpms_path):
         shutil.rmtree(drpms_path)
@@ -88,3 +92,5 @@ if __name__ == "__main__":
 
     garbage = find_garbage(args.repodir)
     clean(args.repodir, garbage)
+    for arch in ("i386", "x86_64"):
+        createrepo(os.path.join(args.repodir, arch))
