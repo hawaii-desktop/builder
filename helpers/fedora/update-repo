@@ -36,6 +36,7 @@ import rpmUtils.miscutils as rpmutils
 
 # Find old packages to remove
 def find_garbage(repodir):
+    repodir = os.path.abspath(repodir)
     print "==> Find garbage on {}".format(repodir)
     garbage = []
     for path in ("source", "i386/packages", "x86_64/packages"):
@@ -74,6 +75,7 @@ def clean(repodir, garbage):
 
 # Regenerate metadata
 def createrepo(repodir, arch=None):
+    repodir = os.path.abspath(repodir)
     if not os.path.exists(repodir):
         return
     for p in ("drpms", "repodata", "repoview"):
