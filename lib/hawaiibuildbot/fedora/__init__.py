@@ -210,6 +210,20 @@ class RepositoryFactory(BuildFactory):
                                        waitForFinish=True,
                                        updateSourceStamp=True))
 
+class SyncFactory(BasePackageFactory):
+    """
+    Factory to copy packages to master.
+    """
+
+    def __init__(self, arch):
+        BasePackageFactory.__init__(self, None, arch, None, None)
+
+        # Update local repository
+        self.updateLocalRepository()
+        # Update repository on master
+        self.uploadSourcesToMaster()
+        self.uploadBinariesToMaster()
+
 class ImageFactory(BuildFactory):
     """
     Factory to spin images.
