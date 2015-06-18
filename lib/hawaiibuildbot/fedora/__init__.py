@@ -271,7 +271,18 @@ class ImageFactory(BuildFactory):
             self.addStep(image.CreateLiveCd(arch=arch, distro=distro,
                                             title="Hawaii", product="Hawaii",
                                             imgname="hawaii", version=today))
+            self.uploadToMaster(filename="hawaii-{}-{}.iso".format(today, arch), arch=arch)
         elif arch == "armhfp":
             self.addStep(image.FlattenKickstart(filename="hawaii-arm.ks"))
             self.addStep(image.CreateAppliance(arch=arch, distro=distro,
                                                title="Hawaii", version=today))
+
+    def uploadToMaster(self, filename, arch):
+        dst = "public_html/images/{}".format(arch)
+        self.addStep(ShellCommand(name="image permission",
+                                  logEnviron=False,
+                                  haltOnFailure=True,
+                                  flunkOnFailure=True,
+                                  command="sudo chown $USER " + filename))
+        self.addStep(steps.DirectoryUpload(name="upload", compress="bz2",
+                                           slavesrc=filename, masterdest=dst))
