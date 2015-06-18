@@ -102,7 +102,7 @@ class CreateLiveCd(ShellCommand):
         cmd = ["livecd-creator", "--releasever=" + self.distro,
                "--title=" + self.title, "--product=" + self.product,
                "-c", "flattened.ks", "-f", filename, "-d", "-v",
-               "--cache", "../cache"]
+               "--cache", "../cache", "--tmpdir", "../tmp"]
         self.command = ["sudo",] + cmd
 
 class CreateAppliance(ShellCommand):
