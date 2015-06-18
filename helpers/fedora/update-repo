@@ -73,17 +73,20 @@ def clean(repodir, garbage):
         os.unlink(filename)
 
 # Regenerate metadata
-def createrepo(repodir):
+def createrepo(repodir, arch=None):
     if not os.path.exists(repodir):
         return
-    drpms_path = os.path.join(repodir, "drpms")
-    if os.path.isdir(drpms_path):
-        shutil.rmtree(drpms_path)
-    repodata_path = os.path.join(repodir, "repodata")
-    if os.path.isdir(repodata_path):
-        shutil.rmtree(repodata_path)
-    print("Regenerate metadata on {}".format(repodir))
+    for p in ("drpms", "repodata", "repoview"):
+        path = os.path.join(repodir, "drpms")
+        if os.path.isdir(path):
+            shutil.rmtree(path)
+    print("==> Regenerate metadata on {}".format(repodir))
     os.system("createrepo --compress-type xz {}".format(repodir))
+    print("==> Regenerate repository view on {}".format(repodir))
+    if arch:
+        os.system("repoview -t 'Hawaii {}' {}".format(arch, repodir))
+    else:
+        os.system("repoview {}".format(repodir))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Repository cleanup and deduplication")
@@ -93,4 +96,4 @@ if __name__ == "__main__":
     garbage = find_garbage(args.repodir)
     clean(args.repodir, garbage)
     for arch in ("i386", "x86_64"):
-        createrepo(os.path.join(args.repodir, arch))
+        createrepo(os.path.join(args.repodir, arch), arch=arch)
