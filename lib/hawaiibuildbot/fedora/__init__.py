@@ -85,13 +85,13 @@ class BasePackageFactory(BuildFactory):
                                   logEnviron=False,
                                   haltOnFailure=True,
                                   flunkOnFailure=True,
-                                  command="find %s -type f -name *.src.rpm -exec mv -f {} ../../%s/source \\;" % (self.resultdir, self.reporootdir),
+                                  command="find %s -type f -name '*.src.rpm' -exec mv -f {} ../../%s/source \\;" % (self.resultdir, self.reporootdir),
                                   doStepIf=ci.isBuildNeeded))
         self.addStep(ShellCommand(name="mv *.rpm",
                                   logEnviron=False,
                                   haltOnFailure=True,
                                   flunkOnFailure=True,
-                                  command="find %s -type f -name *.rpm -exec mv -f {} ../../%s/packages \\;" % (self.resultdir, self.repodir),
+                                  command="find %s -type f -name '*.rpm' -exec mv -f {} ../../%s/packages \\;" % (self.resultdir, self.repodir),
                                   doStepIf=ci.isBuildNeeded))
         self.addStep(ShellCommand(name="update-repo",
                                   logEnviron=False,
