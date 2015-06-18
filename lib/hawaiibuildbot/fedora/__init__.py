@@ -97,7 +97,7 @@ class BasePackageFactory(BuildFactory):
                                   logEnviron=False,
                                   haltOnFailure=True,
                                   flunkOnFailure=True,
-                                  command="../helpers/update-repo ../../{}".format(self.repodir)))
+                                  command="../helpers/update-repo ../../{}".format(self.reporootdir)))
 
     def uploadSourcesToMaster(self):
         # Update repository on master
