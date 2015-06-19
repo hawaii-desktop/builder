@@ -163,9 +163,20 @@ evr=$(spec_evr $specfilename)
 #echo "Compare $evr to $last_evr" >/dev/stderr
 /usr/bin/rpmdev-vercmp $evr $last_evr 2>&1 >/dev/null
 
+# A note on rpmdev-vercm exit status:
+#   - 0 if the EVR's are equal
+#   - 11 if EVR1 is newer
+#   - 12 if EVR2 is newer
+#   - Other exit statuses indicate problems
+ret=$?
+if [ $ret -ne 0 -a $ret -ne 11 -a $ret -ne 12 ]; then
+    echo "An error has occurred"
+    exit $ret
+fi
+
 # Return a string saying "yes" or "no", return "yes" when
 # EVR1 is greater than EVR2
-if [ $? -eq 11 ]; then
+if [ $ret -eq 11 ]; then
     echo "yes"
 else
     echo "no"
