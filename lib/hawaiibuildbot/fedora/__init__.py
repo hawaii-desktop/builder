@@ -278,6 +278,7 @@ class ImageFactory(BuildFactory):
                                                title="Hawaii", version=today))
 
     def uploadToMaster(self, filename, arch):
+        import os
         dstdir = "public_html/images/{}".format(arch)
         dst = os.path.join(dstdir, filename)
         self.addStep(ShellCommand(name="image permission",
