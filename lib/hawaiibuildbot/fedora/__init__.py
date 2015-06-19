@@ -107,7 +107,7 @@ class BasePackageFactory(BuildFactory):
         src = "../../{}/source".format(self.reporootdir)
         dst = "public_html/fedora/{}/source".format(today)
         self.addStep(steps.MasterShellCommand(name="sources clear", command="rm -rf " + dst))
-        self.addStep(steps.DirectoryUpload(name="sources upload", compress="bz2",
+        self.addStep(steps.DirectoryUpload(name="sources upload", compress="gz",
                                            slavesrc=src, masterdest=dst))
         self.addStep(steps.MasterShellCommand(name="sources permission",
                                               command="find %s -type d -exec chmod -R u=rwx,g=rwx,o=rx {} \\;" % dst))
@@ -119,7 +119,7 @@ class BasePackageFactory(BuildFactory):
         src = "../../{}".format(self.repodir)
         dst = "public_html/fedora/{}/{}".format(today, self.arch)
         self.addStep(steps.MasterShellCommand(name="binaries clear", command="rm -rf " + dst))
-        self.addStep(steps.DirectoryUpload(name="binaries upload", compress="bz2",
+        self.addStep(steps.DirectoryUpload(name="binaries upload", compress="gz",
                                            slavesrc=src, masterdest=dst))
         self.addStep(steps.MasterShellCommand(name="binaries permission",
                                               command="find %s -type d -exec chmod -R u=rwx,g=rwx,o=rx {} \\;" % dst))
@@ -298,5 +298,5 @@ class ImageFactory(BuildFactory):
                                   haltOnFailure=True,
                                   flunkOnFailure=True,
                                   command="mkdir -p " + dstdir))
-        self.addStep(steps.DirectoryUpload(name="upload", compress="bz2",
+        self.addStep(steps.DirectoryUpload(name="upload", compress="gz",
                                            slavesrc=filename, masterdest=dst))
