@@ -149,4 +149,6 @@ class BuildNeeded(ShellMixin, steps.BuildStep):
             command=args, **kwargs)
 
 def isBuildNeeded(step):
+    if step.build.getProperty("rebuild"):
+        return True
     return step.build.getProperty("build_needed")
