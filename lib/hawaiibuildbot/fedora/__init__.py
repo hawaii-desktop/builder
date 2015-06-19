@@ -33,6 +33,7 @@
 from buildbot.process.factory import BuildFactory
 from buildbot.steps.shell import ShellCommand
 from buildbot.plugins import steps
+from buildbot.steps.package.rpm import RpmLint
 
 import ci
 import image
@@ -143,6 +144,9 @@ class PackageFactory(BasePackageFactory):
         # Determine whether we need to build this package
         self.addStep(ci.BuildNeeded(specfile=pkg["name"] + ".spec",
                                     repodir="../../{}".format(self.reporootdir)))
+        # Validate spec file with rpmlint but do not block builds on failure
+        self.addStep(RpmLint(fileloc=pkg["name"] + ".spec",
+                             haltOnFailure=False, flunkOnFailure=False))
         # Build SRPM
         self.addStep(ShellCommand(name="spectool",
                                   logEnviron=False,
@@ -192,6 +196,9 @@ class CiPackageFactory(BasePackageFactory):
         # Determine whether we need to build this package
         self.addStep(ci.BuildNeeded(specfile=pkg["name"] + ".spec",
                                     repodir="../../{}".format(self.reporootdir)))
+        # Validate spec file with rpmlint but do not block builds on failure
+        self.addStep(RpmLint(fileloc=pkg["name"] + ".spec",
+                             haltOnFailure=False, flunkOnFailure=False))
         # Create sources tarball
         self.addStep(ci.TarXz(filename="{}.tar.xz".format(pkg["name"]),
                               srcdir="../" + pkg["name"],
