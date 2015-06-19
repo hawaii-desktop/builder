@@ -278,11 +278,17 @@ class ImageFactory(BuildFactory):
                                                title="Hawaii", version=today))
 
     def uploadToMaster(self, filename, arch):
-        dst = "public_html/images/{}".format(arch)
+        dstdir = "public_html/images/{}".format(arch)
+        dst = os.path.join(dstdir, filename)
         self.addStep(ShellCommand(name="image permission",
                                   logEnviron=False,
                                   haltOnFailure=True,
                                   flunkOnFailure=True,
                                   command="sudo chown $USER " + filename))
+        self.addStep(ShellCommand(name="create destination",
+                                  logEnviron=False,
+                                  haltOnFailure=True,
+                                  flunkOnFailure=True,
+                                  command="mkdir -p " + dstdir))
         self.addStep(steps.DirectoryUpload(name="upload", compress="bz2",
                                            slavesrc=filename, masterdest=dst))
