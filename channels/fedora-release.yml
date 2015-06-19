@@ -1,4 +1,6 @@
 - name: hawaii-release
   repourl: https://bitbucket.org/hawaii-fedora/hawaii-release.git
+- name: hawaii-settings
+  repourl: https://bitbucket.org/hawaii-fedora/hawaii-settings.git
 - name: plymouth-theme-hawaii
   repourl: https://bitbucket.org/hawaii-fedora/plymouth-theme-hawaii.git
