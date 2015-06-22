@@ -36,7 +36,9 @@ from buildbot.steps.source.git import Git as BuildBotGit
 from twisted.internet import defer
 from twisted.python import log
 
+
 class Git(BuildBotGit):
+
     """
     Custom git build step that saves the git short revision and date.
     The properties are:

@@ -30,6 +30,7 @@
 # $END_LICENSE$
 #
 
+
 def loadYaml(fileName):
     from yaml import load
     try:

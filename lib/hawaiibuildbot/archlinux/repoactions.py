@@ -27,7 +27,9 @@ from twisted.internet import defer
 
 from pkgactions import BinaryPackageBuild
 
+
 class RepositoryScan(ShellMixin, BuildStep):
+
     """
     Scans a repository to find packages and build them.
     """
@@ -52,7 +54,8 @@ class RepositoryScan(ShellMixin, BuildStep):
         if cmd.didFail():
             defer.returnValue(FAILURE)
         existing_packages = cmd.stdout.strip().split(" ")
-        self.setProperty("existing_packages", existing_packages, "RepositoryScan")
+        self.setProperty(
+            "existing_packages", existing_packages, "RepositoryScan")
 
         # Find out which packages are meant for this channel
         data = self._loadYaml("tmp/buildinfo.yml")
@@ -87,11 +90,13 @@ class RepositoryScan(ShellMixin, BuildStep):
                 "provides": provides
             })
 
-        # Update the list of dependencies removing dependencies provided by the system
+        # Update the list of dependencies removing dependencies provided by the
+        # system
         for pkg in pkg_info:
             deps = []
             for dep in pkg["depends"]:
-                providers = [npkg for npkg in pkg_info if dep in npkg["provides"] or npkg["name"] == dep]
+                providers = [npkg for npkg in pkg_info if dep in npkg[
+                    "provides"] or npkg["name"] == dep]
                 if len(providers) > 0:
                     deps.append(providers[0]["name"])
             pkg["depends"] = deps
@@ -114,7 +119,7 @@ class RepositoryScan(ShellMixin, BuildStep):
         for name in sorted_names:
             info = pkg_info[names.index(name)]
             steps.append(BinaryPackageBuild(name=name, arch=self.arch,
-                            depends=info["depends"], provides=info["provides"]))
+                                            depends=info["depends"], provides=info["provides"]))
 
         self.build.addStepsAfterCurrentStep(steps)
         self.setProperty("packages", sorted_names, "RepositoryScan")
@@ -133,7 +138,8 @@ class RepositoryScan(ShellMixin, BuildStep):
             command = args.split(" ")
         else:
             command = args
-        return self.makeRemoteShellCommand(collectStdout=True, collectStderr=True,
+        return self.makeRemoteShellCommand(
+            collectStdout=True, collectStderr=True,
             command=command, **kwargs)
 
     def _loadYaml(self, fileName):

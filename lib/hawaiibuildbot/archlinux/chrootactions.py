@@ -38,7 +38,9 @@ from buildbot.status.results import *
 
 from twisted.internet import defer
 
+
 class PrepareChroot(ShellMixin, steps.BuildStep):
+
     """
     Create or update the chroot for the requested architecture.
     See https://wiki.archlinux.org/index.php/DeveloperWiki:Building_in_a_Clean_Chroot
@@ -88,7 +90,8 @@ class PrepareChroot(ShellMixin, steps.BuildStep):
         return {"step": u"success"}
 
     def _makeCommand(self, command):
-        return self.makeRemoteShellCommand(collectStdout=True, collectStderr=True,
+        return self.makeRemoteShellCommand(
+            collectStdout=True, collectStderr=True,
             command=command.split(" "))
 
     @defer.inlineCallbacks
@@ -97,7 +100,9 @@ class PrepareChroot(ShellMixin, steps.BuildStep):
         yield self.runCommand(cmd)
         defer.returnValue(not cmd.didFail())
 
+
 class CcmAction(ShellMixin, steps.BuildStep):
+
     """
     Build packages and manages chroots with clean-chroot-manager.
     See https://bbs.archlinux.org/viewtopic.php?id=168421
@@ -132,14 +137,18 @@ class CcmAction(ShellMixin, steps.BuildStep):
 
     def _makeCcmCommand(self, action, **kwargs):
         bits = "32" if self.arch == "i686" else "64"
-        return self.makeRemoteShellCommand(collectStdout=True, collectStderr=True,
+        return self.makeRemoteShellCommand(
+            collectStdout=True, collectStderr=True,
             command=["sudo", "linux" + bits, "ccm" + bits, action], **kwargs)
 
     def _makeShellCommand(self, args, **kwargs):
-        return self.makeRemoteShellCommand(collectStdout=True, collectStderr=True,
+        return self.makeRemoteShellCommand(
+            collectStdout=True, collectStderr=True,
             command=args, **kwargs)
 
+
 class PrepareCcm(CcmAction):
+
     """
     Create or update a chroot with clean-chroot-manager.
     See https://bbs.archlinux.org/viewtopic.php?id=168421
@@ -172,7 +181,8 @@ class PrepareCcm(CcmAction):
             defer.returnValue(SUCCESS)
 
     def _makeCommand(self, command):
-        return self.makeRemoteShellCommand(collectStdout=True, collectStderr=True,
+        return self.makeRemoteShellCommand(
+            collectStdout=True, collectStderr=True,
             command=command.split(" "))
 
     @defer.inlineCallbacks

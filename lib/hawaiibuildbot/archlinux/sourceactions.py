@@ -25,7 +25,9 @@ from buildbot.status.results import *
 
 from twisted.internet import defer
 
+
 class PushSourceChanges(ShellMixin, BuildStep):
+
     """
     Push sources changes back to version control.
     When a git ArchLinux package is built the pkgver field is updated,
@@ -66,5 +68,6 @@ class PushSourceChanges(ShellMixin, BuildStep):
         defer.returnValue(SUCCESS)
 
     def _makeCommand(self, args, **kwargs):
-        return self.makeRemoteShellCommand(collectStdout=True, collectStderr=True,
+        return self.makeRemoteShellCommand(
+            collectStdout=True, collectStderr=True,
             command=args, **kwargs)

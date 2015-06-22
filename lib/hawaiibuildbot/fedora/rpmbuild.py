@@ -34,7 +34,9 @@ from buildbot import config
 from buildbot.process import logobserver
 from buildbot.steps.shell import ShellCommand
 
+
 class SRPMBuild(ShellCommand):
+
     """
     Build a SRPM.
     """
@@ -60,7 +62,8 @@ class SRPMBuild(ShellCommand):
             '--define "_specdir %s" --define "_srcrpmdir %s"' % \
             (topdir, builddir, rpmdir, sourcedir, specdir, srcrpmdir)
 
-        self.addLogObserver("stdio", logobserver.LineConsumerLogObserver(self.logConsumer))
+        self.addLogObserver(
+            "stdio", logobserver.LineConsumerLogObserver(self.logConsumer))
 
     def start(self):
         if self.vcsRevision:
