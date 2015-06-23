@@ -1,6 +1,24 @@
 Builder
 =======
 
+# Local configuration
+
+Private information such as GitHub authentication credentials are loaded
+from the ``~/.config/hawaii-builder.ini`` configuration file.
+
+You must create one on the master before running it.
+
+Here's the format:
+
+```sh
+[Buildbot]
+URL=<Master URL ending with />
+
+[GitHub]
+ClientId=<GitHub authentication client ID>
+ClientSecret=<GitHub authentication client secret>
+```
+
 # Build master server setup
 
 On the build master server, install buildbot:
