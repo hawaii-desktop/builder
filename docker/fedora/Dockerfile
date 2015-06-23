@@ -57,7 +57,7 @@ run mkdir -p /data/buildbot
 
 # Install Python modules
 run pip install --upgrade pip
-run pip install mock pyaml networkx twisted
+run pip install mock pyaml networkx twisted requests
 
 # Install buildbot
 run cd /data/buildbot; \
