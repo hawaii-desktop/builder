@@ -33,7 +33,7 @@ virtualenv-2.7 --no-site-packages env
 source env/bin/activate
 
 pip install --upgrade pip
-pip install mock pyaml networkx twisted autobahn python-dateutil sqlalchemy==0.7.2 sqlalchemy-migrate==0.7.2 Jinja2
+pip install mock pyaml networkx twisted autobahn python-dateutil sqlalchemy==0.7.2 sqlalchemy-migrate==0.7.2 Jinja2 requests
 
 git clone --depth 1 https://github.com/buildbot/buildbot src
 cd src
