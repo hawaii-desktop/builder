@@ -30,6 +30,17 @@
 # $END_LICENSE$
 #
 
-import auth
-import sources
-import utils
+from buildbot.www import oauth2
+from twisted.web.error import Error
+
+class GitHubAuth(oauth2.GitHubAuth):
+    """
+    Custom GitHub authentication that forbids users not
+    part of the 'hawaii-desktop' organization.
+    """
+
+    def getUserInfoFromOAuthClient(self, c):
+        info = oauth2.GitHubAuth.getUserInfoFromOAuthClient(self, c)
+        if "hawaii-desktop" not in info["groups"]:
+            raise Error(403, "You must be part of the 'hawaii-desktop' organization")
+        return info
