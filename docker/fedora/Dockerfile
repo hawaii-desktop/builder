@@ -42,6 +42,7 @@ run dnf install -y make gcc git sudo openssh-server
 run dnf install -y python-devel python-pip
 run dnf install -y supervisor
 run dnf install -y rsync
+run dnf install -y squid
 
 # Install development tools
 run dnf install -y mock rpm-build rpmdevtools repoview
@@ -68,6 +69,12 @@ run cd /data/buildbot/src/slave; python setup.py install
 run cd /data/buildbot; \
     buildslave create-slave slave @MASTER@ @SLAVE@ password
 
+# Squid for package caching
+run /bin/echo -e "\
+[program:squid]\n\
+command=squid -z -F\n" > \
+    /etc/supervisord.d/squid.ini
+
 # Web server for local repository
 run /bin/echo -e "\
 [program:webserver]\n\
@@ -83,6 +90,14 @@ command=twistd --nodaemon --no_save -y buildbot.tac\n\
 directory=/data/buildbot/slave\n\
 environment=LC_ALL=\"C\"\n" > \
     /etc/supervisord.d/buildbot.ini
+
+# Squid configuration
+ADD squid.conf /etc/squid/squid.conf
+
+# Set proxy for mock
+run /bin/echo -e "\
+config_opts['http_proxy'] = 'http://localhost:3128'" > \
+    /etc/mock/site-defaults.cfg
 
 # Run supervisord
 cmd ["/usr/bin/supervisord", "-n"]
