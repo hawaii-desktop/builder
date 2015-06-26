@@ -230,6 +230,9 @@ class RepositoryFactory(BuildFactory):
             trigger = "trigger-fedora-{}-{}".format(arch, pkg["name"])
             self.addStep(steps.Trigger(schedulerNames=[trigger],
                                        waitForFinish=True,
+                                       alwaysRun=False,
+                                       haltOnFailure=True,
+                                       flunkOnFailure=True,
                                        updateSourceStamp=True))
 
 class SyncFactory(BasePackageFactory):
