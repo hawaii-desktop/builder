@@ -1,0 +1,38 @@
+- name: x86_64-archlinux-01
+  password: password
+  max_builds: 2
+  properties:
+    architectures:
+      - i686
+      - x86_64
+    channels:
+      - archlinux
+- name: armv7hl-archlinux-01
+  password: password
+  max_builds: 1
+  properties:
+    architectures:
+      - armv7hl
+    channels:
+      - archlinux
+- name: x86_64-fedora-01
+  password: password
+  max_builds: 2
+  properties:
+    architectures:
+      - i386
+      - x86_64
+    channels:
+      - fedora-release
+      - fedora-ci
+      - image
+- name: armv7hl-fedora-01
+  password: password
+  max_builds: 1
+  properties:
+    architectures:
+      - armhfp
+    channels:
+      - fedora-release
+      - fedora-ci
+      - image
