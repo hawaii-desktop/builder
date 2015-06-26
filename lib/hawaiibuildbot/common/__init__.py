@@ -31,5 +31,4 @@
 #
 
 import auth
-import sources
 import utils

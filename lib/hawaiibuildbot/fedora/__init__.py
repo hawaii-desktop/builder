@@ -32,14 +32,13 @@
 
 from buildbot.process.factory import BuildFactory
 from buildbot.steps.shell import ShellCommand
-from buildbot.plugins import steps
+from buildbot.steps.source.git import Git
+from buildbot.plugins import steps, util
 from buildbot.steps.package.rpm import RpmLint
 
 import ci
 import image
 import rpmbuild
-
-from hawaiibuildbot.common.sources import Git
 
 class BasePackageFactory(BuildFactory):
     """
@@ -141,6 +140,14 @@ class PackageFactory(BasePackageFactory):
         # Fetch sources
         self.addStep(Git(repourl=pkg["repourl"], branch=pkg.get("branch", "master"),
                          method="fresh", mode="full"))
+        self.addStep(steps.SetPropertyFromCommand(
+                         command=["git", "log", "-1", '--format="%cd"', "--date=short"],
+                         property="got_date",
+                         haltOnFailure=False, flunkOnFailure=False))
+        self.addStep(steps.SetPropertyFromCommand(
+                         command="git log -1 --format=\"%h\" | tr -d '\"'",
+                         property="got_shortrev",
+                         haltOnFailure=False, flunkOnFailure=False))
         # Determine whether we need to build this package
         self.addStep(ci.BuildNeeded(specfile=pkg["name"] + ".spec",
                                     repodir="../../{}".format(self.reporootdir)))
@@ -193,6 +200,14 @@ class CiPackageFactory(BasePackageFactory):
                          repourl=pkg["upstream"]["repourl"],
                          branch=pkg["upstream"].get("branch", "master"),
                          method="fresh", mode="full", workdir=pkg["name"]))
+        self.addStep(steps.SetPropertyFromCommand(
+                         command="git log -1 --format=%cd --date=short | tr -d '-'",
+                         property="got_date", workdir=pkg["name"],
+                         haltOnFailure=False, flunkOnFailure=False))
+        self.addStep(steps.SetPropertyFromCommand(
+                         command="git log -1 --format=\"%h\" | tr -d '\"'",
+                         property="got_shortrev", workdir=pkg["name"],
+                         haltOnFailure=False, flunkOnFailure=False))
         # Determine whether we need to build this package
         self.addStep(ci.BuildNeeded(specfile=pkg["name"] + ".spec",
                                     repodir="../../{}".format(self.reporootdir)))
