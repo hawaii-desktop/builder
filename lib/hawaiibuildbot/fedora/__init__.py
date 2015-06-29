@@ -49,6 +49,7 @@ class BasePackageFactory(BuildFactory):
     Steps performed by constructor:
       - Create directory for local repository
       - Copy helpers
+      - Verify local repository
     """
 
     def __init__(self, pkg, arch, distro, channel):
@@ -78,6 +79,9 @@ class BasePackageFactory(BuildFactory):
                                             mastersrc="helpers/fedora/" + helper,
                                             slavedest="../helpers/" + helper,
                                             mode=0755))
+
+        # Verify local reposiotry
+        self.addStep(steps.GET(self.repourl, haltOnFailure=True, flunkOnFailure=True))
 
     def updateLocalRepository(self):
         # Update local repository
