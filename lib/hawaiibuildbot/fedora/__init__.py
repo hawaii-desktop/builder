@@ -141,10 +141,12 @@ class PackageFactory(BasePackageFactory):
         self.addStep(Git(repourl=pkg["repourl"], branch=pkg.get("branch", "master"),
                          method="fresh", mode="full"))
         self.addStep(steps.SetPropertyFromCommand(
+                         name="got_date",
                          command=["git", "log", "-1", '--format="%cd"', "--date=short"],
                          property="got_date",
                          haltOnFailure=False, flunkOnFailure=False))
         self.addStep(steps.SetPropertyFromCommand(
+                         name="got_shortrev",
                          command="git log -1 --format=\"%h\" | tr -d '\"'",
                          property="got_shortrev",
                          haltOnFailure=False, flunkOnFailure=False))
@@ -201,10 +203,12 @@ class CiPackageFactory(BasePackageFactory):
                          branch=pkg["upstream"].get("branch", "master"),
                          method="fresh", mode="full", workdir=pkg["name"]))
         self.addStep(steps.SetPropertyFromCommand(
+                         name="got_date",
                          command="git log -1 --format=%cd --date=short | tr -d '-'",
                          property="got_date", workdir=pkg["name"],
                          haltOnFailure=False, flunkOnFailure=False))
         self.addStep(steps.SetPropertyFromCommand(
+                         name="got_shortrev",
                          command="git log -1 --format=\"%h\" | tr -d '\"'",
                          property="got_shortrev", workdir=pkg["name"],
                          haltOnFailure=False, flunkOnFailure=False))
