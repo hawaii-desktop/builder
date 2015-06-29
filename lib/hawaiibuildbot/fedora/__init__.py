@@ -59,7 +59,7 @@ class BasePackageFactory(BuildFactory):
         self.resultdir = "../results"
 
         # Other properties
-        self.repourl = "http://localhost:9999/fedora/{}".format(channel, arch)
+        self.repourl = "http://localhost:9999/fedora/{}".format(arch)
         self.reporootdir = "repository/fedora"
         self.repodir = "{}/{}".format(self.reporootdir, arch)
         self.arch = arch
