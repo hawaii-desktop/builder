@@ -76,7 +76,7 @@ virtualenv-2.7 --no-site-packages env
 source env/bin/activate
 
 pip install --upgrade pip
-pip install mock pyaml networkx twisted
+pip install mock pyaml networkx twisted requests txrequests
 
 git clone https://github.com/buildbot/buildbot src
 cd src

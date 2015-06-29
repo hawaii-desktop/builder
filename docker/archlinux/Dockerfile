@@ -44,7 +44,7 @@ run sed -Ei 's/(\%admin ALL=\(ALL\) )ALL/\1 NOPASSWD:ALL/' /etc/sudoers
 
 # Install Python modules
 run pip2 install --upgrade pip
-run pip2 install mock pyaml networkx twisted requests
+run pip2 install mock pyaml networkx twisted requests txrequests
 
 # Install buildbot
 run cd /data/buildbot; sudo -u admin sh -c \
