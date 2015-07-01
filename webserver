@@ -44,4 +44,4 @@ source $basedir/env/bin/activate
 export PATH=$basedir/env/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin
 export LC_ALL=C
 pushd $basedir/slaves/$slave
-exec twistd --nodaemon --no_save --pidfile webserver.pid web --path repository --port 9999 --logfile webserver.log
+exec twistd --no_save --pidfile webserver.pid web --path repository --port 9999 --logfile webserver.log
