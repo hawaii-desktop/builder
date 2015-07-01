@@ -82,6 +82,8 @@ class MockRebuild(Mock):
         else:
             self.command += ["--rebuild", srpm]
 
+        self.command += ["--tmp_prefix", "buildbot-mock"]
+
         Mock.start(self)
 
 class TarXz(ShellCommand):
