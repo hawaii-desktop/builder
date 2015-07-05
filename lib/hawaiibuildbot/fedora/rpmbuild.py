@@ -30,10 +30,11 @@
 # $END_LICENSE$
 #
 
+import datetime
+
 from buildbot import config
 from buildbot.process import logobserver
 from buildbot.steps.shell import ShellCommand
-
 
 class SRPMBuild(ShellCommand):
 
@@ -67,9 +68,10 @@ class SRPMBuild(ShellCommand):
 
     def start(self):
         if self.vcsRevision:
+            now = datetime.datetime.now().strftime("%Y%m%d%H%M")
             date = self.getProperty("got_date")
             revision = self.getProperty("got_shortrev")
-            checkout = "{}git{}".format(date, revision)
+            checkout = "{}.{}git{}".format(date, now, revision)
             self.command += ' --define "_checkout %s"' % checkout
         self.command += " -bs " + self.specfile
         ShellCommand.start(self)

@@ -30,6 +30,8 @@
 # $END_LICENSE$
 #
 
+import datetime
+
 from buildbot import config
 from buildbot.steps.shell import ShellCommand
 from buildbot.process.buildstep import ShellMixin
@@ -63,12 +65,13 @@ class MockRebuild(Mock):
             self.command += ["-a", self.repourl]
 
         if self.vcsRevision:
+            now = datetime.datetime.now().strftime("%Y%m%d%H%M")
             date = self.getProperty("got_date")
             revision = self.getProperty("got_shortrev")
             if self.repourl:
-                self.command += ["-m", "--define=_checkout %sgit%s" % (date, revision)]
+                self.command += ["-m", "--define=_checkout %s.%sgit%s" % (date, now, revision)]
             else:
-                self.command += ["--define", "_checkout %sgit%s" % (date, revision)]
+                self.command += ["--define", "_checkout %s.%sgit%s" % (date, now, revision)]
 
         for k in ("vendor", "packager", "distribution"):
             if self.repourl:
