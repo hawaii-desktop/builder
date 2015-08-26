@@ -19,6 +19,12 @@ ClientId=<GitHub authentication client ID>
 ClientSecret=<GitHub authentication client secret>
 ```
 
+We reccomend to protect the file:
+
+```sh
+chmod 600 ~/.config/hawaii-builder.ini
+```
+
 You also need to create ``slaves.yml`` on the master's directory.
 
 Here's an example for a Fedora slave:
