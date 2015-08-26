@@ -41,7 +41,6 @@ if [ -z "$what" ]; then
 fi
 
 dir=$(dirname `readlink -f $0`)
-export PYTHONPATH=$dir/lib
 source $basedir/env/bin/activate
 export LC_ALL=C
 buildbot $what $basedir/master

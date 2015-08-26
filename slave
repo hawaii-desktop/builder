@@ -41,7 +41,6 @@ if [ -z "$what" -o -z "$slave" ]; then
 fi
 
 dir=$(dirname `readlink -f $0`)
-export PYTHONPATH=$dir/lib
 source $basedir/env/bin/activate
 export PATH=$basedir/env/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin
 export LC_ALL=C
