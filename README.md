@@ -60,6 +60,9 @@ From the clone of this repository:
 
 ```sh
 cp master.cfg ~/buildbot/master/master.cfg
+mkdir -p ~/buildbot/master/helpers
+rsync -az --delete helpers ~/buildbot/master
+rsync -az --delete channels ~/buildbot/master
 ```
 
 # Slave setup
