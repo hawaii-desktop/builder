@@ -45,7 +45,7 @@ run dnf install -y rsync
 run dnf install -y squid
 
 # Install development tools
-run dnf install -y mock rpm-build rpmdevtools repoview
+run dnf install -y mock rpm-build rpmdevtools repoview rpmlint
 
 # Install live CD and appliance tools
 run dnf install -y livecd-tools appliance-tools fedora-kickstarts spin-kickstarts
