@@ -1,3 +1,4 @@
+# vim: set noai ts=4 sw=4 expandtab:
 #
 # This file is part of Hawaii.
 #
