@@ -72,7 +72,7 @@ class BasePackageFactory(BuildFactory):
                                   logEnviron=False,
                                   haltOnFailure=True,
                                   flunkOnFailure=True,
-                                  command="mkdir -p ../../%s/packages" % self.repodir))
+                                  command="mkdir -p ../../%s/packages ../../%s/source" % (self.repodir, self.reporootdir)))
         # Copy helpers
         for helper in ("needs-rebuild", "update-repo"):
             self.addStep(steps.FileDownload(name="helper " + helper,
