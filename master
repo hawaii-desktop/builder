@@ -41,6 +41,8 @@ if [ -z "$what" ]; then
 fi
 
 dir=$(dirname `readlink -f $0`)
-source $basedir/env/bin/activate
+if [ -f $basedir/env/bin/activate ]; then
+    source $basedir/env/bin/activate
+fi
 export LC_ALL=C
 buildbot $what $basedir/master

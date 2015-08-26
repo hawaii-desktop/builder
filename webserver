@@ -40,8 +40,10 @@ if [ -z "$slave" ]; then
 fi
 
 export PYTHONPATH=$(pwd)/lib
-source $basedir/env/bin/activate
-export PATH=$basedir/env/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin
+if [ -f $basedir/env/bin/activate ]; then
+    source $basedir/env/bin/activate
+    export PATH=$basedir/env/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin
+fi
 export LC_ALL=C
 pushd $basedir/slaves/$slave
 exec twistd --no_save --pidfile webserver.pid web --path repository --port 9999 --logfile webserver.log

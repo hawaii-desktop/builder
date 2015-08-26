@@ -41,7 +41,12 @@ if [ -z "$what" -o -z "$slave" ]; then
 fi
 
 dir=$(dirname `readlink -f $0`)
-source $basedir/env/bin/activate
-export PATH=$basedir/env/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin
+if [ -f $basedir/env/bin/activate ]; then
+    source $basedir/env/bin/activate
+    export PATH=$basedir/env/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin
+else
+    # mock will need bin first
+    export PATH=/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin
+fi
 export LC_ALL=C
 buildslave $what $basedir/slaves/$slave
