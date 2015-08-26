@@ -19,6 +19,22 @@ ClientId=<GitHub authentication client ID>
 ClientSecret=<GitHub authentication client secret>
 ```
 
+You also need to create ``slaves.yml`` on the master's directory.
+
+Here's an example for a Fedora slave:
+
+```yaml
+- name: slave
+  password: password
+  properties:
+    architectures:
+    - x86_64
+    channels:
+    - image
+    - fedora-release
+    - fedora-ci
+```
+
 # Build master server setup
 
 On the build master server, install buildbot:
