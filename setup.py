@@ -56,5 +56,9 @@ setup(
               "hawaiibuildbot.common", "hawaiibuildbot.fedora"],
     install_requires=["pyaml", "networkx", "twisted", "autobahn",
                       "python-dateutil", "requests",
-                      "buildbot==0.9.0b2"],
+                      "buildbot==0.9.0b2",
+                      "buildbot-slave==0.9.0b2",
+                      "buildbot-www==0.9.0b2",
+                      "buildbot-console-view==0.9.0b2",
+                      "buildbot-waterfall-view==0.9.0b2"],
 )
