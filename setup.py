@@ -57,5 +57,5 @@ setup(
     install_requires=["pyaml", "networkx", "twisted", "autobahn",
                       "python-dateutil", "sqlalchemy==0.7.2",
                       "sqlalchemy-migrate==0.7.2", "Jinja2",
-                      "requests", "buildbot"],
+                      "requests", "buildbot==0.9.0b2"],
 )
