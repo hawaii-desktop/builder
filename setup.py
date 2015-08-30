@@ -55,7 +55,6 @@ setup(
     packages=["hawaiibuildbot", "hawaiibuildbot.archlinux",
               "hawaiibuildbot.common", "hawaiibuildbot.fedora"],
     install_requires=["pyaml", "networkx", "twisted", "autobahn",
-                      "python-dateutil", "sqlalchemy==0.7.2",
-                      "sqlalchemy-migrate==0.7.2", "Jinja2",
-                      "requests", "buildbot==0.9.0b2"],
+                      "python-dateutil", "requests",
+                      "buildbot==0.9.0b2"],
 )
