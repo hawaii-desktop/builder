@@ -1,1 +1,7 @@
+*.swp
+*.orig
+*.bak
 *.pyc
+build/
+hawaiibuildbot.egg-info/
+dist/
