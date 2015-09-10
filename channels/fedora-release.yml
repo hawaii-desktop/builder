@@ -1,9 +1,0 @@
-- name: hawaii-release
-  repourl: https://bitbucket.org/hawaii-fedora/hawaii-release.git
-  treeStableTimer: 300
-- name: hawaii-settings
-  repourl: https://bitbucket.org/hawaii-fedora/hawaii-settings.git
-  treeStableTimer: 300
-- name: plymouth-theme-hawaii
-  repourl: https://bitbucket.org/hawaii-fedora/plymouth-theme-hawaii.git
-  treeStableTimer: 300
