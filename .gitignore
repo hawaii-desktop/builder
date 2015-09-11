@@ -1,1 +1,6 @@
-*.pyc
+src/master/master
+src/master/master.log
+src/slave/slave
+src/slave/slave.log
+*~
+.*.swp
