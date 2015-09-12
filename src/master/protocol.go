@@ -123,13 +123,12 @@ func processMessage(conn *net.TCPConn, msg *protocol.Message) bool {
 			return false
 		}
 
-		slaves[conn.RemoteAddr()] = &Slave{
-			Name:          payload.Name,
-			Channels:      payload.Channels,
-			Architectures: payload.Architectures,
-			Registered:    true,
-			Active:        true,
-		}
+		slaves[conn.RemoteAddr()] = NewSlave(
+			payload.Name,
+			payload.Channels,
+			payload.Architectures,
+		)
+		slaves[conn.RemoteAddr()].Start()
 
 		logging.Infof("Slave \"%s\" registered for %s", payload.Name, conn.RemoteAddr())
 		logging.Infof("\tchannels=%v architectures=%v\n", payload.Channels, payload.Architectures)
@@ -148,6 +147,7 @@ func processMessage(conn *net.TCPConn, msg *protocol.Message) bool {
 				logging.Infof("Slave \"%s\" unregistered", v.Name)
 				slaves[k].Registered = false
 				slaves[k].Active = false
+				slaves[k].Stop()
 				return true
 			}
 		}

@@ -29,33 +29,20 @@ package main
 import (
 	"../common/logging"
 	"net"
+	"net/http"
 	"os"
 	"os/signal"
 )
 
 const (
-	LOG_FILENAME   = "master.log"
-	MASTER_ADDRESS = ":9989"
+	LOG_FILENAME          = "master.log"
+	MASTER_ADDRESS        = ":9989"
+	WEB_ADDRESS           = ":8020"
+	BUILD_QUEUE_MAXLENGTH = 100
 )
 
-type Slave struct {
-	Name          string
-	Channels      []string
-	Architectures []string
-	Registered    bool
-	Active        bool
-}
-
-var (
-	slaves map[net.Addr]*Slave
-)
-
-func init() {
-	slaves = make(map[net.Addr]*Slave)
-}
-
-func main() {
-	// Bind and listen
+func listenTcp() *net.TCPListener {
+	// Bind and listen for the master <--> slave protocol
 	tcpAddr, err := net.ResolveTCPAddr("tcp", MASTER_ADDRESS)
 	if err != nil {
 		logging.Fatalln(err)
@@ -66,9 +53,40 @@ func main() {
 	}
 	logging.Infoln("Listening on", listener.Addr())
 
-	// Create a service and run it in a goroutine
+	return listener
+}
+
+func listenHttp() (*net.TCPListener, *http.Server) {
+	// Bind and listen for the http server
+	tcpAddr, err := net.ResolveTCPAddr("tcp", WEB_ADDRESS)
+	if err != nil {
+		logging.Fatalln(err)
+	}
+	listener, err := net.ListenTCP("tcp", tcpAddr)
+	if err != nil {
+		logging.Fatalln(err)
+	}
+	logging.Infoln("Listening on", listener.Addr())
+
+	// Create the http server
+	server := &http.Server{}
+
+	return listener, server
+}
+
+func main() {
+	// Protocol between master and slave
+	tcpListener := listenTcp()
 	service := NewService()
-	go service.Serve(listener)
+	go service.Serve(tcpListener)
+
+	// Start the dispatcher
+	StartDispatcher()
+
+	// HTTP server for dashboard and collector
+	httpListener, httpServer := listenHttp()
+	http.HandleFunc("/collector", Collector)
+	go httpServer.Serve(httpListener)
 
 	// Gracefully exit with SIGINT and SIGTERM
 	sigchan := make(chan os.Signal, 2)
