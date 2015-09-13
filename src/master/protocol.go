@@ -40,16 +40,6 @@ func init() {
 	gob.Register(protocol.RegisterResponse{})
 }
 
-func encodeData(msg *protocol.Message) {
-	enc := gob.NewEncoder(conn)
-	err := enc.Encode(msg)
-	if err != nil {
-		logging.Errorf("Failed to send ping request to %s: %s\n", conn.RemoteAddr(), err.Error())
-		return
-	}
-
-}
-
 func decodeData(buffer []byte) *protocol.Message {
 	dec := gob.NewDecoder(bytes.NewBuffer(buffer))
 	msg := &protocol.Message{}
