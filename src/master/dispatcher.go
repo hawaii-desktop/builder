@@ -43,10 +43,12 @@ func StartDispatcher() {
 		for {
 			select {
 			case request := <-BuildJobQueue:
-				logging.Infof("About to dispatch build request #%d (package \"%s\")\n", request.Id, request.SourcePackage)
+				logging.Infof("About to dispatch build request #%d (package \"%s\")\n",
+					request.Id, request.SourcePackage)
 				go func() {
 					slave := <-SlaveQueue
-					logging.Infof("Dispatching build request #%d (package \"%s\")", request.Id, request.SourcePackage)
+					logging.Infof("Dispatching build request #%d (package \"%s\")",
+						request.Id, request.SourcePackage)
 					slave <- request
 				}()
 			}

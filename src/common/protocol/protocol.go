@@ -45,17 +45,34 @@ type (
 	RegisterResponse struct {
 		Result bool
 	}
+
+	// Job request (master -> slave)
+	NewJobMessage struct {
+		Id            uint64
+		SourcePackage string
+	}
+
+	// Job finished (slave -> master)
+	JobFinishedMessage struct {
+		Id     uint64
+		Status uint
+	}
 )
 
 const (
 	// Message types (slave -> master)
-	MSG_SLAVE_REGISTER   = iota + 1
-	MSG_SLAVE_UNREGISTER = iota + 2
-	MSG_SLAVE_PONG       = iota + 3
+	MSG_SLAVE_REGISTER    = iota + 1
+	MSG_SLAVE_UNREGISTER  = iota + 2
+	MSG_SLAVE_PONG        = iota + 3
+	MSG_SLAVE_JOBFINISHED = iota + 4
 
 	// Message types (master -> slave)
 	MSG_MASTER_REGISTER   = iota + 1
 	MSG_MASTER_UNREGISTER = iota + 2
 	MSG_MASTER_PING       = iota + 3
 	MSG_MASTER_NEWJOB     = iota + 4
+
+	// Job status
+	JOB_STATUS_SUCCESSFUL = iota + 10
+	JOB_STATUS_FAILED     = iota + 11
 )

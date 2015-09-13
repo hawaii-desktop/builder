@@ -27,30 +27,53 @@
 package main
 
 import (
+	"../common/logging"
 	"../common/protocol"
-	"time"
+	"encoding/gob"
+	"net"
 )
-
-// Holds the last global request id
-var globalRequestId uint64 = 0
 
 type BuildRequest struct {
 	Id            uint64
-	Slave         *Slave
 	SourcePackage string
-	Started       time.Time
-	Finished      time.Time
 	Status        uint
+	Connection    *net.TCPConn
 }
 
 const (
-	BUILD_REQUEST_STATUS_NOT_STARTED = iota + 1
-	BUILD_REQUEST_STATUS_CRASHED     = iota + 2
-	BUILD_REQUEST_STATUS_SUCCESSFUL  = protocol.JOB_STATUS_SUCCESSFUL
-	BUILD_REQUEST_STATUS_FAILED      = protocol.JOB_STATUS_FAILED
+	BUILD_REQUEST_STATUS_PROCESSING = iota
+	BUILD_REQUEST_STATUS_SUCCESSFUL = protocol.JOB_STATUS_SUCCESSFUL
+	BUILD_REQUEST_STATUS_FAILED     = protocol.JOB_STATUS_FAILED
 )
 
-func (r BuildRequest) Finish(status uint) {
-	r.Status = status
-	r.Finished = time.Now()
+func NewBuildRequest(id uint64, pkgname string, conn *net.TCPConn) *BuildRequest {
+	br := &BuildRequest{
+		Id:            id,
+		SourcePackage: pkgname,
+		Status:        BUILD_REQUEST_STATUS_PROCESSING,
+		Connection:    conn,
+	}
+	return br
+}
+
+func (br *BuildRequest) Process() {
+	// TODO: Fetch sources
+	// TODO: Build
+
+	br.Status = BUILD_REQUEST_STATUS_FAILED
+
+	// Notify master
+	logging.Infoln("...")
+	br.sendFinished()
+	logging.Infof("Finished job #%d (target \"%s\")\n", br.Id, br.SourcePackage)
+}
+
+func (br *BuildRequest) sendFinished() {
+	msg := &protocol.JobFinishedMessage{br.Id, br.Status}
+	envelope := &protocol.Message{protocol.MSG_SLAVE_JOBFINISHED, msg}
+	enc := gob.NewEncoder(br.Connection)
+	err := enc.Encode(envelope)
+	if err != nil {
+		logging.Errorln("Failed to send job finished:", err.Error())
+	}
 }

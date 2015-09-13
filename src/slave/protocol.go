@@ -40,6 +40,8 @@ func init() {
 	// Register custom types
 	gob.Register(protocol.RegisterRequest{})
 	gob.Register(protocol.RegisterResponse{})
+	gob.Register(protocol.NewJobMessage{})
+	gob.Register(protocol.JobFinishedMessage{})
 }
 
 func readFromMaster(conn *net.TCPConn) *protocol.Message {
@@ -149,6 +151,18 @@ func handleRequest(conn *net.TCPConn) {
 		if err != nil {
 			logging.Errorln("Failed to send pong reply:", err.Error())
 		}
+		break
+	case protocol.MSG_MASTER_NEWJOB:
+		// Create a build request and start processing
+		payload, ok := msg.Data.(protocol.NewJobMessage)
+		if !ok {
+			logging.Errorln("Failed to read new job message")
+			return
+		}
+		logging.Infof("Processing build request #%d (target \"%s\")\n",
+			payload.Id, payload.SourcePackage)
+		br := NewBuildRequest(payload.Id, payload.SourcePackage, conn)
+		go br.Process()
 		break
 	}
 }

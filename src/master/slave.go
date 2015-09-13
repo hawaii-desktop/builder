@@ -28,8 +28,11 @@ package main
 
 import (
 	"../common/logging"
+	"../common/protocol"
+	"errors"
 	"net"
 	"sync/atomic"
+	"time"
 )
 
 // Holds the last global slave id
@@ -43,6 +46,7 @@ type Slave struct {
 	Architectures  []string
 	Registered     bool
 	Active         bool
+	Connection     *net.TCPConn
 	RequestChannel chan BuildRequest
 	QueueChannel   chan chan BuildRequest
 	QuitChannel    chan bool
@@ -57,7 +61,7 @@ func init() {
 }
 
 // Creates and returns a new Slave object
-func NewSlave(name string, chans []string, archs []string) *Slave {
+func NewSlave(name string, chans []string, archs []string, conn *net.TCPConn) *Slave {
 	// Allocate a new global id
 	id := atomic.AddUint32(&globalSlaveId, 1)
 
@@ -69,6 +73,7 @@ func NewSlave(name string, chans []string, archs []string) *Slave {
 		Architectures:  archs,
 		Registered:     true,
 		Active:         true,
+		Connection:     conn,
 		RequestChannel: make(chan BuildRequest),
 		QueueChannel:   SlaveQueue,
 		QuitChannel:    make(chan bool),
@@ -80,14 +85,23 @@ func NewSlave(name string, chans []string, archs []string) *Slave {
 func (s *Slave) Start() {
 	go func() {
 		for {
+			// Do not queue a slave that suddenly unregisters itself
+			if !s.Registered || !s.Active {
+				return
+			}
+
 			// Add to the queue
 			s.QueueChannel <- s.RequestChannel
 
 			select {
 			case request := <-s.RequestChannel:
-				// Receive a build request
-				logging.Infof("Build request #%d (package \"%s\") scheduled on \"%s\"\n",
+				// Send the build request to the slave
+				request.Slave = s
+				logging.Infof("Build request #%d (package \"%s\") running on \"%s\"\n",
 					request.Id, request.SourcePackage, s.Name)
+				_ = s.send(request)
+				logging.Infof("Finished build request #%d (package \"%s\") on \"%s\"\n",
+					request.Id, request.SourcePackage, request.Slave.Name)
 			case <-s.QuitChannel:
 				// Slave has been asked to stop
 				return
@@ -102,4 +116,41 @@ func (s *Slave) Stop() {
 	go func() {
 		s.QuitChannel <- true
 	}()
+}
+
+// Send a build request to the slave
+func (s *Slave) send(request BuildRequest) error {
+	// Send request
+	s.Connection.SetDeadline(time.Now().Add(1e9))
+	msg := &protocol.NewJobMessage{request.Id, request.SourcePackage}
+	envelope := &protocol.Message{protocol.MSG_MASTER_NEWJOB, msg}
+	err := encodeData(s.Connection, envelope)
+	if err != nil {
+		logging.Errorf("Failed to send new job request to %s: %s\n", s.Connection.RemoteAddr(), err.Error())
+		request.Finish(BUILD_REQUEST_STATUS_CRASHED)
+		return err
+	}
+
+	// Receive reply
+	buffer := make([]byte, 4096)
+	if _, err := s.Connection.Read(buffer); err != nil {
+		if opErr, ok := err.(*net.OpError); ok && opErr.Timeout() {
+			return err
+		}
+		logging.Warningf("Failed to receive job finished reply from %s: %s\n", s.Connection.RemoteAddr(), err.Error())
+		return err
+	}
+
+	// Decode reply
+	reply := decodeData(buffer)
+	payload, ok := reply.Data.(protocol.JobFinishedMessage)
+	if !ok {
+		logging.Errorln("Failed to decode job finished reply from", s.Connection.RemoteAddr())
+		return errors.New("decoding failed")
+	}
+
+	// Save request information and stop
+	request.Finish(payload.Status)
+
+	return nil
 }

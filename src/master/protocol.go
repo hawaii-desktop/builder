@@ -38,6 +38,17 @@ func init() {
 	// Register custom types
 	gob.Register(protocol.RegisterRequest{})
 	gob.Register(protocol.RegisterResponse{})
+	gob.Register(protocol.NewJobMessage{})
+	gob.Register(protocol.JobFinishedMessage{})
+}
+
+func encodeData(conn *net.TCPConn, msg *protocol.Message) error {
+	enc := gob.NewEncoder(conn)
+	err := enc.Encode(msg)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func decodeData(buffer []byte) *protocol.Message {
@@ -117,6 +128,7 @@ func processMessage(conn *net.TCPConn, msg *protocol.Message) bool {
 			payload.Name,
 			payload.Channels,
 			payload.Architectures,
+			conn,
 		)
 		slaves[conn.RemoteAddr()].Start()
 

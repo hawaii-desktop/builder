@@ -57,10 +57,11 @@ func Collector(w http.ResponseWriter, r *http.Request) {
 	// Create a build request
 	request := BuildRequest{
 		Id:            id,
+		Slave:         nil,
 		SourcePackage: pkgname,
 		Started:       time.Now(),
 		Finished:      time.Time{},
-		Result:        false,
+		Status:        BUILD_REQUEST_STATUS_NOT_STARTED,
 	}
 
 	// Push it onto the queue
