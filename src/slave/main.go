@@ -28,6 +28,7 @@ package main
 
 import (
 	"../common/logging"
+	"../common/pidfile"
 	"net"
 	"os"
 	"os/signal"
@@ -39,6 +40,17 @@ var (
 )
 
 func main() {
+	// Acquire PID file
+	pidFile, err := pidfile.New("/tmp/builder/slave.pid")
+	if err != nil {
+		logging.Fatalf("Unable to create PID file: %s", err.Error())
+	}
+	err = pidFile.TryLock()
+	if err != nil {
+		logging.Fatalf("Unable to acquire PID file: %s", err.Error())
+	}
+	defer pidFile.Unlock()
+
 	// Resolve address
 	tcpAddr, err := net.ResolveTCPAddr("tcp", config.Master.Address)
 	if err != nil {

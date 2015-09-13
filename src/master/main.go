@@ -28,6 +28,7 @@ package main
 
 import (
 	"../common/logging"
+	"../common/pidfile"
 	"net"
 	"net/http"
 	"os"
@@ -68,6 +69,17 @@ func listenHttp() (*net.TCPListener, *http.Server) {
 }
 
 func main() {
+	// Acquire PID file
+	pidFile, err := pidfile.New("/tmp/builder/master.pid")
+	if err != nil {
+		logging.Fatalf("Unable to create PID file: %s", err.Error())
+	}
+	err = pidFile.TryLock()
+	if err != nil {
+		logging.Fatalf("Unable to acquire PID file: %s", err.Error())
+	}
+	defer pidFile.Unlock()
+
 	// Protocol between master and slave
 	tcpListener := listenTcp()
 	service := NewService()
