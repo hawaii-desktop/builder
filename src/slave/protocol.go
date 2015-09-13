@@ -70,7 +70,7 @@ func registerSlave(conn *net.TCPConn) {
 	// Encode data
 	buffer := new(bytes.Buffer)
 	enc := gob.NewEncoder(buffer)
-	payload := &protocol.RegisterRequest{SLAVE_NAME, channels, architectures}
+	payload := &protocol.RegisterRequest{config.Slave.Name, config.Slave.Channels, config.Slave.Architectures}
 	msg := &protocol.Message{protocol.MSG_SLAVE_REGISTER, payload}
 	err := enc.Encode(msg)
 	if err != nil {

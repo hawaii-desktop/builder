@@ -34,16 +34,9 @@ import (
 	"os/signal"
 )
 
-const (
-	LOG_FILENAME          = "master.log"
-	MASTER_ADDRESS        = ":9989"
-	WEB_ADDRESS           = ":8020"
-	BUILD_QUEUE_MAXLENGTH = 100
-)
-
 func listenTcp() *net.TCPListener {
 	// Bind and listen for the master <--> slave protocol
-	tcpAddr, err := net.ResolveTCPAddr("tcp", MASTER_ADDRESS)
+	tcpAddr, err := net.ResolveTCPAddr("tcp", config.Server.Address)
 	if err != nil {
 		logging.Fatalln(err)
 	}
@@ -58,7 +51,7 @@ func listenTcp() *net.TCPListener {
 
 func listenHttp() (*net.TCPListener, *http.Server) {
 	// Bind and listen for the http server
-	tcpAddr, err := net.ResolveTCPAddr("tcp", WEB_ADDRESS)
+	tcpAddr, err := net.ResolveTCPAddr("tcp", config.Server.HttpAddress)
 	if err != nil {
 		logging.Fatalln(err)
 	}

@@ -34,7 +34,7 @@ import (
 )
 
 // Buffered channel that we can send build requests on
-var BuildJobQueue = make(chan BuildRequest, BUILD_QUEUE_MAXLENGTH)
+var BuildJobQueue = make(chan BuildRequest, config.Build.MaxRequests)
 
 func Collector(w http.ResponseWriter, r *http.Request) {
 	// This is only allowed with a POST

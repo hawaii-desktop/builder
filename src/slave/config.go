@@ -28,28 +28,38 @@ package main
 
 import (
 	"../common/logging"
+	"gopkg.in/gcfg.v1"
 )
 
-// Buffered channel that holds the build request
-// channels from each slave
-var SlaveQueue chan chan BuildRequest
+type Config struct {
+	Master struct {
+		Address string
+	}
+	Slave struct {
+		Name          string
+		Channels      []string
+		Architectures []string
+	}
+}
 
-// Start the dispatcher of build requests to slaves
-func StartDispatcher() {
-	// Initialize the channel
-	SlaveQueue = make(chan chan BuildRequest, config.Build.MaxSlaves)
+var config Config
 
-	go func() {
-		for {
-			select {
-			case request := <-BuildJobQueue:
-				logging.Infof("About to dispatch build request #%d (package \"%s\")\n", request.Id, request.SourcePackage)
-				go func() {
-					slave := <-SlaveQueue
-					logging.Infof("Dispatching build request #%d (package \"%s\")", request.Id, request.SourcePackage)
-					slave <- request
-				}()
-			}
-		}
-	}()
+func init() {
+	err := gcfg.ReadFileInto(&config, "slave.cfg")
+	if err != nil {
+		logging.Fatalln(err)
+	}
+
+	if config.Master.Address == "" {
+		logging.Fatalln("You must specify the master address")
+	}
+	if config.Slave.Name == "" {
+		logging.Fatalln("You must specify the slave name")
+	}
+	if len(config.Slave.Channels) == 0 {
+		logging.Fatalln("You must specify the channels to subscribe")
+	}
+	if len(config.Slave.Architectures) == 0 {
+		logging.Fatalln("You must specify the supported architectures")
+	}
 }

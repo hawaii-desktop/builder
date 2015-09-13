@@ -33,30 +33,22 @@ import (
 	"os/signal"
 )
 
-const (
-	LOG_FILENAME   = "slave.log"
-	MASTER_ADDRESS = ":9989"
-	SLAVE_NAME     = "slave1"
-)
-
 var (
-	alive         = true
-	registered    = false
-	channels      = []string{"package", "image"}
-	architectures = []string{"i386", "armfp"}
+	alive      = true
+	registered = false
 )
 
 func main() {
 	// Resolve address
-	tcpAddr, err := net.ResolveTCPAddr("tcp", MASTER_ADDRESS)
+	tcpAddr, err := net.ResolveTCPAddr("tcp", config.Master.Address)
 	if err != nil {
-		logging.Fatalf("Failed to resolve %s address: %s\n", MASTER_ADDRESS, err.Error())
+		logging.Fatalf("Failed to resolve %s address: %s\n", tcpAddr, err.Error())
 	}
 
 	// Connect to the server
 	conn, err := net.DialTCP("tcp", nil, tcpAddr)
 	if err != nil {
-		logging.Fatalf("Failed to connect to the master on %s: %s\n", MASTER_ADDRESS, err.Error())
+		logging.Fatalf("Failed to connect to the master on %s: %s\n", tcpAddr, err.Error())
 	}
 
 	// Register slave

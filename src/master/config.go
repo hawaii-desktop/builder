@@ -28,28 +28,25 @@ package main
 
 import (
 	"../common/logging"
+	"gopkg.in/gcfg.v1"
 )
 
-// Buffered channel that holds the build request
-// channels from each slave
-var SlaveQueue chan chan BuildRequest
+type Config struct {
+	Server struct {
+		Address     string
+		HttpAddress string
+	}
+	Build struct {
+		MaxRequests uint
+		MaxSlaves   uint
+	}
+}
 
-// Start the dispatcher of build requests to slaves
-func StartDispatcher() {
-	// Initialize the channel
-	SlaveQueue = make(chan chan BuildRequest, config.Build.MaxSlaves)
+var config Config
 
-	go func() {
-		for {
-			select {
-			case request := <-BuildJobQueue:
-				logging.Infof("About to dispatch build request #%d (package \"%s\")\n", request.Id, request.SourcePackage)
-				go func() {
-					slave := <-SlaveQueue
-					logging.Infof("Dispatching build request #%d (package \"%s\")", request.Id, request.SourcePackage)
-					slave <- request
-				}()
-			}
-		}
-	}()
+func init() {
+	err := gcfg.ReadFileInto(&config, "master.cfg")
+	if err != nil {
+		logging.Fatalln(err)
+	}
 }
