@@ -1,5 +1,5 @@
 /****************************************************************************
- * This file is part of Hawaii.
+ * This file is part of Builder.
  *
  * Copyright (C) 2015 Pier Luigi Fiorini
  *
@@ -24,32 +24,35 @@
  * $END_LICENSE$
  ***************************************************************************/
 
-package main
+package master
 
 import (
-	"../common/logging"
+	"github.com/hawaii-desktop/builder/common/logging"
+	"time"
 )
 
-// Buffered channel that holds the build request
-// channels from each slave
-var SlaveQueue chan chan BuildRequest
+// Buffered channel that holds the job channels from each slave.
+var SlaveQueue chan chan *Job
 
-// Start the dispatcher of build requests to slaves
+// Start the dispatcher of jobs to slaves.
 func StartDispatcher() {
 	// Initialize the channel
-	SlaveQueue = make(chan chan BuildRequest, config.Build.MaxSlaves)
+	SlaveQueue = make(chan chan *Job, Config.Build.MaxSlaves)
 
 	go func() {
 		for {
 			select {
-			case request := <-BuildJobQueue:
-				logging.Infof("About to dispatch build request #%d (package \"%s\")\n",
-					request.Id, request.SourcePackage)
+			case j := <-BuildJobQueue:
+				logging.Tracef("About to dispatch job #%d...\n", j.Id)
 				go func() {
+					// Update job
+					j.Started = time.Now()
+					j.Status = JOB_STATUS_WAITING
+
+					// Dispatch
 					slave := <-SlaveQueue
-					logging.Infof("Dispatching build request #%d (package \"%s\")",
-						request.Id, request.SourcePackage)
-					slave <- request
+					logging.Tracef("Dispatching job #%d...\n", j.Id)
+					slave <- j
 				}()
 			}
 		}

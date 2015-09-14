@@ -24,19 +24,19 @@
  * $END_LICENSE$
  ***************************************************************************/
 
-package main
+package master
 
 import (
-	"../common/logging"
+	"github.com/hawaii-desktop/builder/common/logging"
 	"net/http"
 	"sync/atomic"
 	"time"
 )
 
-// Buffered channel that we can send build requests on
-var BuildJobQueue = make(chan BuildRequest, config.Build.MaxRequests)
+// Buffered channel that we can send jobs on
+var BuildJobQueue = make(chan *Job, Config.Build.MaxJobs)
 
-func Collector(w http.ResponseWriter, r *http.Request) {
+func Collector(m *Master, w http.ResponseWriter, r *http.Request) {
 	// This is only allowed with a POST
 	if r.Method != "POST" {
 		w.Header().Set("Allow", "POST")
@@ -45,28 +45,29 @@ func Collector(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Package name
-	pkgname := r.FormValue("source-package")
-	if pkgname == "" {
-		http.Error(w, "You must specify a source package name", http.StatusBadRequest)
+	target := r.FormValue("target")
+	if target == "" {
+		http.Error(w, "You must specify a target", http.StatusBadRequest)
 		return
 	}
 
 	// Allocate a new global id
-	id := atomic.AddUint64(&globalRequestId, 1)
+	id := atomic.AddUint64(&globalJobId, 1)
 
-	// Create a build request
-	request := BuildRequest{
-		Id:            id,
-		Slave:         nil,
-		SourcePackage: pkgname,
-		Started:       time.Now(),
-		Finished:      time.Time{},
-		Status:        BUILD_REQUEST_STATUS_NOT_STARTED,
+	// Create a job
+	j := &Job{
+		Id:       id,
+		Target:   target,
+		Started:  time.Time{},
+		Finished: time.Time{},
+		Status:   JOB_STATUS_JUST_CREATED,
+		Channel:  make(chan bool),
 	}
+	m.appendJob(j)
 
 	// Push it onto the queue
-	BuildJobQueue <- request
-	logging.Infof("Queued build request #%d (package \"%s\")\n", id, pkgname)
+	BuildJobQueue <- j
+	logging.Infof("Queued job #%d (target \"%s\")\n", id, target)
 
 	// Reply
 	w.WriteHeader(http.StatusCreated)

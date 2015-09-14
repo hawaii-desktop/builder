@@ -1,0 +1,134 @@
+/****************************************************************************
+ * This file is part of Builder.
+ *
+ * Copyright (C) 2015 Pier Luigi Fiorini
+ *
+ * Author(s):
+ *    Pier Luigi Fiorini <pierluigi.fiorini@gmail.com>
+ *
+ * $BEGIN_LICENSE:AGPL3+$
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * $END_LICENSE$
+ ***************************************************************************/
+
+// For more information, please read proto3 documentation at:
+// https://developers.google.com/protocol-buffers/docs/proto3
+
+syntax = "proto3";
+
+package protocol;
+
+service Builder {
+  // Subscribe to the master.
+  //
+  // A slave calls this procedure to register itself on the master, which will
+  // assign an identifier and reply with a Registration message.
+  // Keep in mind that identifiers are valid until master is restarted.
+  //
+  // Once a slave has subscribed a full duplex communication is established
+  // until the slave unsubscribe or the master quits, in that case the slave
+  // detects that the connection is no longer valid and will resubscribe if
+  // and when master comes up again.
+  //
+  // Master sends jobs to be processed through the stream as they are collected
+  // and dispatched.  Jobs are dispatched to slaves whose capacity has not been
+  // reached yet and whose architecture and channels match.
+  rpc Subscribe(stream InputMessage) returns (stream OutputMessage);
+
+  // Unregister a slave.
+  //
+  // Slave class this procedure to unregister itself.
+  // Master replies indicating whether the operation succeded or not.
+  rpc Unsubscribe(UnsubscribeRequest) returns (UnsubscribeResponse);
+}
+
+// Subscription request.
+message SubscribeRequest {
+  // Name.
+  string name = 1;
+
+  // Channels.
+  repeated string channels = 2;
+
+  // Architectures.
+  repeated string architectures = 3;
+}
+
+// Subscription response.
+message SubscribeResponse {
+  // Slave identifier.
+  uint32 id = 1;
+}
+
+// Unsubscription request.
+message UnsubscribeRequest {
+  // Slave identifier.
+  uint32 id = 1;
+}
+
+// Unsubscription response.
+message UnsubscribeResponse {
+  // Result.
+  bool result = 1;
+}
+
+// Contains information on the job that has to be processed by
+// the slave receiving this.
+message JobDispatchRequest {
+  // Identifier.
+  uint64 id = 1;
+
+  // Target name.
+  string target = 2;
+}
+
+// Contains updated information on a job being processed.
+message JobUpdateRequest {
+  // Slave identifier.
+  uint32 slave_id = 1;
+
+  // Identifier.
+  uint64 id = 2;
+
+  // Current status of the job.
+  EnumJobStatus status = 3;
+}
+
+// Communication from slave to master.
+message InputMessage {
+  oneof payload {
+    SubscribeRequest subscription = 1;
+    JobUpdateRequest job_update = 2;
+  }
+}
+
+// Communication from master to slave.
+message OutputMessage {
+  oneof payload {
+    SubscribeResponse subscription = 1;
+    JobDispatchRequest job_dispatch = 2;
+  }
+}
+
+// Job status.
+enum EnumJobStatus {
+  JOB_STATUS_JUST_CREATED = 0;
+  JOB_STATUS_WAITING = 1;
+  JOB_STATUS_PROCESSING = 2;
+  JOB_STATUS_SUCCESSFUL = 3;
+  JOB_STATUS_FAILED = 4;
+  JOB_STATUS_CRASHED = 5;
+}

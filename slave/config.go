@@ -1,5 +1,5 @@
 /****************************************************************************
- * This file is part of Hawaii.
+ * This file is part of Builder.
  *
  * Copyright (C) 2015 Pier Luigi Fiorini
  *
@@ -24,33 +24,19 @@
  * $END_LICENSE$
  ***************************************************************************/
 
-package main
+package slave
 
-import (
-	"../common/protocol"
-	"time"
-)
-
-// Holds the last global request id
-var globalRequestId uint64 = 0
-
-type BuildRequest struct {
-	Id            uint64
-	Slave         *Slave
-	SourcePackage string
-	Started       time.Time
-	Finished      time.Time
-	Status        uint
+// Represents settings file.
+type Settings struct {
+	Master struct {
+		Address string
+	}
+	Slave struct {
+		Name          string
+		Channels      []string
+		Architectures []string
+	}
 }
 
-const (
-	BUILD_REQUEST_STATUS_NOT_STARTED = iota + 1
-	BUILD_REQUEST_STATUS_CRASHED     = iota + 2
-	BUILD_REQUEST_STATUS_SUCCESSFUL  = protocol.JOB_STATUS_SUCCESSFUL
-	BUILD_REQUEST_STATUS_FAILED      = protocol.JOB_STATUS_FAILED
-)
-
-func (r BuildRequest) Finish(status uint) {
-	r.Status = status
-	r.Finished = time.Now()
-}
+// Global configuration object.
+var Config Settings

@@ -1,5 +1,5 @@
 /****************************************************************************
- * This file is part of Hawaii.
+ * This file is part of Builder.
  *
  * Copyright (C) 2015 Pier Luigi Fiorini
  *
@@ -27,39 +27,27 @@
 package main
 
 import (
-	"../common/logging"
-	"gopkg.in/gcfg.v1"
+	"github.com/codegangsta/cli"
+	"github.com/hawaii-desktop/builder/cmd"
+	"os"
+	"runtime"
 )
 
-type Config struct {
-	Master struct {
-		Address string
-	}
-	Slave struct {
-		Name          string
-		Channels      []string
-		Architectures []string
-	}
-}
-
-var config Config
+const APP_VER = "0.0.0"
 
 func init() {
-	err := gcfg.ReadFileInto(&config, "slave.cfg")
-	if err != nil {
-		logging.Fatalln(err)
-	}
+	runtime.GOMAXPROCS(runtime.NumCPU())
+}
 
-	if config.Master.Address == "" {
-		logging.Fatalln("You must specify the master address")
+func main() {
+	app := cli.NewApp()
+	app.Name = "Builder"
+	app.Usage = "Hawaiil Package Builder"
+	app.Version = APP_VER
+	app.Commands = []cli.Command{
+		cmd.CmdMaster,
+		cmd.CmdSlave,
 	}
-	if config.Slave.Name == "" {
-		logging.Fatalln("You must specify the slave name")
-	}
-	if len(config.Slave.Channels) == 0 {
-		logging.Fatalln("You must specify the channels to subscribe")
-	}
-	if len(config.Slave.Architectures) == 0 {
-		logging.Fatalln("You must specify the supported architectures")
-	}
+	app.Flags = append(app.Flags, []cli.Flag{}...)
+	app.Run(os.Args)
 }

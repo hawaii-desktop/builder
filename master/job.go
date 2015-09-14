@@ -1,5 +1,5 @@
 /****************************************************************************
- * This file is part of Hawaii.
+ * This file is part of Builder.
  *
  * Copyright (C) 2015 Pier Luigi Fiorini
  *
@@ -24,29 +24,48 @@
  * $END_LICENSE$
  ***************************************************************************/
 
-package main
+package master
 
 import (
-	"../common/logging"
-	"gopkg.in/gcfg.v1"
+	"time"
 )
 
-type Config struct {
-	Server struct {
-		Address     string
-		HttpAddress string
-	}
-	Build struct {
-		MaxRequests uint
-		MaxSlaves   uint
-	}
+// Holds the last global job identifier.
+var globalJobId uint64 = 0
+
+// Represents a job.
+type Job struct {
+	// Identifier.
+	Id uint64
+	// Target name.
+	Target string
+	// When the job has started.
+	Started time.Time
+	// When the job has finished.
+	Finished time.Time
+	// Status.
+	Status JobStatus
+	// Channel.
+	Channel chan bool
 }
 
-var config Config
+// Job status enumeration.
+type JobStatus uint32
 
-func init() {
-	err := gcfg.ReadFileInto(&config, "master.cfg")
-	if err != nil {
-		logging.Fatalln(err)
-	}
+const (
+	JOB_STATUS_JUST_CREATED = iota
+	JOB_STATUS_WAITING
+	JOB_STATUS_PROCESSING
+	JOB_STATUS_SUCCESSFUL
+	JOB_STATUS_FAILED
+	JOB_STATUS_CRASHED
+)
+
+// Map job status to description.
+var jobStatusDescriptionMap = map[JobStatus]string{
+	JOB_STATUS_JUST_CREATED: "JustCreated",
+	JOB_STATUS_WAITING:      "Waiting",
+	JOB_STATUS_PROCESSING:   "Processing",
+	JOB_STATUS_FAILED:       "Failed",
+	JOB_STATUS_CRASHED:      "Crashed",
 }
