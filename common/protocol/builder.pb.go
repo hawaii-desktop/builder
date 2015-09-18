@@ -17,6 +17,8 @@ It has these top-level messages:
 	JobUpdateRequest
 	InputMessage
 	OutputMessage
+	CollectJobRequest
+	CollectJobResponse
 */
 package protocol
 
@@ -338,6 +340,28 @@ func _OutputMessage_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.
 	}
 }
 
+// CollectJob request.
+type CollectJobRequest struct {
+	// Target name
+	Target string `protobuf:"bytes,1,opt,name=target" json:"target,omitempty"`
+}
+
+func (m *CollectJobRequest) Reset()         { *m = CollectJobRequest{} }
+func (m *CollectJobRequest) String() string { return proto.CompactTextString(m) }
+func (*CollectJobRequest) ProtoMessage()    {}
+
+// CollectJob response.
+type CollectJobResponse struct {
+	// Result.
+	Result bool `protobuf:"varint,1,opt,name=result" json:"result,omitempty"`
+	// Identifier.
+	Id uint64 `protobuf:"varint,2,opt,name=id" json:"id,omitempty"`
+}
+
+func (m *CollectJobResponse) Reset()         { *m = CollectJobResponse{} }
+func (m *CollectJobResponse) String() string { return proto.CompactTextString(m) }
+func (*CollectJobResponse) ProtoMessage()    {}
+
 func init() {
 	proto.RegisterEnum("protocol.EnumJobStatus", EnumJobStatus_name, EnumJobStatus_value)
 }
@@ -369,6 +393,11 @@ type BuilderClient interface {
 	// Slave class this procedure to unregister itself.
 	// Master replies indicating whether the operation succeded or not.
 	Unsubscribe(ctx context.Context, in *UnsubscribeRequest, opts ...grpc.CallOption) (*UnsubscribeResponse, error)
+	// Send a job to the collector.
+	//
+	// Master will enqueue a new job and the dispatcher will find a suitable
+	// slave and dispatch to it.
+	CollectJob(ctx context.Context, in *CollectJobRequest, opts ...grpc.CallOption) (*CollectJobResponse, error)
 }
 
 type builderClient struct {
@@ -419,6 +448,15 @@ func (c *builderClient) Unsubscribe(ctx context.Context, in *UnsubscribeRequest,
 	return out, nil
 }
 
+func (c *builderClient) CollectJob(ctx context.Context, in *CollectJobRequest, opts ...grpc.CallOption) (*CollectJobResponse, error) {
+	out := new(CollectJobResponse)
+	err := grpc.Invoke(ctx, "/protocol.Builder/CollectJob", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for Builder service
 
 type BuilderServer interface {
@@ -442,6 +480,11 @@ type BuilderServer interface {
 	// Slave class this procedure to unregister itself.
 	// Master replies indicating whether the operation succeded or not.
 	Unsubscribe(context.Context, *UnsubscribeRequest) (*UnsubscribeResponse, error)
+	// Send a job to the collector.
+	//
+	// Master will enqueue a new job and the dispatcher will find a suitable
+	// slave and dispatch to it.
+	CollectJob(context.Context, *CollectJobRequest) (*CollectJobResponse, error)
 }
 
 func RegisterBuilderServer(s *grpc.Server, srv BuilderServer) {
@@ -486,6 +529,18 @@ func _Builder_Unsubscribe_Handler(srv interface{}, ctx context.Context, codec gr
 	return out, nil
 }
 
+func _Builder_CollectJob_Handler(srv interface{}, ctx context.Context, codec grpc.Codec, buf []byte) (interface{}, error) {
+	in := new(CollectJobRequest)
+	if err := codec.Unmarshal(buf, in); err != nil {
+		return nil, err
+	}
+	out, err := srv.(BuilderServer).CollectJob(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 var _Builder_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "protocol.Builder",
 	HandlerType: (*BuilderServer)(nil),
@@ -493,6 +548,10 @@ var _Builder_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Unsubscribe",
 			Handler:    _Builder_Unsubscribe_Handler,
+		},
+		{
+			MethodName: "CollectJob",
+			Handler:    _Builder_CollectJob_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

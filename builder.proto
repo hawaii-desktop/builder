@@ -53,6 +53,12 @@ service Builder {
   // Slave class this procedure to unregister itself.
   // Master replies indicating whether the operation succeded or not.
   rpc Unsubscribe(UnsubscribeRequest) returns (UnsubscribeResponse);
+
+  // Send a job to the collector.
+  //
+  // Master will enqueue a new job and the dispatcher will find a suitable
+  // slave and dispatch to it.
+  rpc CollectJob(CollectJobRequest) returns (CollectJobResponse);
 }
 
 // Subscription request.
@@ -121,6 +127,21 @@ message OutputMessage {
     SubscribeResponse subscription = 1;
     JobDispatchRequest job_dispatch = 2;
   }
+}
+
+// CollectJob request.
+message CollectJobRequest {
+  // Target name
+  string target = 1;
+}
+
+// CollectJob response.
+message CollectJobResponse {
+  // Result.
+  bool result = 1;
+
+  // Identifier.
+  uint64 id = 2;
 }
 
 // Job status.

@@ -87,18 +87,6 @@ func runMaster(ctx *cli.Context) {
 	pb.RegisterBuilderServer(grpcServer, masterService)
 	go grpcServer.Serve(rpcListener)
 
-	// HTTP server for dashboard and collector
-	httpListener, httpServer, err := listenHttp(master.Config.Server.HttpAddress)
-	if err != nil {
-		logging.Errorln(err)
-		return
-	}
-	defer httpListener.Close()
-	http.HandleFunc("/collector", func(w http.ResponseWriter, r *http.Request) {
-		master.Collector(masterService, w, r)
-	})
-	go httpServer.Serve(httpListener)
-
 	// Start the dispatcher
 	master.StartDispatcher()
 

@@ -24,31 +24,14 @@
  * $END_LICENSE$
  ***************************************************************************/
 
-package main
+package cli
 
-import (
-	"github.com/codegangsta/cli"
-	"github.com/hawaii-desktop/builder/cmd"
-	"os"
-	"runtime"
-)
-
-const APP_VER = "0.0.0"
-
-func init() {
-	runtime.GOMAXPROCS(runtime.NumCPU())
-}
-
-func main() {
-	app := cli.NewApp()
-	app.Name = "Builder"
-	app.Usage = "Hawaiil Package Builder"
-	app.Version = APP_VER
-	app.Commands = []cli.Command{
-		cmd.CmdMaster,
-		cmd.CmdSlave,
-		cmd.CmdCli,
+// Represents settings file.
+type Settings struct {
+	Master struct {
+		Address string
 	}
-	app.Flags = append(app.Flags, []cli.Flag{}...)
-	app.Run(os.Args)
 }
+
+// Global configuration object.
+var Config Settings

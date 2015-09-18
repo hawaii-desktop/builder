@@ -33,8 +33,12 @@ import (
 	"golang.org/x/net/context"
 	"io"
 	"sync"
+	"sync/atomic"
 	"time"
 )
+
+// Buffered channel that we can send jobs on.
+var BuildJobQueue = make(chan *Job, Config.Build.MaxJobs)
 
 // Master type exposed via RPC
 type Master struct {
@@ -242,6 +246,13 @@ func (m *Master) Unsubscribe(ctx context.Context, args *pb.UnsubscribeRequest) (
 	return reply, ErrSlaveNotFound
 }
 
+// Create and enqueue a job.
+func (m *Master) CollectJob(ctx context.Context, args *pb.CollectJobRequest) (*pb.CollectJobResponse, error) {
+	j := m.enqueueJob(args.Target)
+	reply := &pb.CollectJobResponse{Result: true, Id: j.Id}
+	return reply, nil
+}
+
 // Create a slave from the subscription request.
 func (m *Master) createSlave(args *pb.SubscribeRequest) (*Slave, error) {
 	// The same slave cannot subscribe twice
@@ -291,4 +302,26 @@ func (m *Master) removeJob(j *Job) {
 	// Remove
 	m.Jobs, m.Jobs[len(m.Jobs)-1] =
 		append(m.Jobs[:i], m.Jobs[i+1:]...), nil
+}
+
+// Enqueue a job.
+func (m *Master) enqueueJob(target string) *Job {
+	// Allocate a new global id
+	id := atomic.AddUint64(&globalJobId, 1)
+
+	// Create a job
+	j := &Job{
+		Id:       id,
+		Target:   target,
+		Started:  time.Time{},
+		Finished: time.Time{},
+		Status:   JOB_STATUS_JUST_CREATED,
+		Channel:  make(chan bool),
+	}
+	m.appendJob(j)
+
+	// Push it onto the queue
+	BuildJobQueue <- j
+	logging.Infof("Queued job #%d (target \"%s\")\n", id, target)
+	return j
 }

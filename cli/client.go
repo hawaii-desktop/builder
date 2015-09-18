@@ -24,31 +24,39 @@
  * $END_LICENSE$
  ***************************************************************************/
 
-package main
+package cli
 
 import (
-	"github.com/codegangsta/cli"
-	"github.com/hawaii-desktop/builder/cmd"
-	"os"
-	"runtime"
+	"errors"
+	pb "github.com/hawaii-desktop/builder/common/protocol"
+	"golang.org/x/net/context"
+	"google.golang.org/grpc"
 )
 
-const APP_VER = "0.0.0"
-
-func init() {
-	runtime.GOMAXPROCS(runtime.NumCPU())
+// Store client stuff.
+type Client struct {
+	// RPC proxy.
+	client pb.BuilderClient
 }
 
-func main() {
-	app := cli.NewApp()
-	app.Name = "Builder"
-	app.Usage = "Hawaiil Package Builder"
-	app.Version = APP_VER
-	app.Commands = []cli.Command{
-		cmd.CmdMaster,
-		cmd.CmdSlave,
-		cmd.CmdCli,
+var (
+	ErrFailed = errors.New("master failed to enqueue job")
+)
+
+// Create a new Client object.
+func NewClient(conn *grpc.ClientConn) *Client {
+	return &Client{pb.NewBuilderClient(conn)}
+}
+
+// Schedule a job.
+func (c *Client) SendJob(target string) (uint64, error) {
+	args := &pb.CollectJobRequest{Target: target}
+	reply, err := c.client.CollectJob(context.Background(), args)
+	if err != nil {
+		return 0, err
 	}
-	app.Flags = append(app.Flags, []cli.Flag{}...)
-	app.Run(os.Args)
+	if !reply.Result {
+		return 0, ErrFailed
+	}
+	return reply.Id, nil
 }
