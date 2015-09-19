@@ -24,14 +24,41 @@
  * $END_LICENSE$
  ***************************************************************************/
 
-package cli
+package main
 
-// Represents settings file.
-type Settings struct {
-	Master struct {
-		Address string
-	}
+import (
+	"github.com/codegangsta/cli"
+	"gopkg.in/gcfg.v1"
+	"os"
+	"runtime"
+)
+
+const APP_VER = "0.0.0"
+
+func init() {
+	runtime.GOMAXPROCS(runtime.NumCPU())
 }
 
-// Global configuration object.
-var Config Settings
+func main() {
+	app := cli.NewApp()
+	app.Name = "builder-cli"
+	app.Usage = "Command line client for Builder"
+	app.Version = APP_VER
+	app.Commands = []cli.Command{
+		CmdBuild,
+	}
+	app.Flags = []cli.Flag{
+		cli.StringFlag{"config, c", "<filename>", "custom configuration file path", ""},
+	}
+	app.Before = func(ctx *cli.Context) error {
+		// Load the configuration
+		var configArg string
+		if ctx.IsSet("config") {
+			configArg = ctx.String("config")
+		} else {
+			configArg = "builder-cli.ini"
+		}
+		return gcfg.ReadFileInto(&Config, configArg)
+	}
+	app.Run(os.Args)
+}

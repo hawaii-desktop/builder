@@ -27,8 +27,8 @@
 package slave
 
 import (
-	"github.com/hawaii-desktop/builder/common/logging"
-	pb "github.com/hawaii-desktop/builder/common/protocol"
+	"github.com/hawaii-desktop/builder/src/logging"
+	pb "github.com/hawaii-desktop/builder/src/protocol"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"io"

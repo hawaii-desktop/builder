@@ -24,60 +24,47 @@
  * $END_LICENSE$
  ***************************************************************************/
 
-package cmd
+package main
 
 import (
 	"github.com/codegangsta/cli"
-	bcli "github.com/hawaii-desktop/builder/cli"
-	"github.com/hawaii-desktop/builder/common/logging"
+	"github.com/hawaii-desktop/builder/src/logging"
 	"google.golang.org/grpc"
-	"gopkg.in/gcfg.v1"
 )
 
-var CmdCli = cli.Command{
-	Name:        "cli",
-	Usage:       "Queue jobs",
-	Description: `Simple command line tool used to enqueue jobs.`,
-	Action:      runCli,
+var CmdBuild = cli.Command{
+	Name:        "build",
+	Usage:       "Build package",
+	Description: `Request the build of a package.`,
+	Action:      runBuild,
 	Flags: []cli.Flag{
-		cli.StringFlag{"config, c", "<filename>", "Custom configuration file path", ""},
-		cli.StringFlag{"build", "<name>", "Build a package", ""},
+		cli.StringFlag{"name, n", "<name>", "package name", ""},
 	},
 }
 
-func runCli(ctx *cli.Context) {
+func runBuild(ctx *cli.Context) {
 	// Check arguments
-	if !ctx.IsSet("target") {
-		logging.Fatalln("You must specify a target")
-	}
-
-	// Load the configuration
-	var configArg string
-	if ctx.IsSet("config") {
-		configArg = ctx.String("config")
-	} else {
-		configArg = "builder-cli.ini"
-	}
-	err := gcfg.ReadFileInto(&bcli.Config, configArg)
-	if err != nil {
-		logging.Fatalln(err)
+	if !ctx.IsSet("name") {
+		logging.Fatalln("You must specify the package name")
 	}
 
 	// Connect to the master
-	conn, err := grpc.Dial(bcli.Config.Master.Address, grpc.WithInsecure())
-	defer conn.Close()
+	conn, err := grpc.Dial(Config.Master.Address, grpc.WithInsecure())
+	if err != nil {
+		logging.Errorln(err)
+		return
+	}
 
 	// Create client proxy
-	client := bcli.NewClient(conn)
+	client := NewClient(conn)
+	defer client.Close()
 
 	// Build a package
-	if ctx.IsSet("build") {
-		pkgname := ctx.String("build")
-		var id uint64
-		if id, err = client.SendJob(pkgname); err != nil {
-			logging.Errorln(err)
-			return
-		}
-		logging.Infof("Package \"%s\" build queued as #%d\n", pkgname, id)
+	pkgname := ctx.String("name")
+	var id uint64
+	if id, err = client.SendJob(pkgname); err != nil {
+		logging.Errorln(err)
+		return
 	}
+	logging.Infof("Package \"%s\" build queued as #%d\n", pkgname, id)
 }

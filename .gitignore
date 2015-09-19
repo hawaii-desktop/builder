@@ -1,5 +1,7 @@
-*.log
-builder
+dist/*.log
+dist/builder
+dist/builder-cli
+dist/builder.db
 builder.db
 *~
 .*.swp

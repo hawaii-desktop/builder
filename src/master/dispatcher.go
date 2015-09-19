@@ -27,7 +27,7 @@
 package master
 
 import (
-	"github.com/hawaii-desktop/builder/common/logging"
+	"github.com/hawaii-desktop/builder/src/logging"
 	"time"
 )
 

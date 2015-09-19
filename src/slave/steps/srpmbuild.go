@@ -32,7 +32,7 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
-	"string"
+	"strings"
 	"time"
 )
 

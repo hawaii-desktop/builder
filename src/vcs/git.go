@@ -24,31 +24,23 @@
  * $END_LICENSE$
  ***************************************************************************/
 
-package main
+package vcs
 
 import (
-	"github.com/codegangsta/cli"
-	"github.com/hawaii-desktop/builder/cmd"
-	"os"
-	"runtime"
+	"github.com/hawaii-desktop/builder/src/utils"
+	"io/ioutil"
+	"path"
 )
 
-const APP_VER = "0.0.0"
+func DownloadGit(url string, tag string, dir string) (string, error) {
+	if _, err := ioutil.ReadFile(path.Join(dir, ".git/HEAD")); err != nil {
+		if err := os.MkdirAll(dir, 0777); err != nil {
+			return "", err
+		}
 
-func init() {
-	runtime.GOMAXPROCS(runtime.NumCPU())
-}
-
-func main() {
-	app := cli.NewApp()
-	app.Name = "Builder"
-	app.Usage = "Hawaiil Package Builder"
-	app.Version = APP_VER
-	app.Commands = []cli.Command{
-		cmd.CmdMaster,
-		cmd.CmdSlave,
-		cmd.CmdCli,
+		var args = []string{"clone", url, dir}
+		if output, err := utils.ExecShellCommandWithTimeout("git", args, []string, cloneTimeout); err != nil {
+			return output, err
+		}
 	}
-	app.Flags = append(app.Flags, []cli.Flag{}...)
-	app.Run(os.Args)
 }

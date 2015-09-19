@@ -24,39 +24,14 @@
  * $END_LICENSE$
  ***************************************************************************/
 
-package cli
+package main
 
-import (
-	"errors"
-	pb "github.com/hawaii-desktop/builder/common/protocol"
-	"golang.org/x/net/context"
-	"google.golang.org/grpc"
-)
-
-// Store client stuff.
-type Client struct {
-	// RPC proxy.
-	client pb.BuilderClient
-}
-
-var (
-	ErrFailed = errors.New("master failed to enqueue job")
-)
-
-// Create a new Client object.
-func NewClient(conn *grpc.ClientConn) *Client {
-	return &Client{pb.NewBuilderClient(conn)}
-}
-
-// Schedule a job.
-func (c *Client) SendJob(target string) (uint64, error) {
-	args := &pb.CollectJobRequest{Target: target}
-	reply, err := c.client.CollectJob(context.Background(), args)
-	if err != nil {
-		return 0, err
+// Represents settings file.
+type Settings struct {
+	Master struct {
+		Address string
 	}
-	if !reply.Result {
-		return 0, ErrFailed
-	}
-	return reply.Id, nil
 }
+
+// Global configuration object.
+var Config Settings

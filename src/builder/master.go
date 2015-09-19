@@ -24,14 +24,14 @@
  * $END_LICENSE$
  ***************************************************************************/
 
-package cmd
+package main
 
 import (
 	"github.com/codegangsta/cli"
-	"github.com/hawaii-desktop/builder/common/logging"
-	"github.com/hawaii-desktop/builder/common/pidfile"
-	pb "github.com/hawaii-desktop/builder/common/protocol"
-	"github.com/hawaii-desktop/builder/master"
+	"github.com/hawaii-desktop/builder/src/logging"
+	"github.com/hawaii-desktop/builder/src/master"
+	"github.com/hawaii-desktop/builder/src/pidfile"
+	pb "github.com/hawaii-desktop/builder/src/protocol"
 	"google.golang.org/grpc"
 	"gopkg.in/gcfg.v1"
 	"net"
