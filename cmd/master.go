@@ -75,6 +75,13 @@ func runMaster(ctx *cli.Context) {
 	}
 	defer pidFile.Unlock()
 
+	// Create master service
+	masterService, err := master.NewMaster()
+	if err != nil {
+		logging.Errorln(err)
+		return
+	}
+
 	// Register RPC server
 	rpcListener, err := listenRpc(master.Config.Server.Address)
 	if err != nil {
@@ -83,7 +90,6 @@ func runMaster(ctx *cli.Context) {
 	}
 	defer rpcListener.Close()
 	grpcServer := grpc.NewServer()
-	masterService := master.NewMaster()
 	pb.RegisterBuilderServer(grpcServer, masterService)
 	go grpcServer.Serve(rpcListener)
 
@@ -95,6 +101,9 @@ func runMaster(ctx *cli.Context) {
 	signal.Notify(sigchan, os.Interrupt)
 	signal.Notify(sigchan, os.Kill)
 	<-sigchan
+
+	// Close service
+	masterService.Close()
 }
 
 func listenRpc(address string) (*net.TCPListener, error) {

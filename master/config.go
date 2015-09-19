@@ -31,6 +31,7 @@ type Settings struct {
 	Server struct {
 		Address     string
 		HttpAddress string
+		Database    string
 	}
 	Build struct {
 		MaxJobs   uint32

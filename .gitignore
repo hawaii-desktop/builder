@@ -1,4 +1,5 @@
 *.log
 builder
+builder.db
 *~
 .*.swp

@@ -50,6 +50,8 @@ type Master struct {
 	sMutex sync.Mutex
 	// Protects jobs list.
 	jMutex sync.Mutex
+	// Database.
+	db *Database
 }
 
 // Errors
@@ -75,11 +77,24 @@ var jobStatusMap = map[pb.EnumJobStatus]JobStatus{
 // number of slaves from the configuration.
 // The jobs list is initially empty and has a capacity as big as
 // the maximum number of jobs from the configuration.
-func NewMaster() *Master {
+// This also create or open the database.
+func NewMaster() (*Master, error) {
+	db, err := NewDatabase(Config.Server.Database)
+	if err != nil {
+		return nil, err
+	}
+
 	m := &Master{}
 	m.Slaves = make([]*Slave, 0, Config.Build.MaxSlaves)
 	m.Jobs = make([]*Job, 0, Config.Build.MaxJobs)
-	return m
+	m.db = db
+	return m, nil
+}
+
+// Close the database.
+func (m *Master) Close() {
+	m.db.Close()
+	m.db = nil
 }
 
 // Slave call this to initiate a dialog.
