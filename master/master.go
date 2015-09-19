@@ -30,8 +30,10 @@ import (
 	"errors"
 	"github.com/hawaii-desktop/builder/common/logging"
 	pb "github.com/hawaii-desktop/builder/common/protocol"
+	"github.com/hawaii-desktop/builder/database"
 	"golang.org/x/net/context"
 	"io"
+	"regexp"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -51,15 +53,16 @@ type Master struct {
 	// Protects jobs list.
 	jMutex sync.Mutex
 	// Database.
-	db *Database
+	db *database.Database
 }
 
 // Errors
 var (
-	ErrAlreadySubscribed = errors.New("slave has already subscribed")
-	ErrSlaveNotFound     = errors.New("slave not found")
-	ErrInvalidSlave      = errors.New("slave is not valid")
-	ErrJobNotFound       = errors.New("job not found with that id")
+	ErrAlreadySubscribed  = errors.New("slave has already subscribed")
+	ErrSlaveNotFound      = errors.New("slave not found")
+	ErrInvalidSlave       = errors.New("slave is not valid")
+	ErrJobNotFound        = errors.New("job not found with that id")
+	ErrNoMatchingPackages = errors.New("no matching packages")
 )
 
 // Map to decode job status.
@@ -79,7 +82,7 @@ var jobStatusMap = map[pb.EnumJobStatus]JobStatus{
 // the maximum number of jobs from the configuration.
 // This also create or open the database.
 func NewMaster() (*Master, error) {
-	db, err := NewDatabase(Config.Server.Database)
+	db, err := database.NewDatabase(Config.Server.Database)
 	if err != nil {
 		return nil, err
 	}
@@ -266,6 +269,71 @@ func (m *Master) CollectJob(ctx context.Context, args *pb.CollectJobRequest) (*p
 	j := m.enqueueJob(args.Target)
 	reply := &pb.CollectJobResponse{Result: true, Id: j.Id}
 	return reply, nil
+}
+
+// Add or update a package.
+func (m *Master) AddPackage(ctx context.Context, args *pb.PackageInfo) (*pb.BooleanMessage, error) {
+	pkg := &database.Package{
+		Name:          args.Name,
+		Architectures: args.Architectures,
+		Ci:            args.Ci,
+		Vcs: database.VcsInfo{
+			Url:    args.Vcs.Url,
+			Branch: args.Vcs.Branch,
+		},
+		UpstreamVcs: database.VcsInfo{
+			Url:    args.UpstreamVcs.Url,
+			Branch: args.UpstreamVcs.Branch,
+		},
+	}
+	if err := m.db.AddPackage(pkg); err != nil {
+		return nil, err
+	}
+	return &pb.BooleanMessage{Result: true}, nil
+}
+
+// Remove package.
+func (m *Master) RemovePackage(ctx context.Context, args *pb.StringMessage) (*pb.BooleanMessage, error) {
+	err := m.db.RemovePackage(args.Name)
+	if err != nil {
+		return nil, err
+	}
+	return &pb.BooleanMessage{Result: true}, nil
+}
+
+// List packages matching the regular expression.
+func (m *Master) ListPackages(args *pb.StringMessage, stream pb.Builder_ListPackagesServer) error {
+	r, err := regexp.Compile(args.Name)
+	if err != nil {
+		return err
+	}
+
+	list := m.db.ListAllPackages()
+	if len(list) == 0 {
+		return ErrNoMatchingPackages
+	}
+
+	for _, pkg := range list {
+		if !r.MatchString(pkg.Name) {
+			continue
+		}
+		reply := &pb.PackageInfo{
+			Name:          pkg.Name,
+			Architectures: pkg.Architectures,
+			Ci:            pkg.Ci,
+			Vcs: &pb.VcsInfo{
+				Url:    pkg.Vcs.Url,
+				Branch: pkg.Vcs.Branch,
+			},
+			UpstreamVcs: &pb.VcsInfo{
+				Url:    pkg.UpstreamVcs.Url,
+				Branch: pkg.UpstreamVcs.Branch,
+			},
+		}
+		stream.Send(reply)
+	}
+
+	return nil
 }
 
 // Create a slave from the subscription request.

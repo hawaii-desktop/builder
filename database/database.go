@@ -24,10 +24,9 @@
  * $END_LICENSE$
  ***************************************************************************/
 
-package master
+package database
 
 import (
-	"fmt"
 	"github.com/boltdb/bolt"
 	"time"
 )
@@ -36,52 +35,17 @@ type Database struct {
 	db *bolt.DB
 }
 
-// Create a new database.
-// Do not call this twice with the same path.
+// Create and open a database.
 func NewDatabase(path string) (*Database, error) {
 	db, err := bolt.Open(path, 0600, &bolt.Options{Timeout: 5 * time.Second})
 	if err != nil {
 		return nil, err
 	}
-
-	return &Database{db: db}, nil
+	return &Database{db}, nil
 }
 
-// Store key/value into a bucket.
-func (d *Database) Store(name []byte, key []byte, value []byte) error {
-	return d.db.Update(func(tx *bolt.Tx) error {
-		bucket, err := tx.CreateBucketIfNotExists(name)
-		if err != nil {
-			return err
-		}
-
-		err = bucket.Put(key, value)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	})
-}
-
-// Retrieve a key from a bucket.
-func (d *Database) Retrieve(name []byte, key []byte) ([]byte, error) {
-	var value []byte
-	err := d.db.View(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket(name)
-		if bucket == nil {
-			return fmt.Errorf("bucket %q not found", name)
-		}
-
-		value = bucket.Get(key)
-
-		return nil
-	})
-	return value, err
-}
-
-// Close database.
-func (d *Database) Close() {
-	d.db.Close()
-	d.db = nil
+// Close database
+func (db *Database) Close() {
+	db.db.Close()
+	db.db = nil
 }

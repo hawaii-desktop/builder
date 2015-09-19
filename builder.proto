@@ -59,7 +59,45 @@ service Builder {
   // Master will enqueue a new job and the dispatcher will find a suitable
   // slave and dispatch to it.
   rpc CollectJob(CollectJobRequest) returns (CollectJobResponse);
+
+  // Add or update a package.
+  //
+  // Store package information so that it can be referenced later when
+  // scheduling a job.
+  rpc AddPackage(PackageInfo) returns (BooleanMessage);
+
+  // Remove a package.
+  //
+  // Remove package information.
+  rpc RemovePackage(StringMessage) returns (BooleanMessage);
+
+  // List packages.
+  //
+  // Return the list of packages and their information, matching the
+  // regular expression passed as argument.
+  // With an empty string the full list of packages will be retrieved.
+  rpc ListPackages(StringMessage) returns (stream PackageInfo);
 }
+
+/****************************************************************************/
+
+// Generic boolean message.
+message BooleanMessage {
+  // Result.
+  bool result = 1;
+}
+
+// Generic string message.
+message StringMessage {
+  string name = 1;
+}
+
+// Generic string list message.
+message StringListMessage {
+  repeated string list = 1;
+}
+
+/****************************************************************************/
 
 // Subscription request.
 message SubscribeRequest {
@@ -152,4 +190,28 @@ enum EnumJobStatus {
   JOB_STATUS_SUCCESSFUL = 3;
   JOB_STATUS_FAILED = 4;
   JOB_STATUS_CRASHED = 5;
+}
+
+// VCS information.
+message VcsInfo {
+  string url = 1;
+  string branch = 2;
+}
+
+// Package information.
+message PackageInfo {
+  // Name.
+  string name = 1;
+
+  // Architectures supported.
+  repeated string architectures = 2;
+
+  // Is it a CI package?
+  bool ci = 3;
+
+  // VCS for packaging.
+  VcsInfo vcs = 4;
+
+  // VCS for upstream (only for CI).
+  VcsInfo upstream_vcs = 5;
 }

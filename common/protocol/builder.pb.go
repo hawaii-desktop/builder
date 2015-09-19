@@ -9,6 +9,9 @@ It is generated from these files:
 	builder.proto
 
 It has these top-level messages:
+	BooleanMessage
+	StringMessage
+	StringListMessage
 	SubscribeRequest
 	SubscribeResponse
 	UnsubscribeRequest
@@ -19,6 +22,8 @@ It has these top-level messages:
 	OutputMessage
 	CollectJobRequest
 	CollectJobResponse
+	VcsInfo
+	PackageInfo
 */
 package protocol
 
@@ -68,6 +73,34 @@ var EnumJobStatus_value = map[string]int32{
 func (x EnumJobStatus) String() string {
 	return proto.EnumName(EnumJobStatus_name, int32(x))
 }
+
+// Generic boolean message.
+type BooleanMessage struct {
+	// Result.
+	Result bool `protobuf:"varint,1,opt,name=result" json:"result,omitempty"`
+}
+
+func (m *BooleanMessage) Reset()         { *m = BooleanMessage{} }
+func (m *BooleanMessage) String() string { return proto.CompactTextString(m) }
+func (*BooleanMessage) ProtoMessage()    {}
+
+// Generic string message.
+type StringMessage struct {
+	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+}
+
+func (m *StringMessage) Reset()         { *m = StringMessage{} }
+func (m *StringMessage) String() string { return proto.CompactTextString(m) }
+func (*StringMessage) ProtoMessage()    {}
+
+// Generic string list message.
+type StringListMessage struct {
+	List []string `protobuf:"bytes,1,rep,name=list" json:"list,omitempty"`
+}
+
+func (m *StringListMessage) Reset()         { *m = StringListMessage{} }
+func (m *StringListMessage) String() string { return proto.CompactTextString(m) }
+func (*StringListMessage) ProtoMessage()    {}
 
 // Subscription request.
 type SubscribeRequest struct {
@@ -362,6 +395,48 @@ func (m *CollectJobResponse) Reset()         { *m = CollectJobResponse{} }
 func (m *CollectJobResponse) String() string { return proto.CompactTextString(m) }
 func (*CollectJobResponse) ProtoMessage()    {}
 
+// VCS information.
+type VcsInfo struct {
+	Url    string `protobuf:"bytes,1,opt,name=url" json:"url,omitempty"`
+	Branch string `protobuf:"bytes,2,opt,name=branch" json:"branch,omitempty"`
+}
+
+func (m *VcsInfo) Reset()         { *m = VcsInfo{} }
+func (m *VcsInfo) String() string { return proto.CompactTextString(m) }
+func (*VcsInfo) ProtoMessage()    {}
+
+// Package information.
+type PackageInfo struct {
+	// Name.
+	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	// Architectures supported.
+	Architectures []string `protobuf:"bytes,2,rep,name=architectures" json:"architectures,omitempty"`
+	// Is it a CI package?
+	Ci bool `protobuf:"varint,3,opt,name=ci" json:"ci,omitempty"`
+	// VCS for packaging.
+	Vcs *VcsInfo `protobuf:"bytes,4,opt,name=vcs" json:"vcs,omitempty"`
+	// VCS for upstream (only for CI).
+	UpstreamVcs *VcsInfo `protobuf:"bytes,5,opt,name=upstream_vcs" json:"upstream_vcs,omitempty"`
+}
+
+func (m *PackageInfo) Reset()         { *m = PackageInfo{} }
+func (m *PackageInfo) String() string { return proto.CompactTextString(m) }
+func (*PackageInfo) ProtoMessage()    {}
+
+func (m *PackageInfo) GetVcs() *VcsInfo {
+	if m != nil {
+		return m.Vcs
+	}
+	return nil
+}
+
+func (m *PackageInfo) GetUpstreamVcs() *VcsInfo {
+	if m != nil {
+		return m.UpstreamVcs
+	}
+	return nil
+}
+
 func init() {
 	proto.RegisterEnum("protocol.EnumJobStatus", EnumJobStatus_name, EnumJobStatus_value)
 }
@@ -398,6 +473,21 @@ type BuilderClient interface {
 	// Master will enqueue a new job and the dispatcher will find a suitable
 	// slave and dispatch to it.
 	CollectJob(ctx context.Context, in *CollectJobRequest, opts ...grpc.CallOption) (*CollectJobResponse, error)
+	// Add or update a package.
+	//
+	// Store package information so that it can be referenced later when
+	// scheduling a job.
+	AddPackage(ctx context.Context, in *PackageInfo, opts ...grpc.CallOption) (*BooleanMessage, error)
+	// Remove a package.
+	//
+	// Remove package information.
+	RemovePackage(ctx context.Context, in *StringMessage, opts ...grpc.CallOption) (*BooleanMessage, error)
+	// List packages.
+	//
+	// Return the list of packages and their information, matching the
+	// regular expression passed as argument.
+	// With an empty string the full list of packages will be retrieved.
+	ListPackages(ctx context.Context, in *StringMessage, opts ...grpc.CallOption) (Builder_ListPackagesClient, error)
 }
 
 type builderClient struct {
@@ -457,6 +547,56 @@ func (c *builderClient) CollectJob(ctx context.Context, in *CollectJobRequest, o
 	return out, nil
 }
 
+func (c *builderClient) AddPackage(ctx context.Context, in *PackageInfo, opts ...grpc.CallOption) (*BooleanMessage, error) {
+	out := new(BooleanMessage)
+	err := grpc.Invoke(ctx, "/protocol.Builder/AddPackage", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *builderClient) RemovePackage(ctx context.Context, in *StringMessage, opts ...grpc.CallOption) (*BooleanMessage, error) {
+	out := new(BooleanMessage)
+	err := grpc.Invoke(ctx, "/protocol.Builder/RemovePackage", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *builderClient) ListPackages(ctx context.Context, in *StringMessage, opts ...grpc.CallOption) (Builder_ListPackagesClient, error) {
+	stream, err := grpc.NewClientStream(ctx, &_Builder_serviceDesc.Streams[1], c.cc, "/protocol.Builder/ListPackages", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &builderListPackagesClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Builder_ListPackagesClient interface {
+	Recv() (*PackageInfo, error)
+	grpc.ClientStream
+}
+
+type builderListPackagesClient struct {
+	grpc.ClientStream
+}
+
+func (x *builderListPackagesClient) Recv() (*PackageInfo, error) {
+	m := new(PackageInfo)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // Server API for Builder service
 
 type BuilderServer interface {
@@ -485,6 +625,21 @@ type BuilderServer interface {
 	// Master will enqueue a new job and the dispatcher will find a suitable
 	// slave and dispatch to it.
 	CollectJob(context.Context, *CollectJobRequest) (*CollectJobResponse, error)
+	// Add or update a package.
+	//
+	// Store package information so that it can be referenced later when
+	// scheduling a job.
+	AddPackage(context.Context, *PackageInfo) (*BooleanMessage, error)
+	// Remove a package.
+	//
+	// Remove package information.
+	RemovePackage(context.Context, *StringMessage) (*BooleanMessage, error)
+	// List packages.
+	//
+	// Return the list of packages and their information, matching the
+	// regular expression passed as argument.
+	// With an empty string the full list of packages will be retrieved.
+	ListPackages(*StringMessage, Builder_ListPackagesServer) error
 }
 
 func RegisterBuilderServer(s *grpc.Server, srv BuilderServer) {
@@ -541,6 +696,51 @@ func _Builder_CollectJob_Handler(srv interface{}, ctx context.Context, codec grp
 	return out, nil
 }
 
+func _Builder_AddPackage_Handler(srv interface{}, ctx context.Context, codec grpc.Codec, buf []byte) (interface{}, error) {
+	in := new(PackageInfo)
+	if err := codec.Unmarshal(buf, in); err != nil {
+		return nil, err
+	}
+	out, err := srv.(BuilderServer).AddPackage(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func _Builder_RemovePackage_Handler(srv interface{}, ctx context.Context, codec grpc.Codec, buf []byte) (interface{}, error) {
+	in := new(StringMessage)
+	if err := codec.Unmarshal(buf, in); err != nil {
+		return nil, err
+	}
+	out, err := srv.(BuilderServer).RemovePackage(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func _Builder_ListPackages_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(StringMessage)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(BuilderServer).ListPackages(m, &builderListPackagesServer{stream})
+}
+
+type Builder_ListPackagesServer interface {
+	Send(*PackageInfo) error
+	grpc.ServerStream
+}
+
+type builderListPackagesServer struct {
+	grpc.ServerStream
+}
+
+func (x *builderListPackagesServer) Send(m *PackageInfo) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 var _Builder_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "protocol.Builder",
 	HandlerType: (*BuilderServer)(nil),
@@ -553,6 +753,14 @@ var _Builder_serviceDesc = grpc.ServiceDesc{
 			MethodName: "CollectJob",
 			Handler:    _Builder_CollectJob_Handler,
 		},
+		{
+			MethodName: "AddPackage",
+			Handler:    _Builder_AddPackage_Handler,
+		},
+		{
+			MethodName: "RemovePackage",
+			Handler:    _Builder_RemovePackage_Handler,
+		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
@@ -560,6 +768,11 @@ var _Builder_serviceDesc = grpc.ServiceDesc{
 			Handler:       _Builder_Subscribe_Handler,
 			ServerStreams: true,
 			ClientStreams: true,
+		},
+		{
+			StreamName:    "ListPackages",
+			Handler:       _Builder_ListPackages_Handler,
+			ServerStreams: true,
 		},
 	},
 }
