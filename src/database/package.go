@@ -44,7 +44,12 @@ type Package struct {
 func (db *Database) HasPackage(name string) bool {
 	var found bool = false
 	db.db.View(func(tx *bolt.Tx) error {
-		c := tx.Bucket([]byte("package")).Cursor()
+		bucket := tx.Bucket([]byte("package"))
+		if bucket == nil {
+			return nil
+		}
+
+		c := bucket.Cursor()
 		for k, _ := c.Seek([]byte(name)); bytes.Equal(k, []byte(name)); k, _ = c.Next() {
 			found = true
 			return nil
@@ -59,6 +64,10 @@ func (db *Database) GetPackageNames() []string {
 	var list = []string{}
 	db.db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte("package"))
+		if bucket == nil {
+			return nil
+		}
+
 		bucket.ForEach(func(k, v []byte) error {
 			list = append(list, string(k))
 			return nil
@@ -73,6 +82,10 @@ func (db *Database) ListAllPackages() []*Package {
 	var list []*Package
 	db.db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte("package"))
+		if bucket == nil {
+			return nil
+		}
+
 		bucket.ForEach(func(k, v []byte) error {
 			pkg := &Package{}
 			json.Unmarshal(v, &pkg)
@@ -88,7 +101,12 @@ func (db *Database) ListAllPackages() []*Package {
 func (db *Database) GetPackage(name string) *Package {
 	var pkg *Package = nil
 	db.db.View(func(tx *bolt.Tx) error {
-		c := tx.Bucket([]byte("package")).Cursor()
+		bucket := tx.Bucket([]byte("package"))
+		if bucket == nil {
+			return nil
+		}
+
+		c := bucket.Cursor()
 		for k, v := c.Seek([]byte(name)); bytes.Equal(k, []byte(name)); k, v = c.Next() {
 			json.Unmarshal(v, &pkg)
 			return nil
@@ -123,6 +141,10 @@ func (db *Database) AddPackage(pkg *Package) error {
 func (db *Database) RemovePackage(name string) error {
 	return db.db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte("package"))
+		if bucket == nil {
+			return nil
+		}
+
 		err := bucket.Delete([]byte(name))
 		if err != nil {
 			return err
