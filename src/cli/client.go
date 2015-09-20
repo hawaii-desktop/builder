@@ -29,7 +29,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/hawaii-desktop/builder/src/logging"
 	pb "github.com/hawaii-desktop/builder/src/protocol"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -94,8 +93,6 @@ func (c *Client) AddPackage(name string, archs string, ci bool, vcs string, uvcs
 	}
 
 	// Send message
-	logging.Infof("Adding package \"%s\" (architectures: %q, ci: %v, vcs url: %v, vcs branch: %v, upstream vcs url: %v, upstream vcs branch: %v)",
-		name, a, ci, vcs_url, vcs_branch, uvcs_url, uvcs_branch)
 	args := &pb.PackageInfo{name, a, ci, &pb.VcsInfo{vcs_url, vcs_branch}, &pb.VcsInfo{uvcs_url, uvcs_branch}}
 	reply, err := c.client.AddPackage(context.Background(), args)
 	if err != nil {
@@ -175,8 +172,6 @@ func (c *Client) AddImage(name, descr, archs, vcs string) error {
 	}
 
 	// Send message
-	logging.Infof("Adding image \"%s\" - %s (architectures: %q, vcs url: %v, vcs branch: %v)",
-		name, descr, a, vcs_url, vcs_branch)
 	args := &pb.ImageInfo{name, descr, a, &pb.VcsInfo{vcs_url, vcs_branch}}
 	reply, err := c.client.AddImage(context.Background(), args)
 	if err != nil {
