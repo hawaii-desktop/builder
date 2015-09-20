@@ -56,6 +56,7 @@ func main() {
 		CmdAddImage,
 		CmdRemoveImage,
 		CmdListImages,
+		CmdImport,
 		CmdBuild,
 	}
 	app.Flags = []cli.Flag{
