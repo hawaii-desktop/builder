@@ -31,12 +31,25 @@ import (
 	"time"
 )
 
+// Package information for a build.
+type PackageInfo struct {
+	Ci                bool
+	VcsUrl            string
+	VcsBranch         string
+	UpstreamVcsUrl    string
+	UpstreamVcsBranch string
+}
+
 // Represents a job.
 type Job struct {
 	// Identifier.
 	Id uint64
 	// Target name.
 	Target string
+	// Architecture.
+	Architecture string
+	// Package information.
+	Package *PackageInfo
 	// Status.
 	Status JobStatus
 	// Channel used to signal when an update should be sent to master.
@@ -67,10 +80,12 @@ var jobStatusDescriptionMap = map[JobStatus]string{
 }
 
 // Create a new job object.
-func NewJob(id uint64, target string) *Job {
+func NewJob(id uint64, target string, arch string, pkg *PackageInfo) *Job {
 	j := &Job{
 		Id:            id,
 		Target:        target,
+		Architecture:  arch,
+		Package:       pkg,
 		Status:        JOB_STATUS_WAITING,
 		UpdateChannel: make(chan bool),
 		CloseChannel:  make(chan bool),

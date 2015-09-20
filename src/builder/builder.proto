@@ -135,8 +135,10 @@ message JobDispatchRequest {
   // Identifier.
   uint64 id = 1;
 
-  // Target name.
-  string target = 2;
+  // Payload.
+  oneof payload {
+    PackageInfo package = 2;
+  }
 }
 
 // Contains updated information on a job being processed.
@@ -171,6 +173,9 @@ message OutputMessage {
 message CollectJobRequest {
   // Target name
   string target = 1;
+
+  // Target architecture.
+  string architecture = 2;
 }
 
 // CollectJob response.

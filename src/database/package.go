@@ -89,6 +89,20 @@ func (db *Database) ListAllPackages() []*Package {
 	return list
 }
 
+// Return a package from the database.
+func (db *Database) GetPackage(name string) *Package {
+	var pkg *Package = nil
+	db.db.View(func(tx *bolt.Tx) error {
+		c := tx.Bucket([]byte("package")).Cursor()
+		for k, v := c.Seek([]byte(name)); bytes.Equal(k, []byte(name)); k, v = c.Next() {
+			json.Unmarshal(v, &pkg)
+			return nil
+		}
+		return nil
+	})
+	return pkg
+}
+
 // Add a package to the database.
 func (db *Database) AddPackage(pkg *Package) error {
 	encoded, err := json.Marshal(pkg)

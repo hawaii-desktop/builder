@@ -151,13 +151,79 @@ func (*UnsubscribeResponse) ProtoMessage()    {}
 type JobDispatchRequest struct {
 	// Identifier.
 	Id uint64 `protobuf:"varint,1,opt,name=id" json:"id,omitempty"`
-	// Target name.
-	Target string `protobuf:"bytes,2,opt,name=target" json:"target,omitempty"`
+	// Payload.
+	//
+	// Types that are valid to be assigned to Payload:
+	//	*JobDispatchRequest_Package
+	Payload isJobDispatchRequest_Payload `protobuf_oneof:"payload"`
 }
 
 func (m *JobDispatchRequest) Reset()         { *m = JobDispatchRequest{} }
 func (m *JobDispatchRequest) String() string { return proto.CompactTextString(m) }
 func (*JobDispatchRequest) ProtoMessage()    {}
+
+type isJobDispatchRequest_Payload interface {
+	isJobDispatchRequest_Payload()
+}
+
+type JobDispatchRequest_Package struct {
+	Package *PackageInfo `protobuf:"bytes,2,opt,name=package,oneof"`
+}
+
+func (*JobDispatchRequest_Package) isJobDispatchRequest_Payload() {}
+
+func (m *JobDispatchRequest) GetPayload() isJobDispatchRequest_Payload {
+	if m != nil {
+		return m.Payload
+	}
+	return nil
+}
+
+func (m *JobDispatchRequest) GetPackage() *PackageInfo {
+	if x, ok := m.GetPayload().(*JobDispatchRequest_Package); ok {
+		return x.Package
+	}
+	return nil
+}
+
+// XXX_OneofFuncs is for the internal use of the proto package.
+func (*JobDispatchRequest) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), []interface{}) {
+	return _JobDispatchRequest_OneofMarshaler, _JobDispatchRequest_OneofUnmarshaler, []interface{}{
+		(*JobDispatchRequest_Package)(nil),
+	}
+}
+
+func _JobDispatchRequest_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
+	m := msg.(*JobDispatchRequest)
+	// payload
+	switch x := m.Payload.(type) {
+	case *JobDispatchRequest_Package:
+		b.EncodeVarint(2<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.Package); err != nil {
+			return err
+		}
+	case nil:
+	default:
+		return fmt.Errorf("JobDispatchRequest.Payload has unexpected type %T", x)
+	}
+	return nil
+}
+
+func _JobDispatchRequest_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
+	m := msg.(*JobDispatchRequest)
+	switch tag {
+	case 2: // payload.package
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(PackageInfo)
+		err := b.DecodeMessage(msg)
+		m.Payload = &JobDispatchRequest_Package{msg}
+		return true, err
+	default:
+		return false, nil
+	}
+}
 
 // Contains updated information on a job being processed.
 type JobUpdateRequest struct {
@@ -377,6 +443,8 @@ func _OutputMessage_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.
 type CollectJobRequest struct {
 	// Target name
 	Target string `protobuf:"bytes,1,opt,name=target" json:"target,omitempty"`
+	// Target architecture.
+	Architecture string `protobuf:"bytes,2,opt,name=architecture" json:"architecture,omitempty"`
 }
 
 func (m *CollectJobRequest) Reset()         { *m = CollectJobRequest{} }

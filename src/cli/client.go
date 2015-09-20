@@ -154,8 +154,8 @@ func (c *Client) ListPackages() error {
 }
 
 // Schedule a job.
-func (c *Client) SendJob(target string) (uint64, error) {
-	args := &pb.CollectJobRequest{Target: target}
+func (c *Client) SendJob(target string, arch string) (uint64, error) {
+	args := &pb.CollectJobRequest{Target: target, Architecture: arch}
 	reply, err := c.client.CollectJob(context.Background(), args)
 	if err != nil {
 		return 0, err

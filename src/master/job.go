@@ -39,6 +39,8 @@ type Job struct {
 	Id uint64
 	// Target name.
 	Target string
+	// Architecture.
+	Architecture string
 	// When the job has started.
 	Started time.Time
 	// When the job has finished.

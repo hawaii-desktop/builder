@@ -41,12 +41,17 @@ var CmdBuild = cli.Command{
 			logging.Errorln("You must specify the package name")
 			return ErrWrongArguments
 		}
+		if !ctx.IsSet("arch") {
+			logging.Errorln("You must specify the architecture")
+			return ErrWrongArguments
+		}
 
 		return nil
 	},
 	Action: runBuild,
 	Flags: []cli.Flag{
 		cli.StringFlag{"name, n", "", "package name", ""},
+		cli.StringFlag{"arch, a", "", "architecture", ""},
 	},
 }
 
@@ -64,10 +69,11 @@ func runBuild(ctx *cli.Context) {
 
 	// Build a package
 	pkgname := ctx.String("name")
+	arch := ctx.String("arch")
 	var id uint64
-	if id, err = client.SendJob(pkgname); err != nil {
+	if id, err = client.SendJob(pkgname, arch); err != nil {
 		logging.Errorln(err)
 		return
 	}
-	logging.Infof("Package \"%s\" build queued as #%d\n", pkgname, id)
+	logging.Infof("Package \"%s\" build for %s queued as #%d\n", pkgname, arch, id)
 }

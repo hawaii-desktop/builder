@@ -137,10 +137,21 @@ func (c *Client) Subscribe() error {
 			// Job dispatched to us
 			jobDispatch := in.GetJobDispatch()
 			if jobDispatch != nil {
+				// Read build information from the request
+				pkg := jobDispatch.GetPackage()
+				arch := pkg.Architectures[0]
+
 				// Create a new job
-				logging.Infof("Processing job #%d (target \"%s\")\n",
-					jobDispatch.Id, jobDispatch.Target)
-				j := NewJob(jobDispatch.Id, jobDispatch.Target)
+				logging.Infof("Processing job #%d (target \"%s\" for %s)\n",
+					jobDispatch.Id, pkg.Name, arch)
+				logging.Infof("%v, %v\n", pkg.Vcs, pkg.UpstreamVcs)
+				j := NewJob(jobDispatch.Id, pkg.Name, arch, &PackageInfo{
+					Ci:                pkg.Ci,
+					VcsUrl:            pkg.Vcs.Url,
+					VcsBranch:         pkg.Vcs.Branch,
+					UpstreamVcsUrl:    pkg.UpstreamVcs.Url,
+					UpstreamVcsBranch: pkg.UpstreamVcs.Branch,
+				})
 
 				// Send updates back to master
 				go func() {

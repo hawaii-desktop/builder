@@ -115,9 +115,31 @@ func (m *Master) Subscribe(stream pb.Builder_SubscribeServer) error {
 
 	// Function to send a job to a slave
 	var sendJob = func(s *Slave, j *Job) {
+		// Retrieve package information
+		pkg := m.db.GetPackage(j.Target)
+		if pkg == nil {
+			return
+		}
+
+		// Send job
+		pkgmsg := &pb.PackageInfo{
+			Name:          pkg.Name,
+			Architectures: []string{j.Architecture},
+			Ci:            pkg.Ci,
+			Vcs: &pb.VcsInfo{
+				Url:    pkg.Vcs.Url,
+				Branch: pkg.Vcs.Branch,
+			},
+			UpstreamVcs: &pb.VcsInfo{
+				Url:    pkg.UpstreamVcs.Url,
+				Branch: pkg.UpstreamVcs.Branch,
+			},
+		}
 		response := &pb.JobDispatchRequest{
-			Id:     j.Id,
-			Target: j.Target,
+			Id: j.Id,
+			Payload: &pb.JobDispatchRequest_Package{
+				Package: pkgmsg,
+			},
 		}
 		reply := &pb.OutputMessage{
 			Payload: &pb.OutputMessage_JobDispatch{
@@ -265,8 +287,18 @@ func (m *Master) Unsubscribe(ctx context.Context, args *pb.UnsubscribeRequest) (
 
 // Create and enqueue a job.
 func (m *Master) CollectJob(ctx context.Context, args *pb.CollectJobRequest) (*pb.CollectJobResponse, error) {
-	j := m.enqueueJob(args.Target)
-	reply := &pb.CollectJobResponse{Result: true, Id: j.Id}
+	var (
+		result bool   = false
+		id     uint64 = 0
+	)
+
+	j := m.enqueueJob(args.Target, args.Architecture)
+	result = j != nil
+	if j != nil {
+		id = j.Id
+	}
+
+	reply := &pb.CollectJobResponse{Result: result, Id: id}
 	return reply, nil
 }
 
@@ -387,23 +419,29 @@ func (m *Master) removeJob(j *Job) {
 }
 
 // Enqueue a job.
-func (m *Master) enqueueJob(target string) *Job {
+func (m *Master) enqueueJob(target, arch string) *Job {
+	// Verify if the package exist
+	if !m.db.HasPackage(target) {
+		return nil
+	}
+
 	// Allocate a new global id
 	id := atomic.AddUint64(&globalJobId, 1)
 
 	// Create a job
 	j := &Job{
-		Id:       id,
-		Target:   target,
-		Started:  time.Time{},
-		Finished: time.Time{},
-		Status:   JOB_STATUS_JUST_CREATED,
-		Channel:  make(chan bool),
+		Id:           id,
+		Target:       target,
+		Architecture: arch,
+		Started:      time.Time{},
+		Finished:     time.Time{},
+		Status:       JOB_STATUS_JUST_CREATED,
+		Channel:      make(chan bool),
 	}
 	m.appendJob(j)
 
 	// Push it onto the queue
 	BuildJobQueue <- j
-	logging.Infof("Queued job #%d (target \"%s\")\n", id, target)
+	logging.Infof("Queued job #%d (target \"%s\" for %s)\n", id, target, arch)
 	return j
 }
