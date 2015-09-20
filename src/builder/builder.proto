@@ -160,6 +160,7 @@ message JobDispatchRequest {
   // Payload.
   oneof payload {
     PackageInfo package = 2;
+    ImageInfo image = 3;
   }
 }
 
@@ -198,6 +199,9 @@ message CollectJobRequest {
 
   // Target architecture.
   string architecture = 2;
+
+  // Target type.
+  EnumTargetType type = 3;
 }
 
 // CollectJob response.
@@ -217,6 +221,12 @@ enum EnumJobStatus {
   JOB_STATUS_SUCCESSFUL = 3;
   JOB_STATUS_FAILED = 4;
   JOB_STATUS_CRASHED = 5;
+}
+
+// Build target.
+enum EnumTargetType {
+  PACKAGE = 0;
+  IMAGE = 1;
 }
 
 // VCS information.

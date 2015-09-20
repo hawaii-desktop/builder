@@ -230,8 +230,20 @@ func (c *Client) ListImages() error {
 }
 
 // Schedule a job.
-func (c *Client) SendJob(target string, arch string) (uint64, error) {
-	args := &pb.CollectJobRequest{Target: target, Architecture: arch}
+func (c *Client) SendJob(target, arch, tstr string) (uint64, error) {
+	var t pb.EnumTargetType
+	switch tstr {
+	case "package":
+		t = pb.EnumTargetType_PACKAGE
+		break
+	case "image":
+		t = pb.EnumTargetType_IMAGE
+		break
+	default:
+		return 0, ErrWrongArguments
+	}
+
+	args := &pb.CollectJobRequest{Target: target, Architecture: arch, Type: t}
 	reply, err := c.client.CollectJob(context.Background(), args)
 	if err != nil {
 		return 0, err

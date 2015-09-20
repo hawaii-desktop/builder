@@ -138,20 +138,37 @@ func (c *Client) Subscribe() error {
 			jobDispatch := in.GetJobDispatch()
 			if jobDispatch != nil {
 				// Read build information from the request
+				var target string
 				pkg := jobDispatch.GetPackage()
+				if pkg != nil {
+					target = pkg.Name
+				}
+				img := jobDispatch.GetImage()
+				if img != nil {
+					target = img.Name
+				}
 				arch := pkg.Architectures[0]
 
 				// Create a new job
 				logging.Infof("Processing job #%d (target \"%s\" for %s)\n",
-					jobDispatch.Id, pkg.Name, arch)
-				logging.Infof("%v, %v\n", pkg.Vcs, pkg.UpstreamVcs)
-				j := NewJob(jobDispatch.Id, pkg.Name, arch, &PackageInfo{
-					Ci:                pkg.Ci,
-					VcsUrl:            pkg.Vcs.Url,
-					VcsBranch:         pkg.Vcs.Branch,
-					UpstreamVcsUrl:    pkg.UpstreamVcs.Url,
-					UpstreamVcsBranch: pkg.UpstreamVcs.Branch,
-				})
+					jobDispatch.Id, target, arch)
+				var pkgInfo *PackageInfo = nil
+				var imgInfo *ImageInfo = nil
+				if pkg != nil {
+					pkgInfo = &PackageInfo{
+						Ci:                pkg.Ci,
+						VcsUrl:            pkg.Vcs.Url,
+						VcsBranch:         pkg.Vcs.Branch,
+						UpstreamVcsUrl:    pkg.UpstreamVcs.Url,
+						UpstreamVcsBranch: pkg.UpstreamVcs.Branch,
+					}
+				} else if img != nil {
+					imgInfo = &ImageInfo{
+						VcsUrl:    img.Vcs.Url,
+						VcsBranch: img.Vcs.Branch,
+					}
+				}
+				j := NewJob(jobDispatch.Id, &TargetInfo{target, arch, pkgInfo, imgInfo})
 
 				// Send updates back to master
 				go func() {

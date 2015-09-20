@@ -34,15 +34,25 @@ import (
 
 var CmdBuild = cli.Command{
 	Name:        "build",
-	Usage:       "Build package",
-	Description: `Request the build of a package.`,
+	Usage:       "Build packages and images",
+	Description: `Request the build of a package or an image.`,
 	Before: func(ctx *cli.Context) error {
+		if ctx.IsSet("type") {
+			t := ctx.String("type")
+			if t != "package" && t != "image" {
+				logging.Errorf("Wrong target type \"%s\": must be either \"package\" or \"image\"\n", t)
+				return ErrWrongArguments
+			}
+		} else {
+			logging.Errorln("You must specify the target type")
+			return ErrWrongArguments
+		}
 		if !ctx.IsSet("name") {
-			logging.Errorln("You must specify the package name")
+			logging.Errorln("You must specify the target name")
 			return ErrWrongArguments
 		}
 		if !ctx.IsSet("arch") {
-			logging.Errorln("You must specify the architecture")
+			logging.Errorln("You must specify the target architecture")
 			return ErrWrongArguments
 		}
 
@@ -50,6 +60,7 @@ var CmdBuild = cli.Command{
 	},
 	Action: runBuild,
 	Flags: []cli.Flag{
+		cli.StringFlag{"type, t", "", "type (package or image)", ""},
 		cli.StringFlag{"name, n", "", "package name", ""},
 		cli.StringFlag{"arch, a", "", "architecture", ""},
 	},
@@ -67,13 +78,14 @@ func runBuild(ctx *cli.Context) {
 	client := NewClient(conn)
 	defer client.Close()
 
-	// Build a package
-	pkgname := ctx.String("name")
+	// Build the target
+	t := ctx.String("type")
+	name := ctx.String("name")
 	arch := ctx.String("arch")
 	var id uint64
-	if id, err = client.SendJob(pkgname, arch); err != nil {
+	if id, err = client.SendJob(name, arch, t); err != nil {
 		logging.Errorln(err)
 		return
 	}
-	logging.Infof("Package \"%s\" build for %s queued as #%d\n", pkgname, arch, id)
+	logging.Infof("Target \"%s\" build for %s queued as #%d\n", name, arch, id)
 }

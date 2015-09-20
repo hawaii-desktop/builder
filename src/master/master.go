@@ -28,6 +28,7 @@ package master
 
 import (
 	"errors"
+	"fmt"
 	"github.com/hawaii-desktop/builder/src/database"
 	"github.com/hawaii-desktop/builder/src/logging"
 	pb "github.com/hawaii-desktop/builder/src/protocol"
@@ -65,6 +66,12 @@ var (
 	ErrNoMatchingPackages = errors.New("no matching packages")
 	ErrNoMatchingImages   = errors.New("no matching images")
 )
+
+// Map to decode job type.
+var jobTargetMap = map[pb.EnumTargetType]JobTargetType{
+	pb.EnumTargetType_PACKAGE: JOB_TARGET_TYPE_PACKAGE,
+	pb.EnumTargetType_IMAGE:   JOB_TARGET_TYPE_IMAGE,
+}
 
 // Map to decode job status.
 var jobStatusMap = map[pb.EnumJobStatus]JobStatus{
@@ -116,39 +123,68 @@ func (m *Master) Subscribe(stream pb.Builder_SubscribeServer) error {
 
 	// Function to send a job to a slave
 	var sendJob = func(s *Slave, j *Job) {
-		// Retrieve package information
-		pkg := m.db.GetPackage(j.Target)
-		if pkg == nil {
-			return
+		// Helper function that actually sends the dispatch request
+		var sendEnvelope = func(response *pb.JobDispatchRequest) {
+			reply := &pb.OutputMessage{
+				Payload: &pb.OutputMessage_JobDispatch{
+					JobDispatch: response,
+				},
+			}
+			stream.Send(reply)
+			logging.Infof("Job #%d scheduled on \"%s\"\n", j.Id, s.Name)
 		}
 
-		// Send job
-		pkgmsg := &pb.PackageInfo{
-			Name:          pkg.Name,
-			Architectures: []string{j.Architecture},
-			Ci:            pkg.Ci,
-			Vcs: &pb.VcsInfo{
-				Url:    pkg.Vcs.Url,
-				Branch: pkg.Vcs.Branch,
-			},
-			UpstreamVcs: &pb.VcsInfo{
-				Url:    pkg.UpstreamVcs.Url,
-				Branch: pkg.UpstreamVcs.Branch,
-			},
+		// Retrieve target information and send
+		switch j.Type {
+		case JOB_TARGET_TYPE_PACKAGE:
+			pkg := m.db.GetPackage(j.Target)
+			if pkg == nil {
+				return
+			}
+			pkgmsg := &pb.PackageInfo{
+				Name:          pkg.Name,
+				Architectures: []string{j.Architecture},
+				Ci:            pkg.Ci,
+				Vcs: &pb.VcsInfo{
+					Url:    pkg.Vcs.Url,
+					Branch: pkg.Vcs.Branch,
+				},
+				UpstreamVcs: &pb.VcsInfo{
+					Url:    pkg.UpstreamVcs.Url,
+					Branch: pkg.UpstreamVcs.Branch,
+				},
+			}
+			response := &pb.JobDispatchRequest{
+				Id: j.Id,
+				Payload: &pb.JobDispatchRequest_Package{
+					Package: pkgmsg,
+				},
+			}
+			sendEnvelope(response)
+			break
+		case JOB_TARGET_TYPE_IMAGE:
+			img := m.db.GetImage(j.Target)
+			if img == nil {
+				return
+			}
+			imgmsg := &pb.ImageInfo{
+				Name:          img.Name,
+				Description:   img.Description,
+				Architectures: img.Architectures,
+				Vcs: &pb.VcsInfo{
+					Url:    img.Vcs.Url,
+					Branch: img.Vcs.Branch,
+				},
+			}
+			response := &pb.JobDispatchRequest{
+				Id: j.Id,
+				Payload: &pb.JobDispatchRequest_Image{
+					Image: imgmsg,
+				},
+			}
+			sendEnvelope(response)
+			break
 		}
-		response := &pb.JobDispatchRequest{
-			Id: j.Id,
-			Payload: &pb.JobDispatchRequest_Package{
-				Package: pkgmsg,
-			},
-		}
-		reply := &pb.OutputMessage{
-			Payload: &pb.OutputMessage_JobDispatch{
-				JobDispatch: response,
-			},
-		}
-		stream.Send(reply)
-		logging.Infof("Job #%d scheduled on \"%s\"\n", j.Id, s.Name)
 	}
 
 	// Slave loop
@@ -293,7 +329,10 @@ func (m *Master) CollectJob(ctx context.Context, args *pb.CollectJobRequest) (*p
 		id     uint64 = 0
 	)
 
-	j := m.enqueueJob(args.Target, args.Architecture)
+	j, err := m.enqueueJob(args.Target, args.Architecture, args.Type)
+	if err != nil {
+		return nil, err
+	}
 	result = j != nil
 	if j != nil {
 		id = j.Id
@@ -477,10 +516,21 @@ func (m *Master) removeJob(j *Job) {
 }
 
 // Enqueue a job.
-func (m *Master) enqueueJob(target, arch string) *Job {
-	// Verify if the package exist
-	if !m.db.HasPackage(target) {
-		return nil
+func (m *Master) enqueueJob(target, arch string, t pb.EnumTargetType) (*Job, error) {
+	// Verify if the target exists
+	switch t {
+	case pb.EnumTargetType_PACKAGE:
+		if !m.db.HasPackage(target) {
+			return nil, fmt.Errorf("%s package not found", target)
+		}
+		break
+	case pb.EnumTargetType_IMAGE:
+		if !m.db.HasImage(target) {
+			return nil, fmt.Errorf("%s image not found", target)
+		}
+		break
+	default:
+		return nil, fmt.Errorf("Wrong target type specified for \"%s\" (%s)\n", target, arch)
 	}
 
 	// Allocate a new global id
@@ -491,6 +541,7 @@ func (m *Master) enqueueJob(target, arch string) *Job {
 		Id:           id,
 		Target:       target,
 		Architecture: arch,
+		Type:         jobTargetMap[t],
 		Started:      time.Time{},
 		Finished:     time.Time{},
 		Status:       JOB_STATUS_JUST_CREATED,
@@ -501,5 +552,5 @@ func (m *Master) enqueueJob(target, arch string) *Job {
 	// Push it onto the queue
 	BuildJobQueue <- j
 	logging.Infof("Queued job #%d (target \"%s\" for %s)\n", id, target, arch)
-	return j
+	return j, nil
 }

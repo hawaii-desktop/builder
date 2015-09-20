@@ -75,6 +75,27 @@ func (x EnumJobStatus) String() string {
 	return proto.EnumName(EnumJobStatus_name, int32(x))
 }
 
+// Build target.
+type EnumTargetType int32
+
+const (
+	EnumTargetType_PACKAGE EnumTargetType = 0
+	EnumTargetType_IMAGE   EnumTargetType = 1
+)
+
+var EnumTargetType_name = map[int32]string{
+	0: "PACKAGE",
+	1: "IMAGE",
+}
+var EnumTargetType_value = map[string]int32{
+	"PACKAGE": 0,
+	"IMAGE":   1,
+}
+
+func (x EnumTargetType) String() string {
+	return proto.EnumName(EnumTargetType_name, int32(x))
+}
+
 // Generic boolean message.
 type BooleanMessage struct {
 	// Result.
@@ -156,6 +177,7 @@ type JobDispatchRequest struct {
 	//
 	// Types that are valid to be assigned to Payload:
 	//	*JobDispatchRequest_Package
+	//	*JobDispatchRequest_Image
 	Payload isJobDispatchRequest_Payload `protobuf_oneof:"payload"`
 }
 
@@ -170,8 +192,12 @@ type isJobDispatchRequest_Payload interface {
 type JobDispatchRequest_Package struct {
 	Package *PackageInfo `protobuf:"bytes,2,opt,name=package,oneof"`
 }
+type JobDispatchRequest_Image struct {
+	Image *ImageInfo `protobuf:"bytes,3,opt,name=image,oneof"`
+}
 
 func (*JobDispatchRequest_Package) isJobDispatchRequest_Payload() {}
+func (*JobDispatchRequest_Image) isJobDispatchRequest_Payload()   {}
 
 func (m *JobDispatchRequest) GetPayload() isJobDispatchRequest_Payload {
 	if m != nil {
@@ -187,10 +213,18 @@ func (m *JobDispatchRequest) GetPackage() *PackageInfo {
 	return nil
 }
 
+func (m *JobDispatchRequest) GetImage() *ImageInfo {
+	if x, ok := m.GetPayload().(*JobDispatchRequest_Image); ok {
+		return x.Image
+	}
+	return nil
+}
+
 // XXX_OneofFuncs is for the internal use of the proto package.
 func (*JobDispatchRequest) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), []interface{}) {
 	return _JobDispatchRequest_OneofMarshaler, _JobDispatchRequest_OneofUnmarshaler, []interface{}{
 		(*JobDispatchRequest_Package)(nil),
+		(*JobDispatchRequest_Image)(nil),
 	}
 }
 
@@ -201,6 +235,11 @@ func _JobDispatchRequest_OneofMarshaler(msg proto.Message, b *proto.Buffer) erro
 	case *JobDispatchRequest_Package:
 		b.EncodeVarint(2<<3 | proto.WireBytes)
 		if err := b.EncodeMessage(x.Package); err != nil {
+			return err
+		}
+	case *JobDispatchRequest_Image:
+		b.EncodeVarint(3<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.Image); err != nil {
 			return err
 		}
 	case nil:
@@ -220,6 +259,14 @@ func _JobDispatchRequest_OneofUnmarshaler(msg proto.Message, tag, wire int, b *p
 		msg := new(PackageInfo)
 		err := b.DecodeMessage(msg)
 		m.Payload = &JobDispatchRequest_Package{msg}
+		return true, err
+	case 3: // payload.image
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(ImageInfo)
+		err := b.DecodeMessage(msg)
+		m.Payload = &JobDispatchRequest_Image{msg}
 		return true, err
 	default:
 		return false, nil
@@ -446,6 +493,8 @@ type CollectJobRequest struct {
 	Target string `protobuf:"bytes,1,opt,name=target" json:"target,omitempty"`
 	// Target architecture.
 	Architecture string `protobuf:"bytes,2,opt,name=architecture" json:"architecture,omitempty"`
+	// Target type.
+	Type EnumTargetType `protobuf:"varint,3,opt,name=type,enum=protocol.EnumTargetType" json:"type,omitempty"`
 }
 
 func (m *CollectJobRequest) Reset()         { *m = CollectJobRequest{} }
@@ -531,6 +580,7 @@ func (m *ImageInfo) GetVcs() *VcsInfo {
 
 func init() {
 	proto.RegisterEnum("protocol.EnumJobStatus", EnumJobStatus_name, EnumJobStatus_value)
+	proto.RegisterEnum("protocol.EnumTargetType", EnumTargetType_name, EnumTargetType_value)
 }
 
 // Reference imports to suppress errors if they are not otherwise used.

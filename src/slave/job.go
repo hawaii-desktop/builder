@@ -40,16 +40,26 @@ type PackageInfo struct {
 	UpstreamVcsBranch string
 }
 
+// Image information for a build.
+type ImageInfo struct {
+	VcsUrl    string
+	VcsBranch string
+}
+
+// Describe a target.
+type TargetInfo struct {
+	Name         string
+	Architecture string
+	Package      *PackageInfo
+	Image        *ImageInfo
+}
+
 // Represents a job.
 type Job struct {
 	// Identifier.
 	Id uint64
-	// Target name.
-	Target string
-	// Architecture.
-	Architecture string
-	// Package information.
-	Package *PackageInfo
+	// Target information.
+	Target *TargetInfo
 	// Status.
 	Status JobStatus
 	// Channel used to signal when an update should be sent to master.
@@ -80,12 +90,10 @@ var jobStatusDescriptionMap = map[JobStatus]string{
 }
 
 // Create a new job object.
-func NewJob(id uint64, target string, arch string, pkg *PackageInfo) *Job {
+func NewJob(id uint64, t *TargetInfo) *Job {
 	j := &Job{
 		Id:            id,
-		Target:        target,
-		Architecture:  arch,
-		Package:       pkg,
+		Target:        t,
 		Status:        JOB_STATUS_WAITING,
 		UpdateChannel: make(chan bool),
 		CloseChannel:  make(chan bool),
@@ -101,14 +109,16 @@ func (j *Job) Process() {
 
 	// TODO: Fetch sources
 	// TODO: Build
-	logging.Infoln("...")
+	logging.Infof("Building job #%d (target \"%s\" for %s)...",
+		j.Id, j.Target.Name, j.Target.Architecture)
+	logging.Traceln(j.Target.Package, j.Target.Image)
 	time.Sleep(10 * time.Second)
 
 	// Failed
 	j.Status = JOB_STATUS_FAILED
 	j.UpdateChannel <- true
-	logging.Infof("Finished job #%d (target \"%s\") with status \"%s\"\n",
-		j.Id, j.Target, jobStatusDescriptionMap[j.Status])
+	logging.Infof("Finished job #%d (target \"%s\" for %s) with status \"%s\"\n",
+		j.Id, j.Target.Name, j.Target.Architecture, jobStatusDescriptionMap[j.Status])
 
 	// Stop processing
 	j.CloseChannel <- true

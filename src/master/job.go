@@ -41,6 +41,8 @@ type Job struct {
 	Target string
 	// Architecture.
 	Architecture string
+	// Type.
+	Type JobTargetType
 	// When the job has started.
 	Started time.Time
 	// When the job has finished.
@@ -50,6 +52,14 @@ type Job struct {
 	// Channel.
 	Channel chan bool
 }
+
+// Job target type enumeration.
+type JobTargetType uint32
+
+const (
+	JOB_TARGET_TYPE_PACKAGE = iota
+	JOB_TARGET_TYPE_IMAGE
+)
 
 // Job status enumeration.
 type JobStatus uint32
