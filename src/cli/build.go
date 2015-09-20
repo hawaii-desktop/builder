@@ -36,18 +36,21 @@ var CmdBuild = cli.Command{
 	Name:        "build",
 	Usage:       "Build package",
 	Description: `Request the build of a package.`,
-	Action:      runBuild,
+	Before: func(ctx *cli.Context) error {
+		if !ctx.IsSet("name") {
+			logging.Errorln("You must specify the package name")
+			return ErrWrongArguments
+		}
+
+		return nil
+	},
+	Action: runBuild,
 	Flags: []cli.Flag{
-		cli.StringFlag{"name, n", "<name>", "package name", ""},
+		cli.StringFlag{"name, n", "", "package name", ""},
 	},
 }
 
 func runBuild(ctx *cli.Context) {
-	// Check arguments
-	if !ctx.IsSet("name") {
-		logging.Fatalln("You must specify the package name")
-	}
-
 	// Connect to the master
 	conn, err := grpc.Dial(Config.Master.Address, grpc.WithInsecure())
 	if err != nil {
