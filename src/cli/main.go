@@ -45,6 +45,7 @@ func main() {
 	app.Usage = "Command line client for Builder"
 	app.Version = APP_VER
 	app.Commands = []cli.Command{
+		CmdAddPackage,
 		CmdBuild,
 	}
 	app.Flags = []cli.Flag{

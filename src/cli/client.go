@@ -28,9 +28,12 @@ package main
 
 import (
 	"errors"
+	"github.com/hawaii-desktop/builder/src/logging"
 	pb "github.com/hawaii-desktop/builder/src/protocol"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
+	"regexp"
+	"strings"
 )
 
 // Store client stuff.
@@ -42,12 +45,65 @@ type Client struct {
 }
 
 var (
-	ErrFailed = errors.New("master failed to enqueue job")
+	ErrFailed     = errors.New("master didn't satisfy our request")
+	ErrInvalidVcs = errors.New("invalid VCS information")
 )
 
 // Create a new Client object.
 func NewClient(conn *grpc.ClientConn) *Client {
 	return &Client{conn: conn, client: pb.NewBuilderClient(conn)}
+}
+
+// Add a package.
+func (c *Client) AddPackage(name string, archs string, ci bool, vcs string, uvcs string) error {
+	// Split architectures
+	a := strings.Split(archs, ",")
+
+	// VCS regexp
+	r := regexp.MustCompile("(.+)(#branch=.+)*$")
+
+	// Decode VCS
+	var vcs_url, vcs_branch string
+	matches := r.FindStringSubmatch(vcs)
+	if len(matches) == 1 {
+		return ErrInvalidVcs
+	}
+	vcs_url = matches[1]
+	if len(matches) > 2 {
+		vcs_branch = strings.Replace(matches[2], "#branch=", "", 1)
+	}
+	if vcs_branch == "" {
+		vcs_branch = "master"
+	}
+
+	// Decode upstream VCS
+	var uvcs_url, uvcs_branch string
+	if ci {
+		matches = r.FindStringSubmatch(uvcs)
+		if len(matches) == 1 {
+			return ErrInvalidVcs
+		}
+		uvcs_url = matches[1]
+		if len(matches) > 2 {
+			uvcs_branch = strings.Replace(matches[2], "#branch=", "", 1)
+		}
+		if uvcs_branch == "" {
+			uvcs_branch = "master"
+		}
+	}
+
+	// Send message
+	logging.Infof("Adding package \"%s\" (architectures: %q, ci: %v, vcs url: %v, vcs branch: %v, upstream vcs url: %v, upstream vcs branch: %v)",
+		name, a, ci, vcs_url, vcs_branch, uvcs_url, uvcs_branch)
+	args := &pb.PackageInfo{name, a, ci, &pb.VcsInfo{vcs_url, vcs_branch}, &pb.VcsInfo{uvcs_url, uvcs_branch}}
+	reply, err := c.client.AddPackage(context.Background(), args)
+	if err != nil {
+		return err
+	}
+	if !reply.Result {
+		return ErrFailed
+	}
+	return nil
 }
 
 // Schedule a job.
