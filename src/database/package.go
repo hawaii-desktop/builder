@@ -113,6 +113,12 @@ func (db *Database) AddPackage(pkg *Package) error {
 // Remove a package from the database.
 func (db *Database) RemovePackage(name string) error {
 	return db.db.Update(func(tx *bolt.Tx) error {
-		return tx.DeleteBucket([]byte(name))
+		bucket := tx.Bucket([]byte("package"))
+		err := bucket.Delete([]byte(name))
+		if err != nil {
+			return err
+		}
+
+		return nil
 	})
 }
