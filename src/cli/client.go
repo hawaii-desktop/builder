@@ -61,37 +61,36 @@ func (c *Client) AddPackage(name string, archs string, ci bool, vcs string, uvcs
 	// Split architectures
 	a := strings.Split(archs, ",")
 
+	// Clean VCS strings
+	if m, _ := regexp.MatchString("#branch=.+$", vcs); !m {
+		vcs += "#branch=master"
+	}
+	if ci {
+		if m, _ := regexp.MatchString("#branch=.+$", uvcs); !m {
+			uvcs += "#branch=master"
+		}
+	}
+
 	// VCS regexp
-	r := regexp.MustCompile("(.+)(#branch=.+)*$")
+	r := regexp.MustCompile("(.+)#branch=(.+)$")
 
 	// Decode VCS
-	var vcs_url, vcs_branch string
 	matches := r.FindStringSubmatch(vcs)
-	if len(matches) == 1 {
+	if len(matches) != 3 {
 		return ErrInvalidVcs
 	}
-	vcs_url = matches[1]
-	if len(matches) > 2 {
-		vcs_branch = strings.Replace(matches[2], "#branch=", "", 1)
-	}
-	if vcs_branch == "" {
-		vcs_branch = "master"
-	}
+	vcs_url := matches[1]
+	vcs_branch := matches[2]
 
 	// Decode upstream VCS
 	var uvcs_url, uvcs_branch string
 	if ci {
 		matches = r.FindStringSubmatch(uvcs)
-		if len(matches) == 1 {
+		if len(matches) != 3 {
 			return ErrInvalidVcs
 		}
 		uvcs_url = matches[1]
-		if len(matches) > 2 {
-			uvcs_branch = strings.Replace(matches[2], "#branch=", "", 1)
-		}
-		if uvcs_branch == "" {
-			uvcs_branch = "master"
-		}
+		uvcs_branch = matches[2]
 	}
 
 	// Send message
