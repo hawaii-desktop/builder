@@ -78,6 +78,7 @@ var jobStatusDescriptionMap = map[JobStatus]string{
 	JOB_STATUS_JUST_CREATED: "JustCreated",
 	JOB_STATUS_WAITING:      "Waiting",
 	JOB_STATUS_PROCESSING:   "Processing",
+	JOB_STATUS_SUCCESSFUL:   "Successful",
 	JOB_STATUS_FAILED:       "Failed",
 	JOB_STATUS_CRASHED:      "Crashed",
 }

@@ -36,6 +36,9 @@ type Settings struct {
 		Channels      []string
 		Architectures []string
 	}
+	Directory struct {
+		WorkDir string
+	}
 }
 
 // Global configuration object.

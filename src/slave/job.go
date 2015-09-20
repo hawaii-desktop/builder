@@ -28,7 +28,6 @@ package slave
 
 import (
 	"github.com/hawaii-desktop/builder/src/logging"
-	"time"
 )
 
 // Package information for a build.
@@ -85,6 +84,7 @@ var jobStatusDescriptionMap = map[JobStatus]string{
 	JOB_STATUS_JUST_CREATED: "JustCreated",
 	JOB_STATUS_WAITING:      "Waiting",
 	JOB_STATUS_PROCESSING:   "Processing",
+	JOB_STATUS_SUCCESSFUL:   "Successful",
 	JOB_STATUS_FAILED:       "Failed",
 	JOB_STATUS_CRASHED:      "Crashed",
 }
@@ -103,23 +103,42 @@ func NewJob(id uint64, t *TargetInfo) *Job {
 
 // Process the job.
 func (j *Job) Process() {
-	// Processing
+	// Update job on master
 	j.Status = JOB_STATUS_PROCESSING
 	j.UpdateChannel <- true
 
-	// TODO: Fetch sources
-	// TODO: Build
+	// Stop processing and log status on return
+	defer func() {
+		logging.Infof("Finished job #%d (target \"%s\" for %s) with status \"%s\"\n",
+			j.Id, j.Target.Name, j.Target.Architecture, jobStatusDescriptionMap[j.Status])
+		j.CloseChannel <- true
+	}()
+
+	// Log some information
 	logging.Infof("Building job #%d (target \"%s\" for %s)...",
 		j.Id, j.Target.Name, j.Target.Architecture)
-	logging.Traceln(j.Target.Package, j.Target.Image)
-	time.Sleep(10 * time.Second)
 
-	// Failed
-	j.Status = JOB_STATUS_FAILED
+	// Create a factory
+	var f *Factory
+	if j.Target.Package != nil {
+		f = NewRpmFactory(j)
+	} else if j.Target.Image != nil {
+		f = NewImageFactory(j)
+	} else {
+		// We shouldn't reach here but I'm paranoid
+		j.Status = JOB_STATUS_FAILED
+		j.UpdateChannel <- true
+		return
+	}
+
+	// Run factory
+	if f.Run() {
+		j.Status = JOB_STATUS_SUCCESSFUL
+	} else {
+		j.Status = JOB_STATUS_FAILED
+	}
+	f.Close()
+
+	// Update job on master
 	j.UpdateChannel <- true
-	logging.Infof("Finished job #%d (target \"%s\" for %s) with status \"%s\"\n",
-		j.Id, j.Target.Name, j.Target.Architecture, jobStatusDescriptionMap[j.Status])
-
-	// Stop processing
-	j.CloseChannel <- true
 }

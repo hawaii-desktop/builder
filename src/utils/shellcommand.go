@@ -26,55 +26,24 @@
 
 package utils
 
-// Execute a shell command and return the output.
-func ExecShellCommand(name string, args []string, env []string) ([]byte, []byte, error) {
-	// Prepare command
-	cmd := exec.Command(name)
-	cmd.Args = args
-	cmd.Env = env
-
-	// Capture output
-	var (
-		stdout bytes.Buffer
-		stderr bytes.Buffer
-	)
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-
-	// Run the command
-	if err := cmd.Start(); err != nil {
-		return stdout.Bytes(), stderr.Bytes(), err
-	}
-	err = cmd.Wait()
-	return stdout.Bytes(), stderr.Bytes(), err
-}
-
-// Execute a shell command with a timeout and return the output.
-func ExecShellCommandWithTimeout(name string, args []string, env []string, timeout time.Duration) ([]byte, []byte, error) {
-	// Prepare command
-	cmd := exec.Command(name)
-	cmd.Args = args
-	cmd.Env = env
-
-	// Capture output
-	var (
-		stdout bytes.Buffer
-		stderr bytes.Buffer
-	)
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-
-	// Run the command
-	err := runWithTimeout(cmd, timeout)
-	return stdout.Bytes(), stderr.Bytes(), err
-}
+import (
+	"os/exec"
+	"time"
+)
 
 // Run a command with timeout.
-func runWithTimeout(cmd *exec.Cmd, timeout time.Duration) error {
+func RunWithTimeout(cmd *exec.Cmd, timeout time.Duration) error {
 	if err := cmd.Start(); err != nil {
 		return err
 	}
 	t := time.AfterFunc(timeout, func() { cmd.Process.Kill() })
 	defer t.Stop()
 	return cmd.Wait()
+}
+
+// Run a command with timeout and return the combined output.
+func RunCombinedWithTimeout(cmd *exec.Cmd, timeout time.Duration) ([]byte, error) {
+	t := time.AfterFunc(timeout, func() { cmd.Process.Kill() })
+	defer t.Stop()
+	return cmd.CombinedOutput()
 }
