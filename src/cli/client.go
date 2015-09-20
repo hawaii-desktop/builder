@@ -28,10 +28,12 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"github.com/hawaii-desktop/builder/src/logging"
 	pb "github.com/hawaii-desktop/builder/src/protocol"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
+	"io"
 	"regexp"
 	"strings"
 )
@@ -103,6 +105,38 @@ func (c *Client) AddPackage(name string, archs string, ci bool, vcs string, uvcs
 	if !reply.Result {
 		return ErrFailed
 	}
+	return nil
+}
+
+// List packages.
+func (c *Client) ListPackages() error {
+	stream, err := c.client.ListPackages(context.Background(), &pb.StringMessage{".+"})
+	if err != nil {
+		return err
+	}
+
+	for {
+		pkg, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("Package \"%s\"\n", pkg.Name)
+		fmt.Printf("\tArchitectures: %s\n", strings.Join(pkg.Architectures, ", "))
+		fmt.Printf("\tCI: %v\n", pkg.Ci)
+		fmt.Println("\tVCS:")
+		fmt.Printf("\t\tURL: %s\n", pkg.Vcs.Url)
+		fmt.Printf("\t\tBranch: %s\n", pkg.Vcs.Branch)
+		if pkg.Ci {
+			fmt.Println("\tUpstream VCS:")
+			fmt.Printf("\t\tURL: %s\n", pkg.UpstreamVcs.Url)
+			fmt.Printf("\t\tBranch: %s\n", pkg.UpstreamVcs.Branch)
+		}
+	}
+
 	return nil
 }
 
