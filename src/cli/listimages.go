@@ -27,49 +27,34 @@
 package main
 
 import (
-	"errors"
 	"github.com/codegangsta/cli"
-	"gopkg.in/gcfg.v1"
-	"os"
-	"runtime"
+	"github.com/hawaii-desktop/builder/src/logging"
+	"google.golang.org/grpc"
 )
 
-const APP_VER = "0.0.0"
-
-var (
-	ErrWrongArguments = errors.New("wrong arguments")
-)
-
-func init() {
-	runtime.GOMAXPROCS(runtime.NumCPU())
+var CmdListImages = cli.Command{
+	Name:        "list-images",
+	Usage:       "List images",
+	Description: `List images added to the database.`,
+	Action:      runListImages,
+	Flags:       []cli.Flag{},
 }
 
-func main() {
-	app := cli.NewApp()
-	app.Name = "builder-cli"
-	app.Usage = "Command line client for Builder"
-	app.Version = APP_VER
-	app.Commands = []cli.Command{
-		CmdAddPackage,
-		CmdRemovePackage,
-		CmdListPackages,
-		CmdAddImage,
-		CmdRemoveImage,
-		CmdListImages,
-		CmdBuild,
+func runListImages(ctx *cli.Context) {
+	// Connect to the master
+	conn, err := grpc.Dial(Config.Master.Address, grpc.WithInsecure())
+	if err != nil {
+		logging.Errorln(err)
+		return
 	}
-	app.Flags = []cli.Flag{
-		cli.StringFlag{"config, c", "<filename>", "custom configuration file path", ""},
+
+	// Create client proxy
+	client := NewClient(conn)
+	defer client.Close()
+
+	// List images
+	if err = client.ListImages(); err != nil {
+		logging.Errorln(err)
+		return
 	}
-	app.Before = func(ctx *cli.Context) error {
-		// Load the configuration
-		var configArg string
-		if ctx.IsSet("config") {
-			configArg = ctx.String("config")
-		} else {
-			configArg = "builder-cli.ini"
-		}
-		return gcfg.ReadFileInto(&Config, configArg)
-	}
-	app.Run(os.Args)
 }

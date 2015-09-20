@@ -63,6 +63,7 @@ var (
 	ErrInvalidSlave       = errors.New("slave is not valid")
 	ErrJobNotFound        = errors.New("job not found with that id")
 	ErrNoMatchingPackages = errors.New("no matching packages")
+	ErrNoMatchingImages   = errors.New("no matching images")
 )
 
 // Map to decode job status.
@@ -359,6 +360,63 @@ func (m *Master) ListPackages(args *pb.StringMessage, stream pb.Builder_ListPack
 			UpstreamVcs: &pb.VcsInfo{
 				Url:    pkg.UpstreamVcs.Url,
 				Branch: pkg.UpstreamVcs.Branch,
+			},
+		}
+		stream.Send(reply)
+	}
+
+	return nil
+}
+
+// Add or update an image.
+func (m *Master) AddImage(ctx context.Context, args *pb.ImageInfo) (*pb.BooleanMessage, error) {
+	img := &database.Image{
+		Name:          args.Name,
+		Description:   args.Description,
+		Architectures: args.Architectures,
+		Vcs: database.VcsInfo{
+			Url:    args.Vcs.Url,
+			Branch: args.Vcs.Branch,
+		},
+	}
+	if err := m.db.AddImage(img); err != nil {
+		return nil, err
+	}
+	return &pb.BooleanMessage{Result: true}, nil
+}
+
+// Remove an image.
+func (m *Master) RemoveImage(ctx context.Context, args *pb.StringMessage) (*pb.BooleanMessage, error) {
+	err := m.db.RemoveImage(args.Name)
+	if err != nil {
+		return nil, err
+	}
+	return &pb.BooleanMessage{Result: true}, nil
+}
+
+// List images matching the regular expression.
+func (m *Master) ListImages(args *pb.StringMessage, stream pb.Builder_ListImagesServer) error {
+	r, err := regexp.Compile(args.Name)
+	if err != nil {
+		return err
+	}
+
+	list := m.db.ListAllImages()
+	if len(list) == 0 {
+		return ErrNoMatchingImages
+	}
+
+	for _, img := range list {
+		if !r.MatchString(img.Name) {
+			continue
+		}
+		reply := &pb.ImageInfo{
+			Name:          img.Name,
+			Description:   img.Description,
+			Architectures: img.Architectures,
+			Vcs: &pb.VcsInfo{
+				Url:    img.Vcs.Url,
+				Branch: img.Vcs.Branch,
 			},
 		}
 		stream.Send(reply)

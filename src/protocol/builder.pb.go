@@ -24,6 +24,7 @@ It has these top-level messages:
 	CollectJobResponse
 	VcsInfo
 	PackageInfo
+	ImageInfo
 */
 package protocol
 
@@ -505,6 +506,29 @@ func (m *PackageInfo) GetUpstreamVcs() *VcsInfo {
 	return nil
 }
 
+// Image information.
+type ImageInfo struct {
+	// Name.
+	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	// Description.
+	Description string `protobuf:"bytes,2,opt,name=description" json:"description,omitempty"`
+	// Architectures supported.
+	Architectures []string `protobuf:"bytes,3,rep,name=architectures" json:"architectures,omitempty"`
+	// VCS with build scripts.
+	Vcs *VcsInfo `protobuf:"bytes,4,opt,name=vcs" json:"vcs,omitempty"`
+}
+
+func (m *ImageInfo) Reset()         { *m = ImageInfo{} }
+func (m *ImageInfo) String() string { return proto.CompactTextString(m) }
+func (*ImageInfo) ProtoMessage()    {}
+
+func (m *ImageInfo) GetVcs() *VcsInfo {
+	if m != nil {
+		return m.Vcs
+	}
+	return nil
+}
+
 func init() {
 	proto.RegisterEnum("protocol.EnumJobStatus", EnumJobStatus_name, EnumJobStatus_value)
 }
@@ -556,6 +580,21 @@ type BuilderClient interface {
 	// regular expression passed as argument.
 	// With an empty string the full list of packages will be retrieved.
 	ListPackages(ctx context.Context, in *StringMessage, opts ...grpc.CallOption) (Builder_ListPackagesClient, error)
+	// Add or update an image.
+	//
+	// Store image information so that it can be referenced later when
+	// scheduling a job.
+	AddImage(ctx context.Context, in *ImageInfo, opts ...grpc.CallOption) (*BooleanMessage, error)
+	// Remove an image.
+	//
+	// Remove image information.
+	RemoveImage(ctx context.Context, in *StringMessage, opts ...grpc.CallOption) (*BooleanMessage, error)
+	// List images.
+	//
+	// Return the list of images and their information, matching the
+	// regular expression passed as argument.
+	// With an empty string the full list of images will be retrieved.
+	ListImages(ctx context.Context, in *StringMessage, opts ...grpc.CallOption) (Builder_ListImagesClient, error)
 }
 
 type builderClient struct {
@@ -665,6 +704,56 @@ func (x *builderListPackagesClient) Recv() (*PackageInfo, error) {
 	return m, nil
 }
 
+func (c *builderClient) AddImage(ctx context.Context, in *ImageInfo, opts ...grpc.CallOption) (*BooleanMessage, error) {
+	out := new(BooleanMessage)
+	err := grpc.Invoke(ctx, "/protocol.Builder/AddImage", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *builderClient) RemoveImage(ctx context.Context, in *StringMessage, opts ...grpc.CallOption) (*BooleanMessage, error) {
+	out := new(BooleanMessage)
+	err := grpc.Invoke(ctx, "/protocol.Builder/RemoveImage", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *builderClient) ListImages(ctx context.Context, in *StringMessage, opts ...grpc.CallOption) (Builder_ListImagesClient, error) {
+	stream, err := grpc.NewClientStream(ctx, &_Builder_serviceDesc.Streams[2], c.cc, "/protocol.Builder/ListImages", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &builderListImagesClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Builder_ListImagesClient interface {
+	Recv() (*ImageInfo, error)
+	grpc.ClientStream
+}
+
+type builderListImagesClient struct {
+	grpc.ClientStream
+}
+
+func (x *builderListImagesClient) Recv() (*ImageInfo, error) {
+	m := new(ImageInfo)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // Server API for Builder service
 
 type BuilderServer interface {
@@ -708,6 +797,21 @@ type BuilderServer interface {
 	// regular expression passed as argument.
 	// With an empty string the full list of packages will be retrieved.
 	ListPackages(*StringMessage, Builder_ListPackagesServer) error
+	// Add or update an image.
+	//
+	// Store image information so that it can be referenced later when
+	// scheduling a job.
+	AddImage(context.Context, *ImageInfo) (*BooleanMessage, error)
+	// Remove an image.
+	//
+	// Remove image information.
+	RemoveImage(context.Context, *StringMessage) (*BooleanMessage, error)
+	// List images.
+	//
+	// Return the list of images and their information, matching the
+	// regular expression passed as argument.
+	// With an empty string the full list of images will be retrieved.
+	ListImages(*StringMessage, Builder_ListImagesServer) error
 }
 
 func RegisterBuilderServer(s *grpc.Server, srv BuilderServer) {
@@ -809,6 +913,51 @@ func (x *builderListPackagesServer) Send(m *PackageInfo) error {
 	return x.ServerStream.SendMsg(m)
 }
 
+func _Builder_AddImage_Handler(srv interface{}, ctx context.Context, codec grpc.Codec, buf []byte) (interface{}, error) {
+	in := new(ImageInfo)
+	if err := codec.Unmarshal(buf, in); err != nil {
+		return nil, err
+	}
+	out, err := srv.(BuilderServer).AddImage(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func _Builder_RemoveImage_Handler(srv interface{}, ctx context.Context, codec grpc.Codec, buf []byte) (interface{}, error) {
+	in := new(StringMessage)
+	if err := codec.Unmarshal(buf, in); err != nil {
+		return nil, err
+	}
+	out, err := srv.(BuilderServer).RemoveImage(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func _Builder_ListImages_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(StringMessage)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(BuilderServer).ListImages(m, &builderListImagesServer{stream})
+}
+
+type Builder_ListImagesServer interface {
+	Send(*ImageInfo) error
+	grpc.ServerStream
+}
+
+type builderListImagesServer struct {
+	grpc.ServerStream
+}
+
+func (x *builderListImagesServer) Send(m *ImageInfo) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 var _Builder_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "protocol.Builder",
 	HandlerType: (*BuilderServer)(nil),
@@ -829,6 +978,14 @@ var _Builder_serviceDesc = grpc.ServiceDesc{
 			MethodName: "RemovePackage",
 			Handler:    _Builder_RemovePackage_Handler,
 		},
+		{
+			MethodName: "AddImage",
+			Handler:    _Builder_AddImage_Handler,
+		},
+		{
+			MethodName: "RemoveImage",
+			Handler:    _Builder_RemoveImage_Handler,
+		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
@@ -840,6 +997,11 @@ var _Builder_serviceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "ListPackages",
 			Handler:       _Builder_ListPackages_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "ListImages",
+			Handler:       _Builder_ListImages_Handler,
 			ServerStreams: true,
 		},
 	},

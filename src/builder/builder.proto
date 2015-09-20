@@ -60,6 +60,8 @@ service Builder {
   // slave and dispatch to it.
   rpc CollectJob(CollectJobRequest) returns (CollectJobResponse);
 
+  ////////////////////////////////////////////////////////////////////////////
+
   // Add or update a package.
   //
   // Store package information so that it can be referenced later when
@@ -77,6 +79,26 @@ service Builder {
   // regular expression passed as argument.
   // With an empty string the full list of packages will be retrieved.
   rpc ListPackages(StringMessage) returns (stream PackageInfo);
+
+  ////////////////////////////////////////////////////////////////////////////
+
+  // Add or update an image.
+  //
+  // Store image information so that it can be referenced later when
+  // scheduling a job.
+  rpc AddImage(ImageInfo) returns (BooleanMessage);
+
+  // Remove an image.
+  //
+  // Remove image information.
+  rpc RemoveImage(StringMessage) returns (BooleanMessage);
+
+  // List images.
+  //
+  // Return the list of images and their information, matching the
+  // regular expression passed as argument.
+  // With an empty string the full list of images will be retrieved.
+  rpc ListImages(StringMessage) returns (stream ImageInfo);
 }
 
 /****************************************************************************/
@@ -219,4 +241,19 @@ message PackageInfo {
 
   // VCS for upstream (only for CI).
   VcsInfo upstream_vcs = 5;
+}
+
+// Image information.
+message ImageInfo{
+  // Name.
+  string name = 1;
+
+  // Description.
+  string description = 2;
+
+  // Architectures supported.
+  repeated string architectures = 3;
+
+  // VCS with build scripts.
+  VcsInfo vcs = 4;
 }

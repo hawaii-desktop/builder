@@ -32,19 +32,23 @@ import (
 	"github.com/boltdb/bolt"
 )
 
-type Package struct {
+type Image struct {
 	Name          string   `json:"name"`
-	Architectures []string `json:"architectures"`
-	Ci            bool     `json:"ci"`
+	Description   string   `json:"descr"`
+	Architectures []string `json:"archs"`
 	Vcs           VcsInfo  `json:"vcs"`
-	UpstreamVcs   VcsInfo  `json:"upstream_vcs"`
 }
 
-// Return whether the package was stored into the db.
-func (db *Database) HasPackage(name string) bool {
+// Return whether the image was stored into the db.
+func (db *Database) HasImage(name string) bool {
 	var found bool = false
 	db.db.View(func(tx *bolt.Tx) error {
-		c := tx.Bucket([]byte("package")).Cursor()
+		bucket := tx.Bucket([]byte("image"))
+		if bucket == nil {
+			return nil
+		}
+
+		c := bucket.Cursor()
 		for k, _ := c.Seek([]byte(name)); bytes.Equal(k, []byte(name)); k, _ = c.Next() {
 			found = true
 			return nil
@@ -54,11 +58,15 @@ func (db *Database) HasPackage(name string) bool {
 	return found
 }
 
-// Return a list of package names.
-func (db *Database) GetPackageNames() []string {
+// Return a list of image names.
+func (db *Database) GetImageNames() []string {
 	var list = []string{}
 	db.db.View(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte("package"))
+		bucket := tx.Bucket([]byte("image"))
+		if bucket == nil {
+			return nil
+		}
+
 		bucket.ForEach(func(k, v []byte) error {
 			list = append(list, string(k))
 			return nil
@@ -68,15 +76,19 @@ func (db *Database) GetPackageNames() []string {
 	return list
 }
 
-// Return a list of all packages.
-func (db *Database) ListAllPackages() []*Package {
-	var list []*Package
+// Return a list of all images.
+func (db *Database) ListAllImages() []*Image {
+	var list []*Image
 	db.db.View(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte("package"))
+		bucket := tx.Bucket([]byte("image"))
+		if bucket == nil {
+			return nil
+		}
+
 		bucket.ForEach(func(k, v []byte) error {
-			pkg := &Package{}
-			json.Unmarshal(v, &pkg)
-			list = append(list, pkg)
+			img := &Image{}
+			json.Unmarshal(v, &img)
+			list = append(list, img)
 			return nil
 		})
 		return nil
@@ -84,33 +96,38 @@ func (db *Database) ListAllPackages() []*Package {
 	return list
 }
 
-// Return a package from the database.
-func (db *Database) GetPackage(name string) *Package {
-	var pkg *Package = nil
+// Return an image from the database.
+func (db *Database) GetImage(name string) *Image {
+	var img *Image = nil
 	db.db.View(func(tx *bolt.Tx) error {
-		c := tx.Bucket([]byte("package")).Cursor()
+		bucket, err := tx.CreateBucketIfNotExists([]byte("image"))
+		if err != nil {
+			return err
+		}
+
+		c := bucket.Cursor()
 		for k, v := c.Seek([]byte(name)); bytes.Equal(k, []byte(name)); k, v = c.Next() {
-			json.Unmarshal(v, &pkg)
+			json.Unmarshal(v, &img)
 			return nil
 		}
 		return nil
 	})
-	return pkg
+	return img
 }
 
-// Add a package to the database.
-func (db *Database) AddPackage(pkg *Package) error {
-	encoded, err := json.Marshal(pkg)
+// Add an image to the database.
+func (db *Database) AddImage(img *Image) error {
+	encoded, err := json.Marshal(img)
 	if err != nil {
 		return nil
 	}
 	return db.db.Update(func(tx *bolt.Tx) error {
-		bucket, err := tx.CreateBucketIfNotExists([]byte("package"))
+		bucket, err := tx.CreateBucketIfNotExists([]byte("image"))
 		if err != nil {
 			return err
 		}
 
-		err = bucket.Put([]byte(pkg.Name), encoded)
+		err = bucket.Put([]byte(img.Name), encoded)
 		if err != nil {
 			return err
 		}
@@ -119,10 +136,14 @@ func (db *Database) AddPackage(pkg *Package) error {
 	})
 }
 
-// Remove a package from the database.
-func (db *Database) RemovePackage(name string) error {
+// Remove an image from the database.
+func (db *Database) RemoveImage(name string) error {
 	return db.db.Update(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte("package"))
+		bucket := tx.Bucket([]byte("image"))
+		if bucket == nil {
+			return nil
+		}
+
 		err := bucket.Delete([]byte(name))
 		if err != nil {
 			return err

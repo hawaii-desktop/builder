@@ -153,6 +153,82 @@ func (c *Client) ListPackages() error {
 	return nil
 }
 
+// Add an image.
+func (c *Client) AddImage(name, descr, archs, vcs string) error {
+	// Split architectures
+	a := strings.Split(archs, ",")
+
+	// VCS regexp
+	r := regexp.MustCompile("(.+)(#branch=.+)*$")
+
+	// Decode VCS
+	var vcs_url, vcs_branch string
+	matches := r.FindStringSubmatch(vcs)
+	if len(matches) == 1 {
+		return ErrInvalidVcs
+	}
+	vcs_url = matches[1]
+	if len(matches) > 2 {
+		vcs_branch = strings.Replace(matches[2], "#branch=", "", 1)
+	}
+	if vcs_branch == "" {
+		vcs_branch = "master"
+	}
+
+	// Send message
+	logging.Infof("Adding image \"%s\" - %s (architectures: %q, vcs url: %v, vcs branch: %v)",
+		name, descr, a, vcs_url, vcs_branch)
+	args := &pb.ImageInfo{name, descr, a, &pb.VcsInfo{vcs_url, vcs_branch}}
+	reply, err := c.client.AddImage(context.Background(), args)
+	if err != nil {
+		return err
+	}
+	if !reply.Result {
+		return ErrFailed
+	}
+	return nil
+}
+
+// Remove image.
+func (c *Client) RemoveImage(name string) error {
+	args := &pb.StringMessage{name}
+	reply, err := c.client.RemoveImage(context.Background(), args)
+	if err != nil {
+		return err
+	}
+	if !reply.Result {
+		return ErrFailed
+	}
+	return nil
+}
+
+// List images.
+func (c *Client) ListImages() error {
+	stream, err := c.client.ListImages(context.Background(), &pb.StringMessage{".+"})
+	if err != nil {
+		return err
+	}
+
+	for {
+		img, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("Image \"%s\"\n", img.Name)
+		fmt.Printf("\tDescription: %v\n", img.Description)
+		fmt.Printf("\tArchitectures: %s\n", strings.Join(img.Architectures, ", "))
+		fmt.Println("\tVCS:")
+		fmt.Printf("\t\tURL: %s\n", img.Vcs.Url)
+		fmt.Printf("\t\tBranch: %s\n", img.Vcs.Branch)
+	}
+
+	return nil
+}
+
 // Schedule a job.
 func (c *Client) SendJob(target string, arch string) (uint64, error) {
 	args := &pb.CollectJobRequest{Target: target, Architecture: arch}

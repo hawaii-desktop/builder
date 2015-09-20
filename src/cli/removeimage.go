@@ -27,49 +27,46 @@
 package main
 
 import (
-	"errors"
 	"github.com/codegangsta/cli"
-	"gopkg.in/gcfg.v1"
-	"os"
-	"runtime"
+	"github.com/hawaii-desktop/builder/src/logging"
+	"google.golang.org/grpc"
 )
 
-const APP_VER = "0.0.0"
+var CmdRemoveImage = cli.Command{
+	Name:        "remove-image",
+	Usage:       "Remove a image",
+	Description: `Remove a image from the database.`,
+	Before: func(ctx *cli.Context) error {
+		if !ctx.IsSet("name") {
+			logging.Errorln("You must specify the image name")
+			return ErrWrongArguments
+		}
+		return nil
+	},
 
-var (
-	ErrWrongArguments = errors.New("wrong arguments")
-)
-
-func init() {
-	runtime.GOMAXPROCS(runtime.NumCPU())
+	Action: runRemoveImage,
+	Flags: []cli.Flag{
+		cli.StringFlag{"name, n", "", "image name", ""},
+	},
 }
 
-func main() {
-	app := cli.NewApp()
-	app.Name = "builder-cli"
-	app.Usage = "Command line client for Builder"
-	app.Version = APP_VER
-	app.Commands = []cli.Command{
-		CmdAddPackage,
-		CmdRemovePackage,
-		CmdListPackages,
-		CmdAddImage,
-		CmdRemoveImage,
-		CmdListImages,
-		CmdBuild,
+func runRemoveImage(ctx *cli.Context) {
+	// Connect to the master
+	conn, err := grpc.Dial(Config.Master.Address, grpc.WithInsecure())
+	if err != nil {
+		logging.Errorln(err)
+		return
 	}
-	app.Flags = []cli.Flag{
-		cli.StringFlag{"config, c", "<filename>", "custom configuration file path", ""},
+
+	// Create client proxy
+	client := NewClient(conn)
+	defer client.Close()
+
+	// Remove image
+	name := ctx.String("name")
+	if err = client.RemoveImage(name); err != nil {
+		logging.Errorf("Failed to remove image \"%s\": %s\n", name, err)
+		return
 	}
-	app.Before = func(ctx *cli.Context) error {
-		// Load the configuration
-		var configArg string
-		if ctx.IsSet("config") {
-			configArg = ctx.String("config")
-		} else {
-			configArg = "builder-cli.ini"
-		}
-		return gcfg.ReadFileInto(&Config, configArg)
-	}
-	app.Run(os.Args)
+	logging.Infof("Image \"%s\" removed successfully\n", name)
 }

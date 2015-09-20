@@ -24,52 +24,9 @@
  * $END_LICENSE$
  ***************************************************************************/
 
-package main
+package database
 
-import (
-	"errors"
-	"github.com/codegangsta/cli"
-	"gopkg.in/gcfg.v1"
-	"os"
-	"runtime"
-)
-
-const APP_VER = "0.0.0"
-
-var (
-	ErrWrongArguments = errors.New("wrong arguments")
-)
-
-func init() {
-	runtime.GOMAXPROCS(runtime.NumCPU())
-}
-
-func main() {
-	app := cli.NewApp()
-	app.Name = "builder-cli"
-	app.Usage = "Command line client for Builder"
-	app.Version = APP_VER
-	app.Commands = []cli.Command{
-		CmdAddPackage,
-		CmdRemovePackage,
-		CmdListPackages,
-		CmdAddImage,
-		CmdRemoveImage,
-		CmdListImages,
-		CmdBuild,
-	}
-	app.Flags = []cli.Flag{
-		cli.StringFlag{"config, c", "<filename>", "custom configuration file path", ""},
-	}
-	app.Before = func(ctx *cli.Context) error {
-		// Load the configuration
-		var configArg string
-		if ctx.IsSet("config") {
-			configArg = ctx.String("config")
-		} else {
-			configArg = "builder-cli.ini"
-		}
-		return gcfg.ReadFileInto(&Config, configArg)
-	}
-	app.Run(os.Args)
+type VcsInfo struct {
+	Url    string `json:"url"`
+	Branch string `json:"branch"`
 }
