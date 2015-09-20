@@ -32,42 +32,25 @@ import (
 	"google.golang.org/grpc"
 )
 
-var CmdAddPackage = cli.Command{
-	Name:        "add-package",
-	Usage:       "Add package",
-	Description: `Add a package to the database.`,
+var CmdRemovePackage = cli.Command{
+	Name:        "remove-package",
+	Usage:       "Remove a package",
+	Description: `Remove a package from the database.`,
 	Before: func(ctx *cli.Context) error {
 		if !ctx.IsSet("name") {
 			logging.Errorln("You must specify the package name")
 			return ErrWrongArguments
 		}
-		if !ctx.IsSet("archs") {
-			logging.Errorln("You must specify the architectures")
-			return ErrWrongArguments
-		}
-		if !ctx.IsSet("vcs") {
-			logging.Errorln("You must specify VCS information")
-			return ErrWrongArguments
-		}
-		if ctx.IsSet("ci") {
-			if !ctx.IsSet("upstream-vcs") {
-				logging.Errorln("You must specify upstream VCS information")
-				return ErrWrongArguments
-			}
-		}
 		return nil
 	},
-	Action: runAddPackage,
+
+	Action: runRemovePackage,
 	Flags: []cli.Flag{
-		cli.StringFlag{"name, n", "<name>", "package name", ""},
-		cli.StringFlag{"archs, a", "<arch1>, <arch2>, <archN>...", "supported architectures", ""},
-		cli.BoolFlag{"ci", "continuous integration?", ""},
-		cli.StringFlag{"vcs", "<url>#branch=<branch>", "packaging VCS", ""},
-		cli.StringFlag{"upstream-vcs", "<url>#branch=<branch>", "upstream VCS (only for CI)", ""},
+		cli.StringFlag{"name, n", "", "package name", ""},
 	},
 }
 
-func runAddPackage(ctx *cli.Context) {
+func runRemovePackage(ctx *cli.Context) {
 	// Connect to the master
 	conn, err := grpc.Dial(Config.Master.Address, grpc.WithInsecure())
 	if err != nil {
@@ -79,18 +62,11 @@ func runAddPackage(ctx *cli.Context) {
 	client := NewClient(conn)
 	defer client.Close()
 
-	// Add a package
+	// Remove package
 	name := ctx.String("name")
-	archs := ctx.String("archs")
-	ci := ctx.Bool("ci")
-	vcs := ctx.String("vcs")
-	uvcs := ctx.String("upstream-vcs")
-	if !ctx.IsSet("upstream-vcs") {
-		uvcs = ""
-	}
-	if err = client.AddPackage(name, archs, ci, vcs, uvcs); err != nil {
-		logging.Errorln(err)
+	if err = client.RemovePackage(name); err != nil {
+		logging.Errorf("Failed to remove package \"%s\": %s\n", name, err)
 		return
 	}
-	logging.Infof("Package \"%s\" added successfully\n", name)
+	logging.Infof("Package \"%s\" removed successfully\n", name)
 }

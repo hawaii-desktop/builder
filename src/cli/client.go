@@ -108,6 +108,19 @@ func (c *Client) AddPackage(name string, archs string, ci bool, vcs string, uvcs
 	return nil
 }
 
+// Remove package.
+func (c *Client) RemovePackage(name string) error {
+	args := &pb.StringMessage{name}
+	reply, err := c.client.RemovePackage(context.Background(), args)
+	if err != nil {
+		return err
+	}
+	if !reply.Result {
+		return ErrFailed
+	}
+	return nil
+}
+
 // List packages.
 func (c *Client) ListPackages() error {
 	stream, err := c.client.ListPackages(context.Background(), &pb.StringMessage{".+"})

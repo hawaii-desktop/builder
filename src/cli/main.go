@@ -27,6 +27,7 @@
 package main
 
 import (
+	"errors"
 	"github.com/codegangsta/cli"
 	"gopkg.in/gcfg.v1"
 	"os"
@@ -34,6 +35,10 @@ import (
 )
 
 const APP_VER = "0.0.0"
+
+var (
+	ErrWrongArguments = errors.New("wrong arguments")
+)
 
 func init() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
@@ -46,6 +51,7 @@ func main() {
 	app.Version = APP_VER
 	app.Commands = []cli.Command{
 		CmdAddPackage,
+		CmdRemovePackage,
 		CmdListPackages,
 		CmdBuild,
 	}
