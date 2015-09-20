@@ -126,7 +126,6 @@ func (m *Master) Subscribe(stream pb.Builder_SubscribeServer) error {
 		}
 		stream.Send(reply)
 		logging.Infof("Job #%d scheduled on \"%s\"\n", j.Id, s.Name)
-
 	}
 
 	// Slave loop
