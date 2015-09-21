@@ -287,7 +287,7 @@ func rpmFactoryMockRebuild(bs *BuildStep) error {
 
 	root := fmt.Sprintf("fedora-%s-%s", "22", "x86_64")
 
-	args := []string{"--root", root, "-m", "--resultdir=../results", "-a", "http://"}
+	args := []string{"--root", root, "-m", "--resultdir=../results"}
 	if bs.parent.job.Target.Package.Ci {
 		date := bs.parent.properties.GetString("VcsDate", "")
 		revision := bs.parent.properties.GetString("VcsShortRev", "")
