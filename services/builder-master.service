@@ -6,7 +6,7 @@ After=network.target
 [Service]
 Type=forking
 PIDFile=/run/builder/master.pid
-ExecStart=/usr/bin/builder master
+ExecStart=/sbin/daemonize /usr/bin/builder master
 Restart=always
 
 [Install]
