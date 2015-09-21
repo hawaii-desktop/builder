@@ -154,22 +154,21 @@ func (c *Client) AddImage(name, descr, archs, vcs string) error {
 	// Split architectures
 	a := strings.Split(archs, ",")
 
+	// Clean VCS strings
+	if m, _ := regexp.MatchString("#branch=.+$", vcs); !m {
+		vcs += "#branch=master"
+	}
+
 	// VCS regexp
-	r := regexp.MustCompile("(.+)(#branch=.+)*$")
+	r := regexp.MustCompile("(.+)#branch=(.+)$")
 
 	// Decode VCS
-	var vcs_url, vcs_branch string
 	matches := r.FindStringSubmatch(vcs)
-	if len(matches) == 1 {
+	if len(matches) != 3 {
 		return ErrInvalidVcs
 	}
-	vcs_url = matches[1]
-	if len(matches) > 2 {
-		vcs_branch = strings.Replace(matches[2], "#branch=", "", 1)
-	}
-	if vcs_branch == "" {
-		vcs_branch = "master"
-	}
+	vcs_url := matches[1]
+	vcs_branch := matches[2]
 
 	// Send message
 	args := &pb.ImageInfo{name, descr, a, &pb.VcsInfo{vcs_url, vcs_branch}}
