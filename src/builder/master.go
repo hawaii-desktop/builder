@@ -65,15 +65,17 @@ func runMaster(ctx *cli.Context) {
 	}
 
 	// Acquire PID file
-	pidFile, err := pidfile.New("/tmp/builder/master.pid")
-	if err != nil {
-		logging.Fatalf("Unable to create PID file: %s", err.Error())
+	if os.Getuid() == 0 {
+		pidFile, err := pidfile.New("/run/builder/master.pid")
+		if err != nil {
+			logging.Fatalf("Unable to create PID file: %s", err.Error())
+		}
+		err = pidFile.TryLock()
+		if err != nil {
+			logging.Fatalf("Unable to acquire PID file: %s", err.Error())
+		}
+		defer pidFile.Unlock()
 	}
-	err = pidFile.TryLock()
-	if err != nil {
-		logging.Fatalf("Unable to acquire PID file: %s", err.Error())
-	}
-	defer pidFile.Unlock()
 
 	// Create master service
 	masterService, err := master.NewMaster()

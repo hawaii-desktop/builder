@@ -80,15 +80,17 @@ func runSlave(ctx *cli.Context) {
 	}
 
 	// Acquire PID file
-	pidFile, err := pidfile.New(fmt.Sprintf("/tmp/builder/slave-%s.pid", slave.Config.Slave.Name))
-	if err != nil {
-		logging.Fatalf("Unable to create PID file: %s", err.Error())
+	if os.Getuid() == 0 {
+		pidFile, err := pidfile.New(fmt.Sprintf("/run/builder/slave-%s.pid", slave.Config.Slave.Name))
+		if err != nil {
+			logging.Fatalf("Unable to create PID file: %s", err.Error())
+		}
+		err = pidFile.TryLock()
+		if err != nil {
+			logging.Fatalf("Unable to acquire PID file: %s", err.Error())
+		}
+		defer pidFile.Unlock()
 	}
-	err = pidFile.TryLock()
-	if err != nil {
-		logging.Fatalf("Unable to acquire PID file: %s", err.Error())
-	}
-	defer pidFile.Unlock()
 
 	// Connect to the master
 	conn, err := grpc.Dial(slave.Config.Master.Address, grpc.WithInsecure())
