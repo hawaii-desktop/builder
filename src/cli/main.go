@@ -62,6 +62,7 @@ func main() {
 	}
 	app.Flags = []cli.Flag{
 		cli.StringFlag{"config, c", "", "custom configuration file path", ""},
+		cli.StringFlag{"address, a", "", "override master address from the configuration file", ""},
 	}
 	app.Before = func(ctx *cli.Context) error {
 		// Load the configuration
@@ -85,7 +86,17 @@ func main() {
 		if configArg == "" {
 			logging.Fatalln("Please specify a configuration file")
 		}
-		return gcfg.ReadFileInto(&Config, configArg)
+		err := gcfg.ReadFileInto(&Config, configArg)
+		if err != nil {
+			return err
+		}
+
+		// Change master address if requested
+		if ctx.IsSet("address") {
+			Config.Master.Address = ctx.String("address")
+		}
+
+		return nil
 	}
 	app.Run(os.Args)
 }
