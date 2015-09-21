@@ -47,7 +47,7 @@ var CmdMaster = cli.Command{
 to the appropriate slave.`,
 	Action: runMaster,
 	Flags: []cli.Flag{
-		cli.StringFlag{"config, c", "<filename>", "Custom configuration file path", ""},
+		cli.StringFlag{"config, c", "", "Custom configuration file path", ""},
 	},
 }
 
@@ -57,7 +57,21 @@ func runMaster(ctx *cli.Context) {
 	if ctx.IsSet("config") {
 		configArg = ctx.String("config")
 	} else {
-		configArg = "builder-master.ini"
+		possible := []string{
+			"~/.config/builder/builder-master.ini",
+			"/etc/builder/builder-master.ini",
+			"builder-master.ini",
+		}
+		for _, p := range possible {
+			_, err := os.Stat(p)
+			if err == nil {
+				configArg = p
+				break
+			}
+		}
+	}
+	if configArg == "" {
+		logging.Fatalln("Please specify a configuration file")
 	}
 	err := gcfg.ReadFileInto(&master.Config, configArg)
 	if err != nil {

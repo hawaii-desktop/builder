@@ -29,6 +29,7 @@ package main
 import (
 	"errors"
 	"github.com/codegangsta/cli"
+	"github.com/hawaii-desktop/builder/src/logging"
 	"gopkg.in/gcfg.v1"
 	"os"
 	"runtime"
@@ -60,7 +61,7 @@ func main() {
 		CmdBuild,
 	}
 	app.Flags = []cli.Flag{
-		cli.StringFlag{"config, c", "<filename>", "custom configuration file path", ""},
+		cli.StringFlag{"config, c", "", "custom configuration file path", ""},
 	}
 	app.Before = func(ctx *cli.Context) error {
 		// Load the configuration
@@ -68,7 +69,21 @@ func main() {
 		if ctx.IsSet("config") {
 			configArg = ctx.String("config")
 		} else {
-			configArg = "builder-cli.ini"
+			possible := []string{
+				"~/.config/builder/builder-cli.ini",
+				"/etc/builder/builder-cli.ini",
+				"builder-cli.ini",
+			}
+			for _, p := range possible {
+				_, err := os.Stat(p)
+				if err == nil {
+					configArg = p
+					break
+				}
+			}
+		}
+		if configArg == "" {
+			logging.Fatalln("Please specify a configuration file")
 		}
 		return gcfg.ReadFileInto(&Config, configArg)
 	}

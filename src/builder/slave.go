@@ -46,7 +46,7 @@ and perform the task assigned.`,
 	Action: runSlave,
 	Flags: []cli.Flag{
 		cli.StringFlag{"name, n", "", "Override slave name from configuration", ""},
-		cli.StringFlag{"config, c", "<filename>", "Custom configuration file path", ""},
+		cli.StringFlag{"config, c", "", "Custom configuration file path", ""},
 	},
 }
 
@@ -56,7 +56,21 @@ func runSlave(ctx *cli.Context) {
 	if ctx.IsSet("config") {
 		configArg = ctx.String("config")
 	} else {
-		configArg = "builder-slave.ini"
+		possible := []string{
+			"~/.config/builder/builder-slave.ini",
+			"/etc/builder/builder-slave.ini",
+			"builder-slave.ini",
+		}
+		for _, p := range possible {
+			_, err := os.Stat(p)
+			if err == nil {
+				configArg = p
+				break
+			}
+		}
+	}
+	if configArg == "" {
+		logging.Fatalln("Please specify a configuration file")
 	}
 	err := gcfg.ReadFileInto(&slave.Config, configArg)
 	if err != nil {
