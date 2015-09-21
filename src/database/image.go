@@ -100,9 +100,9 @@ func (db *Database) ListAllImages() []*Image {
 func (db *Database) GetImage(name string) *Image {
 	var img *Image = nil
 	db.db.View(func(tx *bolt.Tx) error {
-		bucket, err := tx.CreateBucketIfNotExists([]byte("image"))
-		if err != nil {
-			return err
+		bucket := tx.Bucket([]byte("image"))
+		if bucket == nil {
+			return nil
 		}
 
 		c := bucket.Cursor()
