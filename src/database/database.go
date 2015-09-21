@@ -28,6 +28,8 @@ package database
 
 import (
 	"github.com/boltdb/bolt"
+	"os"
+	"path"
 	"time"
 )
 
@@ -36,8 +38,9 @@ type Database struct {
 }
 
 // Create and open a database.
-func NewDatabase(path string) (*Database, error) {
-	db, err := bolt.Open(path, 0600, &bolt.Options{Timeout: 5 * time.Second})
+func NewDatabase(filename string) (*Database, error) {
+	os.MkdirAll(path.Dir(filename), 0700)
+	db, err := bolt.Open(filename, 0600, &bolt.Options{Timeout: 5 * time.Second})
 	if err != nil {
 		return nil, err
 	}
