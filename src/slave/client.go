@@ -138,16 +138,20 @@ func (c *Client) Subscribe() error {
 			jobDispatch := in.GetJobDispatch()
 			if jobDispatch != nil {
 				// Read build information from the request
-				var target string
+				var (
+					target string
+					arch   string
+				)
 				pkg := jobDispatch.GetPackage()
 				if pkg != nil {
 					target = pkg.Name
+					arch = pkg.Architectures[0]
 				}
 				img := jobDispatch.GetImage()
 				if img != nil {
 					target = img.Name
+					arch = img.Architectures[0]
 				}
-				arch := pkg.Architectures[0]
 
 				// Create a new job
 				logging.Infof("Processing job #%d (target \"%s\" for %s)\n",
