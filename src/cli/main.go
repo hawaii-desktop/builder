@@ -59,6 +59,7 @@ func main() {
 		CmdListImages,
 		CmdImport,
 		CmdBuild,
+		CmdCert,
 	}
 	app.Flags = []cli.Flag{
 		cli.StringFlag{"config, c", "", "custom configuration file path", ""},
