@@ -36,6 +36,7 @@ import (
 	"gopkg.in/gcfg.v1"
 	"os"
 	"os/signal"
+	"os/user"
 )
 
 var CmdSlave = cli.Command{
@@ -56,8 +57,9 @@ func runSlave(ctx *cli.Context) {
 	if ctx.IsSet("config") {
 		configArg = ctx.String("config")
 	} else {
+		user, _ := user.Current()
 		possible := []string{
-			"~/.config/builder/builder-slave.ini",
+			user.HomeDir + "/.config/builder/builder-slave.ini",
 			"/etc/builder/builder-slave.ini",
 			"builder-slave.ini",
 		}

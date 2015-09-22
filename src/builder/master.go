@@ -38,6 +38,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"os/user"
 )
 
 var CmdMaster = cli.Command{
@@ -57,8 +58,9 @@ func runMaster(ctx *cli.Context) {
 	if ctx.IsSet("config") {
 		configArg = ctx.String("config")
 	} else {
+		user, _ := user.Current()
 		possible := []string{
-			"~/.config/builder/builder-master.ini",
+			user.HomeDir + "/.config/builder/builder-master.ini",
 			"/etc/builder/builder-master.ini",
 			"builder-master.ini",
 		}
