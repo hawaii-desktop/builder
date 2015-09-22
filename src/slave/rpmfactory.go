@@ -118,7 +118,7 @@ func rpmFactoryGitFetch(repo []string, bs *BuildStep) error {
 	}
 
 	// Get version information from upstream
-	if repo[0] == "upstream" {
+	if repo[0] == bs.parent.job.Target.Name {
 		r := regexp.MustCompile(`.+STD(?:OUT|ERR) `)
 
 		cmd := bs.parent.Command("sh", "-c", `git log -1 --format="%cd" | tr -d '-'`)
