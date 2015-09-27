@@ -35,7 +35,6 @@ import (
 	"google.golang.org/grpc"
 	"gopkg.in/gcfg.v1"
 	"net"
-	"net/http"
 	"os"
 	"os/signal"
 	"os/user"
@@ -99,6 +98,7 @@ func runMaster(ctx *cli.Context) {
 		logging.Errorln(err)
 		return
 	}
+	defer masterService.Close()
 
 	// Register RPC server
 	rpcListener, err := listenRpc(master.Config.Server.Address)
@@ -111,6 +111,15 @@ func runMaster(ctx *cli.Context) {
 	pb.RegisterBuilderServer(grpcServer, masterService)
 	go grpcServer.Serve(rpcListener)
 
+	// Web server
+	go func() {
+		err = master.StartWebServer(master.Config.Server.HttpAddress)
+		if err != nil {
+			logging.Fatalln(err)
+		}
+	}()
+	logging.Infoln("Web server listening on", master.Config.Server.HttpAddress)
+
 	// Start the dispatcher
 	master.StartDispatcher()
 
@@ -119,9 +128,6 @@ func runMaster(ctx *cli.Context) {
 	signal.Notify(sigchan, os.Interrupt)
 	signal.Notify(sigchan, os.Kill)
 	<-sigchan
-
-	// Close service
-	masterService.Close()
 }
 
 func listenRpc(address string) (*net.TCPListener, error) {
@@ -137,22 +143,4 @@ func listenRpc(address string) (*net.TCPListener, error) {
 	logging.Infoln("Listening on", listener.Addr())
 
 	return listener, nil
-}
-
-func listenHttp(address string) (*net.TCPListener, *http.Server, error) {
-	// Bind and listen for the http server
-	tcpAddr, err := net.ResolveTCPAddr("tcp", address)
-	if err != nil {
-		return nil, nil, err
-	}
-	listener, err := net.ListenTCP("tcp", tcpAddr)
-	if err != nil {
-		return nil, nil, err
-	}
-	logging.Infoln("Listening on", listener.Addr())
-
-	// Create the http server
-	server := &http.Server{}
-
-	return listener, server, nil
 }
