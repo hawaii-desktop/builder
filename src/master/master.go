@@ -29,6 +29,7 @@ package master
 import (
 	"errors"
 	"fmt"
+	"github.com/hawaii-desktop/builder/src/api"
 	"github.com/hawaii-desktop/builder/src/database"
 	"github.com/hawaii-desktop/builder/src/logging"
 	pb "github.com/hawaii-desktop/builder/src/protocol"
@@ -74,13 +75,13 @@ var jobTargetMap = map[pb.EnumTargetType]JobTargetType{
 }
 
 // Map to decode job status.
-var jobStatusMap = map[pb.EnumJobStatus]JobStatus{
-	pb.EnumJobStatus_JOB_STATUS_JUST_CREATED: JOB_STATUS_JUST_CREATED,
-	pb.EnumJobStatus_JOB_STATUS_WAITING:      JOB_STATUS_WAITING,
-	pb.EnumJobStatus_JOB_STATUS_PROCESSING:   JOB_STATUS_PROCESSING,
-	pb.EnumJobStatus_JOB_STATUS_SUCCESSFUL:   JOB_STATUS_SUCCESSFUL,
-	pb.EnumJobStatus_JOB_STATUS_FAILED:       JOB_STATUS_FAILED,
-	pb.EnumJobStatus_JOB_STATUS_CRASHED:      JOB_STATUS_CRASHED,
+var jobStatusMap = map[pb.EnumJobStatus]api.JobStatus{
+	pb.EnumJobStatus_JOB_STATUS_JUST_CREATED: api.JOB_STATUS_JUST_CREATED,
+	pb.EnumJobStatus_JOB_STATUS_WAITING:      api.JOB_STATUS_WAITING,
+	pb.EnumJobStatus_JOB_STATUS_PROCESSING:   api.JOB_STATUS_PROCESSING,
+	pb.EnumJobStatus_JOB_STATUS_SUCCESSFUL:   api.JOB_STATUS_SUCCESSFUL,
+	pb.EnumJobStatus_JOB_STATUS_FAILED:       api.JOB_STATUS_FAILED,
+	pb.EnumJobStatus_JOB_STATUS_CRASHED:      api.JOB_STATUS_CRASHED,
 }
 
 // Allocate a new Master with an empty list of slaves.
@@ -267,12 +268,12 @@ func (m *Master) Subscribe(stream pb.Builder_SubscribeServer) error {
 			j.Status = jobStatusMap[jobUpdate.Status]
 
 			// Handle finished jobs
-			if j.Status >= JOB_STATUS_SUCCESSFUL && j.Status <= JOB_STATUS_CRASHED {
+			if j.Status >= api.JOB_STATUS_SUCCESSFUL && j.Status <= api.JOB_STATUS_CRASHED {
 				// Update finished time and notify
 				j.Finished = time.Now()
 
 				// Log the status
-				if j.Status == JOB_STATUS_SUCCESSFUL {
+				if j.Status == api.JOB_STATUS_SUCCESSFUL {
 					logging.Infof("Job #%d completed successfully on \"%s\"\n",
 						j.Id, slave.Name)
 				} else {
@@ -289,7 +290,7 @@ func (m *Master) Subscribe(stream pb.Builder_SubscribeServer) error {
 				j.Channel <- true
 			} else {
 				logging.Tracef("Change job #%d status to \"%s\"\n",
-					jobUpdate.Id, jobStatusDescriptionMap[j.Status])
+					jobUpdate.Id, api.JobStatusDescriptionMap[j.Status])
 			}
 		}
 	}
@@ -538,14 +539,15 @@ func (m *Master) enqueueJob(target, arch string, t pb.EnumTargetType) (*Job, err
 
 	// Create a job
 	j := &Job{
-		Id:           id,
-		Target:       target,
-		Architecture: arch,
-		Type:         jobTargetMap[t],
-		Started:      time.Time{},
-		Finished:     time.Time{},
-		Status:       JOB_STATUS_JUST_CREATED,
-		Channel:      make(chan bool),
+		&api.Job{Id: id,
+			Target:       target,
+			Architecture: arch,
+			Started:      time.Time{},
+			Finished:     time.Time{},
+			Status:       api.JOB_STATUS_JUST_CREATED,
+		},
+		jobTargetMap[t],
+		make(chan bool),
 	}
 	m.appendJob(j)
 

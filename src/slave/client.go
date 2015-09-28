@@ -27,6 +27,7 @@
 package slave
 
 import (
+	"github.com/hawaii-desktop/builder/src/api"
 	"github.com/hawaii-desktop/builder/src/logging"
 	pb "github.com/hawaii-desktop/builder/src/protocol"
 	"golang.org/x/net/context"
@@ -49,13 +50,13 @@ type Client struct {
 }
 
 // Map to encode job status.
-var jobStatusMap = map[JobStatus]pb.EnumJobStatus{
-	JOB_STATUS_JUST_CREATED: pb.EnumJobStatus_JOB_STATUS_JUST_CREATED,
-	JOB_STATUS_WAITING:      pb.EnumJobStatus_JOB_STATUS_WAITING,
-	JOB_STATUS_PROCESSING:   pb.EnumJobStatus_JOB_STATUS_PROCESSING,
-	JOB_STATUS_SUCCESSFUL:   pb.EnumJobStatus_JOB_STATUS_SUCCESSFUL,
-	JOB_STATUS_FAILED:       pb.EnumJobStatus_JOB_STATUS_FAILED,
-	JOB_STATUS_CRASHED:      pb.EnumJobStatus_JOB_STATUS_CRASHED,
+var jobStatusMap = map[api.JobStatus]pb.EnumJobStatus{
+	api.JOB_STATUS_JUST_CREATED: pb.EnumJobStatus_JOB_STATUS_JUST_CREATED,
+	api.JOB_STATUS_WAITING:      pb.EnumJobStatus_JOB_STATUS_WAITING,
+	api.JOB_STATUS_PROCESSING:   pb.EnumJobStatus_JOB_STATUS_PROCESSING,
+	api.JOB_STATUS_SUCCESSFUL:   pb.EnumJobStatus_JOB_STATUS_SUCCESSFUL,
+	api.JOB_STATUS_FAILED:       pb.EnumJobStatus_JOB_STATUS_FAILED,
+	api.JOB_STATUS_CRASHED:      pb.EnumJobStatus_JOB_STATUS_CRASHED,
 }
 
 // Create a new Client from a gRPC connection.
@@ -73,6 +74,7 @@ func NewClient(conn *grpc.ClientConn) *Client {
 		for {
 			select {
 			case j := <-c.jobQueue:
+				logging.Traceln(j)
 				j.Process()
 			case <-c.quit:
 				return
@@ -172,7 +174,7 @@ func (c *Client) Subscribe() error {
 						VcsBranch: img.Vcs.Branch,
 					}
 				}
-				j := NewJob(jobDispatch.Id, &TargetInfo{target, arch, pkgInfo, imgInfo})
+				j := NewJob(jobDispatch.Id, target, arch, &TargetInfo{pkgInfo, imgInfo})
 
 				// Send updates back to master
 				go func() {

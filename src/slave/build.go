@@ -94,7 +94,7 @@ type BuildStep struct {
 // Create a new factory.
 func NewFactory(j *Job) *Factory {
 	// Create working directory
-	workdir := path.Join(Config.Directory.WorkDir, j.Target.Name)
+	workdir := path.Join(Config.Directory.WorkDir, j.Target)
 	os.MkdirAll(workdir, 0755)
 
 	// Logging

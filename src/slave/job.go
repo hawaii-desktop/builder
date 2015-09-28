@@ -27,7 +27,9 @@
 package slave
 
 import (
+	"github.com/hawaii-desktop/builder/src/api"
 	"github.com/hawaii-desktop/builder/src/logging"
+	"time"
 )
 
 // Package information for a build.
@@ -47,56 +49,35 @@ type ImageInfo struct {
 
 // Describe a target.
 type TargetInfo struct {
-	Name         string
-	Architecture string
-	Package      *PackageInfo
-	Image        *ImageInfo
+	Package *PackageInfo
+	Image   *ImageInfo
 }
 
 // Represents a job.
 type Job struct {
-	// Identifier.
-	Id uint64
+	// Base.
+	*api.Job
 	// Target information.
-	Target *TargetInfo
-	// Status.
-	Status JobStatus
+	Info *TargetInfo
 	// Channel used to signal when an update should be sent to master.
 	UpdateChannel chan bool
 	// Channel used to quit the goroutine responsible for sending updates to the master.
 	CloseChannel chan bool
 }
 
-// Job status enumeration.
-type JobStatus uint32
-
-const (
-	JOB_STATUS_JUST_CREATED = iota
-	JOB_STATUS_WAITING
-	JOB_STATUS_PROCESSING
-	JOB_STATUS_SUCCESSFUL
-	JOB_STATUS_FAILED
-	JOB_STATUS_CRASHED
-)
-
-// Map job status to description.
-var jobStatusDescriptionMap = map[JobStatus]string{
-	JOB_STATUS_JUST_CREATED: "JustCreated",
-	JOB_STATUS_WAITING:      "Waiting",
-	JOB_STATUS_PROCESSING:   "Processing",
-	JOB_STATUS_SUCCESSFUL:   "Successful",
-	JOB_STATUS_FAILED:       "Failed",
-	JOB_STATUS_CRASHED:      "Crashed",
-}
-
 // Create a new job object.
-func NewJob(id uint64, t *TargetInfo) *Job {
+func NewJob(id uint64, target, arch string, info *TargetInfo) *Job {
 	j := &Job{
-		Id:            id,
-		Target:        t,
-		Status:        JOB_STATUS_WAITING,
-		UpdateChannel: make(chan bool),
-		CloseChannel:  make(chan bool),
+		&api.Job{Id: id,
+			Target:       target,
+			Architecture: arch,
+			Started:      time.Time{},
+			Finished:     time.Time{},
+			Status:       api.JOB_STATUS_WAITING,
+		},
+		info,
+		make(chan bool),
+		make(chan bool),
 	}
 	return j
 }
@@ -104,38 +85,38 @@ func NewJob(id uint64, t *TargetInfo) *Job {
 // Process the job.
 func (j *Job) Process() {
 	// Update job on master
-	j.Status = JOB_STATUS_PROCESSING
+	j.Status = api.JOB_STATUS_PROCESSING
 	j.UpdateChannel <- true
 
 	// Stop processing and log status on return
 	defer func() {
 		logging.Infof("Finished job #%d (target \"%s\" for %s) with status \"%s\"\n",
-			j.Id, j.Target.Name, j.Target.Architecture, jobStatusDescriptionMap[j.Status])
+			j.Id, j.Target, j.Architecture, api.JobStatusDescriptionMap[j.Status])
 		j.CloseChannel <- true
 	}()
 
 	// Log some information
 	logging.Infof("Building job #%d (target \"%s\" for %s)...",
-		j.Id, j.Target.Name, j.Target.Architecture)
+		j.Id, j.Target, j.Architecture)
 
 	// Create a factory
 	var f *Factory
-	if j.Target.Package != nil {
+	if j.Info.Package != nil {
 		f = NewRpmFactory(j)
-	} else if j.Target.Image != nil {
+	} else if j.Info.Image != nil {
 		f = NewImageFactory(j)
 	} else {
 		// We shouldn't reach here but I'm paranoid
-		j.Status = JOB_STATUS_FAILED
+		j.Status = api.JOB_STATUS_FAILED
 		j.UpdateChannel <- true
 		return
 	}
 
 	// Run factory
 	if f.Run() {
-		j.Status = JOB_STATUS_SUCCESSFUL
+		j.Status = api.JOB_STATUS_SUCCESSFUL
 	} else {
-		j.Status = JOB_STATUS_FAILED
+		j.Status = api.JOB_STATUS_FAILED
 	}
 	f.Close()
 

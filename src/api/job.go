@@ -24,29 +24,46 @@
  * $END_LICENSE$
  ***************************************************************************/
 
-package master
+package api
 
 import (
-	"github.com/hawaii-desktop/builder/src/api"
+	"time"
 )
-
-// Holds the last global job identifier.
-var globalJobId uint64 = 0
 
 // Represents a job.
 type Job struct {
-	// Base.
-	*api.Job
-	// Type.
-	Type JobTargetType
-	// Channel.
-	Channel chan bool
+	// Identifier.
+	Id uint64
+	// Target name.
+	Target string
+	// Architecture.
+	Architecture string
+	// When the job has started.
+	Started time.Time
+	// When the job has finished.
+	Finished time.Time
+	// Status.
+	Status JobStatus
 }
 
-// Job target type enumeration.
-type JobTargetType uint32
+// Job status enumeration.
+type JobStatus uint32
 
 const (
-	JOB_TARGET_TYPE_PACKAGE = iota
-	JOB_TARGET_TYPE_IMAGE
+	JOB_STATUS_JUST_CREATED = iota
+	JOB_STATUS_WAITING
+	JOB_STATUS_PROCESSING
+	JOB_STATUS_SUCCESSFUL
+	JOB_STATUS_FAILED
+	JOB_STATUS_CRASHED
 )
+
+// Map job status to description.
+var JobStatusDescriptionMap = map[JobStatus]string{
+	JOB_STATUS_JUST_CREATED: "JustCreated",
+	JOB_STATUS_WAITING:      "Waiting",
+	JOB_STATUS_PROCESSING:   "Processing",
+	JOB_STATUS_SUCCESSFUL:   "Successful",
+	JOB_STATUS_FAILED:       "Failed",
+	JOB_STATUS_CRASHED:      "Crashed",
+}

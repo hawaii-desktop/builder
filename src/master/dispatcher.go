@@ -27,6 +27,7 @@
 package master
 
 import (
+	"github.com/hawaii-desktop/builder/src/api"
 	"github.com/hawaii-desktop/builder/src/logging"
 	"time"
 )
@@ -47,7 +48,7 @@ func StartDispatcher() {
 				go func() {
 					// Update job
 					j.Started = time.Now()
-					j.Status = JOB_STATUS_WAITING
+					j.Status = api.JOB_STATUS_WAITING
 
 					// Dispatch
 					slave := <-SlaveQueue

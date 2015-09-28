@@ -40,7 +40,7 @@ func NewImageFactory(j *Job) *Factory {
 
 	// Fetch the repository
 	f.AddBuildStep(&BuildStep{
-		Name:      fmt.Sprintf("git %s", j.Target.Image.VcsUrl),
+		Name:      fmt.Sprintf("git %s", j.Info.Image.VcsUrl),
 		KeepGoing: false,
 		Run:       imgFactoryGitFetch,
 	})
@@ -64,8 +64,8 @@ func NewImageFactory(j *Job) *Factory {
 
 func imgFactoryGitFetch(bs *BuildStep) error {
 	// Clone or update
-	url := bs.parent.job.Target.Image.VcsUrl
-	branch := bs.parent.job.Target.Image.VcsBranch
+	url := bs.parent.job.Info.Image.VcsUrl
+	branch := bs.parent.job.Info.Image.VcsBranch
 	err := bs.parent.DownloadGit(url, branch, bs.parent.workdir, "sources")
 	if err != nil {
 		return err
@@ -80,7 +80,7 @@ func imgFactoryFlatten(bs *BuildStep) error {
 
 	// Determine the source kickstart
 	filename := "hawaii-livecd.ks"
-	if bs.parent.job.Target.Architecture == "armhfp" {
+	if bs.parent.job.Architecture == "armhfp" {
 		filename = "hawaii-arm.ks"
 	}
 
@@ -99,12 +99,12 @@ func imgFactoryFlatten(bs *BuildStep) error {
 
 func imgFactoryBuild(bs *BuildStep) error {
 	today := time.Now().Format("%Y%m%d")
-	fsname := fmt.Sprintf("hawaii-%s-%s", today, bs.parent.job.Target.Architecture)
+	fsname := fmt.Sprintf("hawaii-%s-%s", today, bs.parent.job.Architecture)
 	filename := fsname
 
 	// Build
 	var cmd *exec.Cmd
-	if bs.parent.job.Target.Architecture == "armhfp" {
+	if bs.parent.job.Architecture == "armhfp" {
 		cmd = bs.parent.Command("sudo", "appliance-creator",
 			"--logfile", "results/appliance.log", "--cache", "cache",
 			"-d", "-v", "-o", "results", "--format=raw", "--checksum",

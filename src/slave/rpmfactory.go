@@ -48,9 +48,9 @@ func NewRpmFactory(j *Job) *Factory {
 
 	// Make the repositories iterable
 	var repos [][]string
-	repos = append(repos, []string{"packaging", j.Target.Package.VcsUrl, j.Target.Package.VcsBranch})
-	if j.Target.Package.Ci {
-		repos = append(repos, []string{j.Target.Name, j.Target.Package.UpstreamVcsUrl, j.Target.Package.UpstreamVcsBranch})
+	repos = append(repos, []string{"packaging", j.Info.Package.VcsUrl, j.Info.Package.VcsBranch})
+	if j.Info.Package.Ci {
+		repos = append(repos, []string{j.Target, j.Info.Package.UpstreamVcsUrl, j.Info.Package.UpstreamVcsBranch})
 	}
 
 	// Fetch all repositories
@@ -79,7 +79,7 @@ func NewRpmFactory(j *Job) *Factory {
 
 	// Create a tar.xz for continuous integration packages
 	// or run spectool to download the sources
-	if j.Target.Package.Ci {
+	if j.Info.Package.Ci {
 		f.AddBuildStep(&BuildStep{
 			Name:      "source tarball",
 			KeepGoing: false,
@@ -118,7 +118,7 @@ func rpmFactoryGitFetch(repo []string, bs *BuildStep) error {
 	}
 
 	// Get version information from upstream
-	if repo[0] == bs.parent.job.Target.Name {
+	if repo[0] == bs.parent.job.Target {
 		r := regexp.MustCompile(`.+STD(?:OUT|ERR) `)
 
 		cmd := bs.parent.Command("sh", "-c", `git log -1 --format="%cd" | tr -d '-'`)
@@ -141,7 +141,7 @@ func rpmFactoryGitFetch(repo []string, bs *BuildStep) error {
 
 func rpmFactoryRpmlint(bs *BuildStep) error {
 	// Run rpmlint
-	cmd := bs.parent.Command("rpmlint", "-i", bs.parent.job.Target.Name+".spec")
+	cmd := bs.parent.Command("rpmlint", "-i", bs.parent.job.Target+".spec")
 	if err := utils.RunWithTimeout(cmd, cloneTimeout); err != nil {
 		return err
 	}
@@ -178,8 +178,8 @@ func rpmFactoryRpmlint(bs *BuildStep) error {
 
 func rpmFactorySources(bs *BuildStep) error {
 	// Make sources
-	filename := bs.parent.job.Target.Name + ".tar.xz"
-	cmd := bs.parent.Command("tar", "-cJf", filename, bs.parent.job.Target.Name)
+	filename := bs.parent.job.Target + ".tar.xz"
+	cmd := bs.parent.Command("tar", "-cJf", filename, bs.parent.job.Target)
 	if err := utils.RunWithTimeout(cmd, cloneTimeout); err != nil {
 		return err
 	}
@@ -197,7 +197,7 @@ func rpmFactorySpectool(bs *BuildStep) error {
 	os.Chdir(cwd)
 
 	// Make sources
-	filename := bs.parent.job.Target.Name + ".spec"
+	filename := bs.parent.job.Target + ".spec"
 	cmd := bs.parent.Command("spectool", "-g", "-A", filename)
 	if err := utils.RunWithTimeout(cmd, cloneTimeout); err != nil {
 		return err
@@ -226,7 +226,7 @@ func rpmFactorySrpmBuild(bs *BuildStep) error {
 	args = append(args, "--define", "_topdir "+cwd)
 
 	// Append git information
-	if bs.parent.job.Target.Package.Ci {
+	if bs.parent.job.Info.Package.Ci {
 		date := bs.parent.properties.GetString("VcsDate", "")
 		revision := bs.parent.properties.GetString("VcsShortRev", "")
 		if date == "" || revision == "" {
@@ -236,7 +236,7 @@ func rpmFactorySrpmBuild(bs *BuildStep) error {
 	}
 
 	// Append specfile
-	args = append(args, "-bs", bs.parent.job.Target.Name+".spec")
+	args = append(args, "-bs", bs.parent.job.Target+".spec")
 
 	// Run rpmbuild
 	cmd := bs.parent.Command("rpmbuild", args...)
@@ -288,7 +288,7 @@ func rpmFactoryMockRebuild(bs *BuildStep) error {
 	root := fmt.Sprintf("fedora-%s-%s", "22", "x86_64")
 
 	args := []string{"--root", root, "-m", "--resultdir=../results"}
-	if bs.parent.job.Target.Package.Ci {
+	if bs.parent.job.Info.Package.Ci {
 		date := bs.parent.properties.GetString("VcsDate", "")
 		revision := bs.parent.properties.GetString("VcsShortRev", "")
 		if date == "" || revision == "" {
