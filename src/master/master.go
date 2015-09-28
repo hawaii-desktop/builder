@@ -37,7 +37,6 @@ import (
 	"io"
 	"regexp"
 	"sync"
-	"sync/atomic"
 	"time"
 )
 
@@ -480,7 +479,7 @@ func (m *Master) createSlave(args *pb.SubscribeRequest) (*Slave, error) {
 	}
 
 	// Create and append slave
-	slave := NewSlave(args.Name, args.Channels, args.Architectures)
+	slave := NewSlave(m.db.NewSlaveId(), args.Name, args.Channels, args.Architectures)
 	m.Slaves = append(m.Slaves, slave)
 	logging.Infof("Subscribed slave \"%s\" with id %d\n", slave.Name, slave.Id)
 	return slave, nil
@@ -535,7 +534,7 @@ func (m *Master) enqueueJob(target, arch string, t pb.EnumTargetType) (*Job, err
 	}
 
 	// Allocate a new global id
-	id := atomic.AddUint64(&globalJobId, 1)
+	id := m.db.NewJobId()
 
 	// Create a job
 	j := &Job{

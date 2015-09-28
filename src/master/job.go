@@ -30,9 +30,6 @@ import (
 	"github.com/hawaii-desktop/builder/src/api"
 )
 
-// Holds the last global job identifier.
-var globalJobId uint64 = 0
-
 // Represents a job.
 type Job struct {
 	// Base.

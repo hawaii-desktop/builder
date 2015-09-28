@@ -26,13 +26,6 @@
 
 package master
 
-import (
-	"sync/atomic"
-)
-
-// Holds the last global slave id
-var globalSlaveId uint32 = 0
-
 // Slave structure
 type Slave struct {
 	// Identifier.
@@ -56,10 +49,7 @@ type Slave struct {
 }
 
 // Creates and returns a new Slave object
-func NewSlave(name string, chans []string, archs []string) *Slave {
-	// Allocate a new global id
-	id := atomic.AddUint32(&globalSlaveId, 1)
-
+func NewSlave(id uint32, name string, chans []string, archs []string) *Slave {
 	// Create and return the object
 	slave := &Slave{
 		Id:            id,

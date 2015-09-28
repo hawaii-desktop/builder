@@ -27,24 +27,56 @@
 package database
 
 import (
+	"errors"
 	"github.com/boltdb/bolt"
 	"os"
 	"path"
+	"sync"
 	"time"
 )
 
 type Database struct {
+	// Bolt database.
 	db *bolt.DB
+	// Holds the last global job identifier.
+	globalJobId uint64
+	// Holds the last global slave identifier.
+	globalSlaveId uint32
+	// Job identifier mutex.
+	jobIdMutex sync.RWMutex
+	// Slave identifier mutex.
+	slaveIdMutex sync.RWMutex
 }
+
+// Errors
+var (
+	ErrBucketNotFound = errors.New("bucket not found")
+)
 
 // Create and open a database.
 func NewDatabase(filename string) (*Database, error) {
+	// Open database
 	os.MkdirAll(path.Dir(filename), 0700)
 	db, err := bolt.Open(filename, 0600, &bolt.Options{Timeout: 5 * time.Second})
 	if err != nil {
 		return nil, err
 	}
-	return &Database{db}, nil
+	d := &Database{db: db, globalJobId: 0, globalSlaveId: 0}
+
+	// Read sequences from the database
+	if id, ok := d.getLastId("job"); ok {
+		d.globalJobId = id
+	} else {
+		d.globalJobId = 0
+	}
+	if id, ok := d.getLastId("slave"); ok {
+		d.globalSlaveId = uint32(id)
+	} else {
+		d.globalSlaveId = 0
+	}
+
+	// Return
+	return d, nil
 }
 
 // Close database
