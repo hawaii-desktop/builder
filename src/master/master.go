@@ -280,7 +280,10 @@ func (m *Master) Subscribe(stream pb.Builder_SubscribeServer) error {
 						j.Id, slave.Name)
 				}
 
-				// TODO: Save on the database
+				// Save on the database
+				dbJob := &database.Job{j.Id, j.Target, j.Architecture, j.Started, j.Finished}
+				m.db.SaveJob(dbJob)
+				dbJob = nil
 
 				// Remove from the list
 				m.removeJob(j)
@@ -533,12 +536,9 @@ func (m *Master) enqueueJob(target, arch string, t pb.EnumTargetType) (*Job, err
 		return nil, fmt.Errorf("Wrong target type specified for \"%s\" (%s)\n", target, arch)
 	}
 
-	// Allocate a new global id
-	id := m.db.NewJobId()
-
 	// Create a job
 	j := &Job{
-		&api.Job{Id: id,
+		&api.Job{Id: m.db.NewJobId(),
 			Target:       target,
 			Architecture: arch,
 			Started:      time.Time{},
@@ -548,10 +548,18 @@ func (m *Master) enqueueJob(target, arch string, t pb.EnumTargetType) (*Job, err
 		jobTargetMap[t],
 		make(chan bool),
 	}
+
+	// Save on the database
+	dbJob := &database.Job{j.Id, j.Target, j.Architecture, j.Started, j.Finished}
+	err := m.db.SaveJob(dbJob)
+	dbJob = nil
+	if err != nil {
+		panic(err)
+	}
 	m.appendJob(j)
 
 	// Push it onto the queue
 	BuildJobQueue <- j
-	logging.Infof("Queued job #%d (target \"%s\" for %s)\n", id, target, arch)
+	logging.Infof("Queued job #%d (target \"%s\" for %s)\n", j.Id, target, arch)
 	return j, nil
 }
