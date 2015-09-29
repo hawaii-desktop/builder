@@ -491,8 +491,14 @@ func (m *Master) createSlave(args *pb.SubscribeRequest) (*Slave, error) {
 // Append a job to the list.
 func (m *Master) appendJob(r *Job) {
 	m.jMutex.Lock()
+	defer m.jMutex.Unlock()
+
+	// Append job
 	m.Jobs = append(m.Jobs, r)
-	m.jMutex.Unlock()
+
+	// Broadcast web clients
+	stats.Queued = len(m.Jobs)
+	WebSocketQueue <- stats
 }
 
 // Remove a job from the list.
@@ -516,6 +522,10 @@ func (m *Master) removeJob(j *Job) {
 	// Remove
 	m.Jobs, m.Jobs[len(m.Jobs)-1] =
 		append(m.Jobs[:i], m.Jobs[i+1:]...), nil
+
+	// Broadcast web clients
+	stats.Queued = len(m.Jobs)
+	WebSocketQueue <- stats
 }
 
 // Enqueue a job.

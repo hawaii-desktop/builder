@@ -24,27 +24,27 @@
  * $END_LICENSE$
  ***************************************************************************/
 
-package master
+package webserver
 
 import (
-	"errors"
-	"github.com/julienschmidt/httprouter"
+	"github.com/plimble/ace"
+	"html/template"
 	"net/http"
 )
 
-var (
-	ErrOutOfMemory = errors.New("out of memory")
-)
+// Template renderer.
+type TemplateView struct{}
 
-// Create routing and start a Web server.
-func StartWebServer(address string) error {
-	// Router
-	router := httprouter.New()
-	if router == nil {
-		return ErrOutOfMemory
+func TemplateRenderer() ace.Renderer {
+	return &TemplateView{}
+}
+
+// Render the template view.
+func (v *TemplateView) Render(w http.ResponseWriter, name string, data interface{}) {
+	if data == nil {
+		data = make(map[string]interface{})
 	}
-	router.ServeFiles("/*filepath", http.Dir("/var/www/html"))
 
-	// Serve and listen
-	return http.ListenAndServe(address, router)
+	tmpl := template.Must(template.ParseFiles(name))
+	tmpl.Execute(w, data.(map[string]interface{}))
 }

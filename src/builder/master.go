@@ -32,6 +32,8 @@ import (
 	"github.com/hawaii-desktop/builder/src/master"
 	"github.com/hawaii-desktop/builder/src/pidfile"
 	pb "github.com/hawaii-desktop/builder/src/protocol"
+	"github.com/hawaii-desktop/builder/src/webserver"
+	"github.com/plimble/ace"
 	"google.golang.org/grpc"
 	"gopkg.in/gcfg.v1"
 	"net"
@@ -112,16 +114,37 @@ func runMaster(ctx *cli.Context) {
 	go grpcServer.Serve(rpcListener)
 
 	// Web server
+	webServer := webserver.New(master.Config.Server.HttpAddress)
+	webServer.Router.GET("/", func(c *ace.C) { c.HTML("../html/overview.html", c.GetAll()) })
+	webServer.Router.GET("/queued", func(c *ace.C) { c.HTML("../html/queued.html", c.GetAll()) })
+	webServer.Router.GET("/completed", func(c *ace.C) { c.HTML("../html/completed.html", c.GetAll()) })
+	webServer.Router.GET("/failed", func(c *ace.C) { c.HTML("../html/failed.html", c.GetAll()) })
+	webServer.Router.Static("/css", "../static/css")
+	webServer.Router.Static("/js", "../static/js")
+	webServer.Router.Static("/img", "../static/img")
 	go func() {
-		err = master.StartWebServer(master.Config.Server.HttpAddress)
+		err = webServer.ListenAndServe()
 		if err != nil {
 			logging.Fatalln(err)
 		}
 	}()
-	logging.Infoln("Web server listening on", master.Config.Server.HttpAddress)
+	logging.Infoln("Web server listening on", webServer.Address())
 
 	// Start the dispatcher
 	master.StartDispatcher()
+
+	// Queue events to the web socket
+	go func() {
+		for {
+			select {
+			case e := <-master.WebSocketQueue:
+				if e == nil {
+					return
+				}
+				webServer.Hub.Broadcast(e)
+			}
+		}
+	}()
 
 	// Gracefully exit with SIGINT and SIGTERM
 	sigchan := make(chan os.Signal, 2)

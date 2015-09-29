@@ -26,41 +26,22 @@
 
 package master
 
-import (
-	"github.com/hawaii-desktop/builder/src/api"
-	"github.com/hawaii-desktop/builder/src/logging"
-	"time"
-)
+type statistics struct {
+	Queued     int `json:"queued"`
+	Dispatched int `json:"dispatched"`
+	Completed  int `json:"completed"`
+	Failed     int `json:"failed"`
+	Staging    int `json:"staging"`
+	Main       int `json:"main"`
+}
 
-// Buffered channel that holds the job channels from each slave.
-var SlaveQueue chan chan *Job
+// Broadcast queue for the web socket.
+var WebSocketQueue chan interface{}
 
-// Start the dispatcher of jobs to slaves.
-func StartDispatcher() {
-	// Initialize the channel
-	SlaveQueue = make(chan chan *Job, Config.Build.MaxSlaves)
+// Statistics.
+var stats *statistics
 
-	go func() {
-		for {
-			select {
-			case j := <-BuildJobQueue:
-				logging.Tracef("About to dispatch job #%d...\n", j.Id)
-				go func() {
-					// Update job
-					j.Started = time.Now()
-					j.Status = api.JOB_STATUS_WAITING
-
-					// Dispatch
-					slave := <-SlaveQueue
-					logging.Tracef("Dispatching job #%d...\n", j.Id)
-					slave <- j
-
-					// Broadcast to the web clients
-					stats.Queued--
-					stats.Dispatched++
-					WebSocketQueue <- stats
-				}()
-			}
-		}
-	}()
+func init() {
+	stats = &statistics{0, 0, 0, 0, 0, 0}
+	WebSocketQueue = make(chan interface{}, 5)
 }
