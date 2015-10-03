@@ -1,272 +1,190 @@
-<!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="utf-8">
-        <meta name="description" content="Hawaii Builder">
-        <meta name="author" content="Pier Luigi Fiorini">
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-        <meta http-equiv="x-ua-compatible" content="ie=edge">
-        <link rel="shortcut icon" href="/static/img/favicon.png">
-        <title>Builder</title>
+{{ define "title" }}Overview - Builder{{ end }}
 
-        <!-- Style sheets -->
-        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
-        <!-- <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap-theme.min.css"> -->
-        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css">
-        <link rel="stylesheet" href="/css/sb-admin.css">
+{{ define "content" }}
+    <div class="container-fluid">
+        <!-- Page heading -->
+        <div class="row">
+            <div class="col-lg-12">
+                <h1 class="page-header">
+                    Builder <small>Overview</small>
+                </h1>
 
-        <!-- JavaScript -->
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
-        <script type="text/javascript">
-            $(function() {
-                $("#wrapper").show();
-            });
-        </script>
-    </head>
-    <body>
-        <!-- Dashboard based on http://startbootstrap.com/template-overviews/sb-admin/ -->
-
-        <noscript>
-            <div class="alert alert-danger" role="alert">
-                This application requires JavaScript enabled, please enable JavaScript
-                on your browser.
-            </div>
-        </noscript>
-
-        <div id="wsError" class="alert alert-danger" role="alert" style="display: none">
-            This application cannot work on browsers without WebSocket support.
-        </div>
-
-        <div id="wrapper" style="display: none">
-            <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
-                <div class="container-fluid">
-                    <div class="navbar-header">
-                        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
-                            <span class="sr-only">Toggle navigation</span>
-                            <span class="icon-bar"></span>
-                            <span class="icon-bar"></span>
-                            <span class="icon-bar"></span>
-                        </button>
-                        <a class="navbar-brand" href="#">Builder</a>
-                    </div>
-                    <div id="navbar" class="navbar-collapse collapse">
-                        <ul class="nav navbar-nav navbar-right">
-                            <li><a href="#">Dashboard</a></li>
-                            <li><a href="#">Settings</a></li>
-                            <li><a href="#">Profile</a></li>
-                            <li><a href="#">Help</a></li>
-                        </ul>
-                    </div>
-                </div>
-            </nav>
-
-            <div id="page-wrapper">
-                <div class="container-fluid">
-                    <!-- Page heading -->
-                    <div class="row">
-                        <div class="col-lg-12">
-                            <h1 class="page-header">
-                                Builder <small>Overview</small>
-                            </h1>
-
-                            <ol class="breadcrumb">
-                                <li class="active">
-                                    <i class="fa fa-dashboard"></i> Dashboard
-                                </li>
-                            </ol>
-                        </div>
-                    </div>
-                    <!-- /.row -->
-
-                    <!-- Indicators -->
-                    <div class="row">
-                        <!-- Queued -->
-                        <div class="col-lg-3 col-md-6">
-                            <div class="panel panel-primary">
-                                <div class="panel-heading">
-                                    <div class="row">
-                                        <div class="col-xs-3">
-                                            <i class="fa fa-clock-o fa-5x"></i>
-                                        </div>
-                                        <div class="col-xs-9 text-right">
-                                            <div id="queuedIndicator" class="huge">0</div>
-                                            <div>Queued</div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <a href="{{.SiteUrl}}/queued">
-                                    <div class="panel-footer">
-                                        <span class="pull-left">View Details</span>
-                                        <span class="pull-right"><i class="fa fa-arrow-circle-right"></i></span>
-                                        <div class="clearfix"></div>
-                                    </div>
-                                </a>
-                            </div>
-                        </div>
-                        <!-- /Queued -->
-
-                        <!-- Dispatched -->
-                        <div class="col-lg-3 col-md-6">
-                            <div class="panel panel-primary">
-                                <div class="panel-heading">
-                                    <div class="row">
-                                        <div class="col-xs-3">
-                                            <i class="fa fa-clock-o fa-5x"></i>
-                                        </div>
-                                        <div class="col-xs-9 text-right">
-                                            <div id="dispatchedIndicator" class="huge">0</div>
-                                            <div>Dispatched</div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <a href="{{.SiteUrl}}/dispatched">
-                                    <div class="panel-footer">
-                                        <span class="pull-left">View Details</span>
-                                        <span class="pull-right"><i class="fa fa-arrow-circle-right"></i></span>
-                                        <div class="clearfix"></div>
-                                    </div>
-                                </a>
-                            </div>
-                        </div>
-                        <!-- /Dispatched -->
-
-                        <!-- Completed -->
-                        <div class="col-lg-3 col-md-6">
-                            <div class="panel panel-success">
-                                <div class="panel-heading">
-                                    <div class="row">
-                                        <div class="col-xs-3">
-                                            <i class="fa fa-check fa-5x"></i>
-                                        </div>
-                                        <div class="col-xs-9 text-right">
-                                            <div id="completedIndicator" class="huge">0</div>
-                                            <div>Completed in the last 48 hours</div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <a href="{{.SiteUrl}}/completed">
-                                    <div class="panel-footer">
-                                        <span class="pull-left">View Details</span>
-                                        <span class="pull-right"><i class="fa fa-arrow-circle-right"></i></span>
-                                        <div class="clearfix"></div>
-                                    </div>
-                                </a>
-                            </div>
-                        </div>
-                        <!-- /Completed -->
-
-                        <!-- Failed -->
-                        <div class="col-lg-3 col-md-6">
-                            <div class="panel panel-danger">
-                                <div class="panel-heading">
-                                    <div class="row">
-                                        <div class="col-xs-3">
-                                            <i class="fa fa-exclamation-triangle fa-5x"></i>
-                                        </div>
-                                        <div class="col-xs-9 text-right">
-                                            <div id="failedIndicator" class="huge">0</div>
-                                            <div>Failed in the last 48 hours</div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <a href="{{.SiteUrl}}/failed">
-                                    <div class="panel-footer">
-                                        <span class="pull-left">View Details</span>
-                                        <span class="pull-right"><i class="fa fa-arrow-circle-right"></i></span>
-                                        <div class="clearfix"></div>
-                                    </div>
-                                </a>
-                            </div>
-                        </div>
-                        <!-- /Failed -->
-
-                        <!-- Staging Repository -->
-                        <div class="col-lg-3 col-md-6">
-                            <div class="panel panel-yellow">
-                                <div class="panel-heading">
-                                    <div class="row">
-                                        <div class="col-xs-3">
-                                            <i class="fa fa-hourglass fa-5x"></i>
-                                        </div>
-                                        <div class="col-xs-9 text-right">
-                                            <div id="stagingIndicator" class="huge">0</div>
-                                            <div>Packages in staging repository</div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <a href="{{.SiteUrl}}/staging">
-                                    <div class="panel-footer">
-                                        <span class="pull-left">View Details</span>
-                                        <span class="pull-right"><i class="fa fa-arrow-circle-right"></i></span>
-                                        <div class="clearfix"></div>
-                                    </div>
-                                </a>
-                            </div>
-                        </div>
-                        <!-- /Staging Repository -->
-
-                        <!-- Main Repository -->
-                        <div class="col-lg-3 col-md-6">
-                            <div class="panel panel-green">
-                                <div class="panel-heading">
-                                    <div class="row">
-                                        <div class="col-xs-3">
-                                            <i class="fa fa-check-circle fa-5x"></i>
-                                        </div>
-                                        <div class="col-xs-9 text-right">
-                                            <div id="mainIndicator" class="huge">0</div>
-                                            <div>Packages in main repository</div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <a href="{{.SiteUrl}}/main">
-                                    <div class="panel-footer">
-                                        <span class="pull-left">View Details</span>
-                                        <span class="pull-right"><i class="fa fa-arrow-circle-right"></i></span>
-                                        <div class="clearfix"></div>
-                                    </div>
-                                </a>
-                            </div>
-                        </div>
-                        <!-- /Main Repository -->
-                    </div>
-                    <!-- /.row -->
-                </div>
+                <ol class="breadcrumb">
+                    <li class="active">
+                        <i class="fa fa-dashboard"></i> Dashboard
+                    </li>
+                </ol>
             </div>
         </div>
+        <!-- /.row -->
 
-        <!-- JavaScript -->
-        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+        <!-- Indicators -->
+        <div class="row">
+            <!-- Queued -->
+            <div class="col-lg-3 col-md-6">
+                <div class="panel panel-primary">
+                    <div class="panel-heading">
+                        <div class="row">
+                            <div class="col-xs-3">
+                                <i class="fa fa-clock-o fa-5x"></i>
+                            </div>
+                            <div class="col-xs-9 text-right">
+                                <div id="queuedIndicator" class="huge">0</div>
+                                <div>Queued</div>
+                            </div>
+                        </div>
+                    </div>
+                    <a href="/queued">
+                        <div class="panel-footer">
+                            <span class="pull-left">View Details</span>
+                            <span class="pull-right"><i class="fa fa-arrow-circle-right"></i></span>
+                            <div class="clearfix"></div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+            <!-- /Queued -->
 
-        <!-- WebSocket -->
-        <script type="text/javascript">
-            $(function() {
-                var wsConn;
+            <!-- Dispatched -->
+            <div class="col-lg-3 col-md-6">
+                <div class="panel panel-primary">
+                    <div class="panel-heading">
+                        <div class="row">
+                            <div class="col-xs-3">
+                                <i class="fa fa-clock-o fa-5x"></i>
+                            </div>
+                            <div class="col-xs-9 text-right">
+                                <div id="dispatchedIndicator" class="huge">0</div>
+                                <div>Dispatched</div>
+                            </div>
+                        </div>
+                    </div>
+                    <a href="/dispatched">
+                        <div class="panel-footer">
+                            <span class="pull-left">View Details</span>
+                            <span class="pull-right"><i class="fa fa-arrow-circle-right"></i></span>
+                            <div class="clearfix"></div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+            <!-- /Dispatched -->
 
-                if (window["WebSocket"]) {
-                    wsConn = new WebSocket("ws://{{.SiteHost}}/ws");
-                    wsConn.onopen = function(event) {
-                    };
-                    wsConn.onclose = function(event) {
-                    };
-                    wsConn.onmessage = function(event) {
-                        var obj = $.parseJSON(event.data);
-                        $("#queuedIndicator").html(obj.queued);
-                        $("#dispatchedIndicator").html(obj.dispatched);
-                        $("#completedIndicator").html(obj.completed);
-                        $("#failedIndicator").html(obj.failed);
-                        $("#stagingIndicator").html(obj.staging);
-                        $("#mainIndicator").html(obj.main);
-                    };
-                    wsConn.onerror = function(event) {
-                    };
-                } else {
-                    $("#wrapper").hide();
-                    $("#wsError").show();
-                }
-            });
-        </script>
-    </body>
-</html>
+            <!-- Completed -->
+            <div class="col-lg-3 col-md-6">
+                <div class="panel panel-success">
+                    <div class="panel-heading">
+                        <div class="row">
+                            <div class="col-xs-3">
+                                <i class="fa fa-check fa-5x"></i>
+                            </div>
+                            <div class="col-xs-9 text-right">
+                                <div id="completedIndicator" class="huge">0</div>
+                                <div>Completed in the last 48 hours</div>
+                            </div>
+                        </div>
+                    </div>
+                    <a href="/completed">
+                        <div class="panel-footer">
+                            <span class="pull-left">View Details</span>
+                            <span class="pull-right"><i class="fa fa-arrow-circle-right"></i></span>
+                            <div class="clearfix"></div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+            <!-- /Completed -->
+
+            <!-- Failed -->
+            <div class="col-lg-3 col-md-6">
+                <div class="panel panel-danger">
+                    <div class="panel-heading">
+                        <div class="row">
+                            <div class="col-xs-3">
+                                <i class="fa fa-exclamation-triangle fa-5x"></i>
+                            </div>
+                            <div class="col-xs-9 text-right">
+                                <div id="failedIndicator" class="huge">0</div>
+                                <div>Failed in the last 48 hours</div>
+                            </div>
+                        </div>
+                    </div>
+                    <a href="/failed">
+                        <div class="panel-footer">
+                            <span class="pull-left">View Details</span>
+                            <span class="pull-right"><i class="fa fa-arrow-circle-right"></i></span>
+                            <div class="clearfix"></div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+            <!-- /Failed -->
+
+            <!-- Staging Repository -->
+            <div class="col-lg-3 col-md-6">
+                <div class="panel panel-yellow">
+                    <div class="panel-heading">
+                        <div class="row">
+                            <div class="col-xs-3">
+                                <i class="fa fa-hourglass fa-5x"></i>
+                            </div>
+                            <div class="col-xs-9 text-right">
+                                <div id="stagingIndicator" class="huge">0</div>
+                                <div>Packages in staging repository</div>
+                            </div>
+                        </div>
+                    </div>
+                    <a href="/staging">
+                        <div class="panel-footer">
+                            <span class="pull-left">View Details</span>
+                            <span class="pull-right"><i class="fa fa-arrow-circle-right"></i></span>
+                            <div class="clearfix"></div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+            <!-- /Staging Repository -->
+
+            <!-- Main Repository -->
+            <div class="col-lg-3 col-md-6">
+                <div class="panel panel-green">
+                    <div class="panel-heading">
+                        <div class="row">
+                            <div class="col-xs-3">
+                                <i class="fa fa-check-circle fa-5x"></i>
+                            </div>
+                            <div class="col-xs-9 text-right">
+                                <div id="mainIndicator" class="huge">0</div>
+                                <div>Packages in main repository</div>
+                            </div>
+                        </div>
+                    </div>
+                    <a href="/main">
+                        <div class="panel-footer">
+                            <span class="pull-left">View Details</span>
+                            <span class="pull-right"><i class="fa fa-arrow-circle-right"></i></span>
+                            <div class="clearfix"></div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+            <!-- /Main Repository -->
+        </div>
+        <!-- /.row -->
+    </div>
+{{ end }}
+
+{{ define "scripts" }}
+    <script type="text/javascript">
+        function wsHandler(obj) {
+            $("#queuedIndicator").html(obj.queued);
+            $("#dispatchedIndicator").html(obj.dispatched);
+            $("#completedIndicator").html(obj.completed);
+            $("#failedIndicator").html(obj.failed);
+            $("#stagingIndicator").html(obj.staging);
+            $("#mainIndicator").html(obj.main);
+        }
+    </script>
+{{ end }}
 
 <!-- vim: set noai ts=4 sw=4 expandtab: -->
