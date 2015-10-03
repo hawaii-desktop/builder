@@ -29,12 +29,18 @@ function createWebSocket(address, processFunc) {
     wsConn.onopen = function(event) {
         // Reset the attempts since a new connection just opened
         wsAttempts = 1;
+
+        // Hide dialog
+        $("#reconnectWaitDialog").modal("hide");
     };
     wsConn.onclose = function(event) {
         var time = determineInterval(wsAttempts);
         setTimeout(function() {
             // Increment the number of attempts
             wsAttempts++;
+
+            // Show dialog
+            $("#reconnectWaitDialog").modal("show");
 
             // Reconnect
             createWebSocket(address, processFunc);

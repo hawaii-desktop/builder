@@ -42,6 +42,20 @@
         </div>
 
         <div id="wrapper" style="display: none">
+            <div class="modal fade" id="reconnectWaitDialog" role="dialog" data-backdrop="static" data-keyboard="false" aria-labeledby="reconnectWaitDialogTitle">
+                <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h4 id="reconnectWaitDialogTitle" class="modal-title">Reconnecting</h4>
+                        </div>
+                        <div class="modal-body">
+                            <i class="fa fa-circle-o-notch fa-spin fa-2x"></i>
+                            &emsp;The connection was lost. Please wait while a new connection is made with the server...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
                 <div class="container-fluid">
                     <div class="navbar-header">
