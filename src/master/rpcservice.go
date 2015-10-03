@@ -288,6 +288,9 @@ func (m *RpcService) Subscribe(stream pb.Builder_SubscribeServer) error {
 				// Remove from the list
 				m.removeJob(j)
 
+				// Broadcast web clients
+				m.calculateStats()
+
 				// Proceed to the next job
 				j.Channel <- true
 			} else {
@@ -574,4 +577,24 @@ func (m *RpcService) enqueueJob(target, arch string, t pb.EnumTargetType) (*Job,
 	m.master.buildJobQueue <- j
 	logging.Infof("Queued job #%d (target \"%s\" for %s)\n", j.Id, target, arch)
 	return j, nil
+}
+
+// Calculate statistics of completed and failed jobs.
+func (m *RpcService) calculateStats() {
+	m.master.UpdateStats(func(s *statistics) {
+		s.Completed = 0
+		s.Failed = 0
+
+		m.db.FilterJobs(func(job *database.Job) bool {
+			if !job.Finished.After(time.Now().Add(-48 * time.Hour)) {
+				return false
+			}
+			if job.Status == api.JOB_STATUS_SUCCESSFUL {
+				s.Completed++
+			} else if job.Status > api.JOB_STATUS_SUCCESSFUL {
+				s.Failed++
+			}
+			return false
+		})
+	})
 }

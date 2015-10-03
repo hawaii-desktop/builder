@@ -152,6 +152,9 @@ func runMaster(ctx *cli.Context) {
 	// Start processing
 	master.Process()
 
+	// Calculate statisti
+	service.calculateStats()
+
 	// Gracefully exit with SIGINT and SIGTERM
 	sigchan := make(chan os.Signal, 2)
 	signal.Notify(sigchan, os.Interrupt)
