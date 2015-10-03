@@ -56,11 +56,9 @@ func New(address string) *WebServer {
 	store := cookie.NewCookieStore()
 	ws.Router.Use(ace.Session(store, nil))
 	ws.Router.Use(func(c *ace.C) {
-		c.Set("SiteUrl", address)
 		c.Set("SiteHost", c.Request.Host)
 		c.Next()
 	})
-	ws.Router.HtmlTemplate(TemplateRenderer())
 	ws.Router.Panic(func(c *ace.C, rcv interface{}) {
 		switch err := rcv.(type) {
 		case error:

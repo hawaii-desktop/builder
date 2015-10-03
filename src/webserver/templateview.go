@@ -27,24 +27,70 @@
 package webserver
 
 import (
+	"fmt"
 	"github.com/plimble/ace"
+	"github.com/plimble/utils/pool"
 	"html/template"
 	"net/http"
+	"path/filepath"
 )
 
 // Template renderer.
-type TemplateView struct{}
-
-func TemplateRenderer() ace.Renderer {
-	return &TemplateView{}
+type TemplateView struct {
+	Templates  map[string]*template.Template
+	bufferPool *pool.BufferPool
 }
 
-// Render the template view.
+// Create template renderer.
+func TemplateRenderer(path string) ace.Renderer {
+	v := &TemplateView{
+		Templates:  make(map[string]*template.Template),
+		bufferPool: pool.NewBufferPool(64),
+	}
+
+	bases, err := filepath.Glob(path + "/*.tmpl")
+	if err != nil {
+		panic(err)
+	}
+
+	layouts, err := filepath.Glob(path + "/*.html")
+	if err != nil {
+		panic(err)
+	}
+
+	for _, layout := range layouts {
+		files := append(bases, layout)
+		v.Templates[filepath.Base(layout)] = template.Must(template.ParseFiles(files...))
+	}
+
+	return v
+}
+
+// Call the render function and panic on errors.
+// The panic handler will catch the error and display a 500 error page.
 func (v *TemplateView) Render(w http.ResponseWriter, name string, data interface{}) {
 	if data == nil {
 		data = make(map[string]interface{})
 	}
 
-	tmpl := template.Must(template.ParseFiles(name))
-	tmpl.Execute(w, data.(map[string]interface{}))
+	panic(v.render(w, name, data.(map[string]interface{})))
+}
+
+// Actually render the template view and return any error.
+func (v *TemplateView) render(w http.ResponseWriter, name string, data map[string]interface{}) error {
+	tmpl, ok := v.Templates[name]
+	if !ok {
+		return fmt.Errorf("template \"%s\" doesn't exist", name)
+	}
+
+	buffer := v.bufferPool.Get()
+	defer v.bufferPool.Put(buffer)
+
+	err := tmpl.ExecuteTemplate(buffer, "base", data)
+	if err != nil {
+		return err
+	}
+
+	buffer.WriteTo(w)
+	return nil
 }

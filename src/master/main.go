@@ -121,10 +121,11 @@ func runMaster(ctx *cli.Context) {
 
 	// Web server
 	webServer := webserver.New(Config.Server.HttpAddress)
-	webServer.Router.GET("/", func(c *ace.C) { c.HTML("../html/overview.html", c.GetAll()) })
-	webServer.Router.GET("/queued", func(c *ace.C) { c.HTML("../html/queued.html", c.GetAll()) })
-	webServer.Router.GET("/completed", func(c *ace.C) { c.HTML("../html/completed.html", c.GetAll()) })
-	webServer.Router.GET("/failed", func(c *ace.C) { c.HTML("../html/failed.html", c.GetAll()) })
+	webServer.Router.HtmlTemplate(webserver.TemplateRenderer("../html"))
+	webServer.Router.GET("/", func(c *ace.C) { c.HTML("overview.html", c.GetAll()) })
+	webServer.Router.GET("/queued", func(c *ace.C) { c.HTML("queued.html", c.GetAll()) })
+	webServer.Router.GET("/completed", func(c *ace.C) { c.HTML("completed.html", c.GetAll()) })
+	webServer.Router.GET("/failed", func(c *ace.C) { c.HTML("failed.html", c.GetAll()) })
 	webServer.Router.Static("/css", "../static/css")
 	webServer.Router.Static("/js", "../static/js")
 	webServer.Router.Static("/img", "../static/img")
