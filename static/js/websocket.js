@@ -27,8 +27,18 @@
 function createWebSocket(address, processFunc) {
     wsConn = new WebSocket(address);
     wsConn.onopen = function(event) {
+        // Reset the attempts since a new connection just opened
+        wsAttempts = 1;
     };
     wsConn.onclose = function(event) {
+        var time = determineInterval(wsAttempts);
+        setTimeout(function() {
+            // Increment the number of attempts
+            wsAttempts++;
+
+            // Reconnect
+            createWebSocket(address, processFunc);
+        }, time);
     };
     wsConn.onmessage = function(event) {
         var obj = $.parseJSON(event.data);
@@ -36,6 +46,18 @@ function createWebSocket(address, processFunc) {
     };
     wsConn.onerror = function(event) {
     };
+}
+
+function determineInterval(k) {
+    // Calculate the maximum interval
+    var maxInterval = (Math.pow(2, k) - 1) * 1000;
+
+    // Cap the maximum interval to 30s
+    if (maxInterval > 30*1000)
+        maxInterval = 30*1000;
+
+    // Generate a random interval
+    return Math.random() * maxInterval;
 }
 
 // vim: set noai ts=4 sw=4 expandtab:
