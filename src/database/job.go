@@ -30,16 +30,18 @@ import (
 	"bytes"
 	"encoding/json"
 	"github.com/boltdb/bolt"
+	"github.com/hawaii-desktop/builder/src/api"
 	"strconv"
 	"time"
 )
 
 type Job struct {
-	Id           uint64    `json:"id"`
-	Target       string    `json:"target"`
-	Architecture string    `json:"arch"`
-	Started      time.Time `json:"started"`
-	Finished     time.Time `json:"finished"`
+	Id           uint64        `json:"id"`
+	Target       string        `json:"target"`
+	Architecture string        `json:"arch"`
+	Started      time.Time     `json:"started"`
+	Finished     time.Time     `json:"finished"`
+	Status       api.JobStatus `json:"status"`
 }
 
 // Return a stored job.

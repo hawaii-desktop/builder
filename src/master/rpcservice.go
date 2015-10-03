@@ -281,7 +281,7 @@ func (m *RpcService) Subscribe(stream pb.Builder_SubscribeServer) error {
 				}
 
 				// Save on the database
-				dbJob := &database.Job{j.Id, j.Target, j.Architecture, j.Started, j.Finished}
+				dbJob := &database.Job{j.Id, j.Target, j.Architecture, j.Started, j.Finished, j.Status}
 				m.db.SaveJob(dbJob)
 				dbJob = nil
 
@@ -562,7 +562,7 @@ func (m *RpcService) enqueueJob(target, arch string, t pb.EnumTargetType) (*Job,
 	}
 
 	// Save on the database
-	dbJob := &database.Job{j.Id, j.Target, j.Architecture, j.Started, j.Finished}
+	dbJob := &database.Job{j.Id, j.Target, j.Architecture, j.Started, j.Finished, j.Status}
 	err := m.db.SaveJob(dbJob)
 	dbJob = nil
 	if err != nil {
