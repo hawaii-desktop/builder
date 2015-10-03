@@ -24,7 +24,7 @@
  * $END_LICENSE$
  ***************************************************************************/
 
-package slave
+package main
 
 // Variant properties map.
 type VariantMap map[string]interface{}

@@ -29,26 +29,31 @@ package main
 import (
 	"fmt"
 	"github.com/codegangsta/cli"
+	"github.com/hawaii-desktop/builder/src/api"
 	"github.com/hawaii-desktop/builder/src/logging"
 	"github.com/hawaii-desktop/builder/src/pidfile"
-	"github.com/hawaii-desktop/builder/src/slave"
 	"google.golang.org/grpc"
 	"gopkg.in/gcfg.v1"
 	"os"
 	"os/signal"
 	"os/user"
+	"runtime"
 )
 
-var CmdSlave = cli.Command{
-	Name:  "slave",
-	Usage: "Perform tasks on a separate machine",
-	Description: `Accept build requests from the master matching its configuration
-and perform the task assigned.`,
-	Action: runSlave,
-	Flags: []cli.Flag{
-		cli.StringFlag{"name, n", "", "Override slave name from configuration", ""},
+func init() {
+	runtime.GOMAXPROCS(runtime.NumCPU())
+}
+
+func main() {
+	app := cli.NewApp()
+	app.Name = "builder-slave"
+	app.Usage = "Perform tasks on a separate machine"
+	app.Version = api.APP_VER
+	app.Action = runSlave
+	app.Flags = []cli.Flag{
 		cli.StringFlag{"config, c", "", "Custom configuration file path", ""},
-	},
+	}
+	app.Run(os.Args)
 }
 
 func runSlave(ctx *cli.Context) {
@@ -74,30 +79,30 @@ func runSlave(ctx *cli.Context) {
 	if configArg == "" {
 		logging.Fatalln("Please specify a configuration file")
 	}
-	err := gcfg.ReadFileInto(&slave.Config, configArg)
+	err := gcfg.ReadFileInto(&Config, configArg)
 	if err != nil {
 		logging.Fatalln(err)
 	}
 
 	// Override configuration
 	if ctx.IsSet("name") {
-		slave.Config.Slave.Name = ctx.String("name")
+		Config.Slave.Name = ctx.String("name")
 	}
 
 	// Sanity check
-	if slave.Config.Slave.Name == "" {
+	if Config.Slave.Name == "" {
 		logging.Fatalln("You must specify the slave name")
 	}
-	if len(slave.Config.Slave.Channels) == 0 {
+	if len(Config.Slave.Channels) == 0 {
 		logging.Fatalln("You must specify the channels to subscribe")
 	}
-	if len(slave.Config.Slave.Architectures) == 0 {
+	if len(Config.Slave.Architectures) == 0 {
 		logging.Fatalln("You must specify the supported architectures")
 	}
 
 	// Acquire PID file
 	if os.Getuid() == 0 {
-		pidFile, err := pidfile.New(fmt.Sprintf("/run/builder/slave-%s.pid", slave.Config.Slave.Name))
+		pidFile, err := pidfile.New(fmt.Sprintf("/run/builder/slave-%s.pid", Config.Slave.Name))
 		if err != nil {
 			logging.Fatalf("Unable to create PID file: %s", err.Error())
 		}
@@ -109,14 +114,14 @@ func runSlave(ctx *cli.Context) {
 	}
 
 	// Connect to the master
-	conn, err := grpc.Dial(slave.Config.Master.Address, grpc.WithInsecure())
+	conn, err := grpc.Dial(Config.Master.Address, grpc.WithInsecure())
 	defer conn.Close()
 
 	// We are finally connected
 	logging.Infoln("Connected to master")
 
 	// Client object
-	client := slave.NewClient(conn)
+	client := NewClient(conn)
 
 	// Subscribe
 	err = client.Subscribe()

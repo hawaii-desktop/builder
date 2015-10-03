@@ -24,7 +24,7 @@
  * $END_LICENSE$
  ***************************************************************************/
 
-package master
+package main
 
 import (
 	"github.com/hawaii-desktop/builder/src/api"

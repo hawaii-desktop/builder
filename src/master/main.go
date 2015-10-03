@@ -28,8 +28,8 @@ package main
 
 import (
 	"github.com/codegangsta/cli"
+	"github.com/hawaii-desktop/builder/src/api"
 	"github.com/hawaii-desktop/builder/src/logging"
-	"github.com/hawaii-desktop/builder/src/master"
 	"github.com/hawaii-desktop/builder/src/pidfile"
 	pb "github.com/hawaii-desktop/builder/src/protocol"
 	"github.com/hawaii-desktop/builder/src/webserver"
@@ -40,17 +40,23 @@ import (
 	"os"
 	"os/signal"
 	"os/user"
+	"runtime"
 )
 
-var CmdMaster = cli.Command{
-	Name:  "master",
-	Usage: "Collect and dispatch build requests",
-	Description: `Collect build requests and dispatch them
-to the appropriate slave.`,
-	Action: runMaster,
-	Flags: []cli.Flag{
+func init() {
+	runtime.GOMAXPROCS(runtime.NumCPU())
+}
+
+func main() {
+	app := cli.NewApp()
+	app.Name = "builder-master"
+	app.Usage = "Collect and dispatch build requests"
+	app.Version = api.APP_VER
+	app.Action = runMaster
+	app.Flags = []cli.Flag{
 		cli.StringFlag{"config, c", "", "Custom configuration file path", ""},
-	},
+	}
+	app.Run(os.Args)
 }
 
 func runMaster(ctx *cli.Context) {
@@ -76,7 +82,7 @@ func runMaster(ctx *cli.Context) {
 	if configArg == "" {
 		logging.Fatalln("Please specify a configuration file")
 	}
-	err := gcfg.ReadFileInto(&master.Config, configArg)
+	err := gcfg.ReadFileInto(&Config, configArg)
 	if err != nil {
 		logging.Fatalln(err)
 	}
@@ -95,26 +101,26 @@ func runMaster(ctx *cli.Context) {
 	}
 
 	// Create master service
-	masterService, err := master.NewMaster()
+	service, err := NewRpcService()
 	if err != nil {
 		logging.Errorln(err)
 		return
 	}
-	defer masterService.Close()
+	defer service.Close()
 
 	// Register RPC server
-	rpcListener, err := listenRpc(master.Config.Server.Address)
+	rpcListener, err := listenRpc(Config.Server.Address)
 	if err != nil {
 		logging.Errorln(err)
 		return
 	}
 	defer rpcListener.Close()
 	grpcServer := grpc.NewServer()
-	pb.RegisterBuilderServer(grpcServer, masterService)
+	pb.RegisterBuilderServer(grpcServer, service)
 	go grpcServer.Serve(rpcListener)
 
 	// Web server
-	webServer := webserver.New(master.Config.Server.HttpAddress)
+	webServer := webserver.New(Config.Server.HttpAddress)
 	webServer.Router.GET("/", func(c *ace.C) { c.HTML("../html/overview.html", c.GetAll()) })
 	webServer.Router.GET("/queued", func(c *ace.C) { c.HTML("../html/queued.html", c.GetAll()) })
 	webServer.Router.GET("/completed", func(c *ace.C) { c.HTML("../html/completed.html", c.GetAll()) })
@@ -131,13 +137,13 @@ func runMaster(ctx *cli.Context) {
 	logging.Infoln("Web server listening on", webServer.Address())
 
 	// Start the dispatcher
-	master.StartDispatcher()
+	StartDispatcher()
 
 	// Queue events to the web socket
 	go func() {
 		for {
 			select {
-			case e := <-master.WebSocketQueue:
+			case e := <-WebSocketQueue:
 				if e == nil {
 					return
 				}
@@ -155,7 +161,7 @@ func runMaster(ctx *cli.Context) {
 
 func listenRpc(address string) (*net.TCPListener, error) {
 	// Bind and listen for the master <--> slave protocol
-	tcpAddr, err := net.ResolveTCPAddr("tcp", master.Config.Server.Address)
+	tcpAddr, err := net.ResolveTCPAddr("tcp", Config.Server.Address)
 	if err != nil {
 		return nil, err
 	}

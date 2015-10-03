@@ -1,17 +1,21 @@
 PROTOC=protoc
 GO=go
 
-.PHONY: protocol builder builder-cli
+.PHONY: protocol builder-master builder-slave builder-cli
 
-all: builder builder-cli
+all: builder-master builder-slave builder-cli
 
 protocol:
 	@echo " > protocol"
-	@(cd builder && $(PROTOC) --go_out=plugins=grpc:../protocol builder.proto)
+	@(cd master && $(PROTOC) --go_out=plugins=grpc:../protocol builder.proto)
 
-builder:
-	@echo " > builder"
-	@(cd builder && $(GO) build -o ../../dist/builder)
+builder-master:
+	@echo " > builder-master"
+	@(cd master && $(GO) build -o ../../dist/builder-master)
+
+builder-slave:
+	@echo " > builder-slave"
+	@(cd slave && $(GO) build -o ../../dist/builder-slave)
 
 builder-cli:
 	@echo " > builder-cli"

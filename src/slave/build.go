@@ -24,7 +24,7 @@
  * $END_LICENSE$
  ***************************************************************************/
 
-package slave
+package main
 
 import (
 	"bytes"

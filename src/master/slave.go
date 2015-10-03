@@ -24,7 +24,7 @@
  * $END_LICENSE$
  ***************************************************************************/
 
-package master
+package main
 
 // Slave structure
 type Slave struct {

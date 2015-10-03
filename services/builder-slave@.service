@@ -6,7 +6,7 @@ After=network.target
 [Service]
 Type=forking
 PIDFile=/run/builder/slave-%I.pid
-ExecStart=/sbin/daemonize /usr/bin/builder slave -n %I
+ExecStart=/sbin/daemonize /usr/bin/builder-slave -n %I
 Restart=always
 
 [Install]

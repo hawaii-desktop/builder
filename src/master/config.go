@@ -24,7 +24,7 @@
  * $END_LICENSE$
  ***************************************************************************/
 
-package master
+package main
 
 // Represents settings file.
 type Settings struct {

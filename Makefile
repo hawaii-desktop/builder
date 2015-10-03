@@ -1,6 +1,6 @@
-.PHONY: protocol builder builder-cli
+.PHONY: protocol builder-master builder-slave builder-cli
 
-all: builder builder-cli
+all: builder-master builder-slave builder-cli
 
 deps:
 	@go get -t ./...
@@ -8,8 +8,11 @@ deps:
 protocol:
 	@make -C src protocol
 
-builder:
-	@make -C src builder
+builder-master:
+	@make -C src builder-master
+
+builder-slave:
+	@make -C src builder-slave
 
 builder-cli:
 	@make -C src builder-cli

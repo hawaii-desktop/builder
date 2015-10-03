@@ -24,24 +24,6 @@
  * $END_LICENSE$
  ***************************************************************************/
 
-package master
+package api
 
-type statistics struct {
-	Queued     int `json:"queued"`
-	Dispatched int `json:"dispatched"`
-	Completed  int `json:"completed"`
-	Failed     int `json:"failed"`
-	Staging    int `json:"staging"`
-	Main       int `json:"main"`
-}
-
-// Broadcast queue for the web socket.
-var WebSocketQueue chan interface{}
-
-// Statistics.
-var stats *statistics
-
-func init() {
-	stats = &statistics{0, 0, 0, 0, 0, 0}
-	WebSocketQueue = make(chan interface{}, 5)
-}
+const APP_VER = "0.0.0"
