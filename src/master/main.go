@@ -121,6 +121,9 @@ func runMaster(ctx *cli.Context) {
 
 	// Create the main object
 	master := NewMaster(webServer.Hub)
+	webServer.Hub.HandleNewConnection(func() {
+		master.webSocketQueue <- master.stats
+	})
 
 	// Create master service
 	service, err := NewRpcService(master)
