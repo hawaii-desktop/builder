@@ -63,6 +63,33 @@ func (db *Database) GetJob(id uint64) *Job {
 	return job
 }
 
+// Return a list of jobs that match a certain criteria.
+func (db *Database) FilterJobs(filter func(job *Job) bool) []*Job {
+	var list []*Job
+	db.db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte("job"))
+		if bucket == nil {
+			return nil
+		}
+
+		bucket.ForEach(func(k, v []byte) error {
+			var job *Job
+			err := json.Unmarshal(v, &job)
+			if err != nil {
+				return err
+			}
+
+			if filter(job) {
+				list = append(list, job)
+			}
+			return nil
+		})
+
+		return nil
+	})
+	return list
+}
+
 // Store a job.
 func (db *Database) SaveJob(job *Job) error {
 	return db.db.Update(func(tx *bolt.Tx) error {
