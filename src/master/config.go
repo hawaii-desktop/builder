@@ -33,6 +33,10 @@ type Settings struct {
 		HttpAddress string
 		Database    string
 	}
+	Web struct {
+		TemplateDir string
+		StaticDir   string
+	}
 	Build struct {
 		MaxJobs   uint32
 		MaxSlaves uint32

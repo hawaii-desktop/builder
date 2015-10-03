@@ -37,6 +37,7 @@ import (
 	"google.golang.org/grpc"
 	"gopkg.in/gcfg.v1"
 	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"os/user"
@@ -121,14 +122,14 @@ func runMaster(ctx *cli.Context) {
 
 	// Web server
 	webServer := webserver.New(Config.Server.HttpAddress)
-	webServer.Router.HtmlTemplate(webserver.TemplateRenderer("../html"))
+	webServer.Router.HtmlTemplate(webserver.TemplateRenderer(Config.Web.TemplateDir))
 	webServer.Router.GET("/", func(c *ace.C) { c.HTML("overview.html", c.GetAll()) })
 	webServer.Router.GET("/queued", func(c *ace.C) { c.HTML("queued.html", c.GetAll()) })
 	webServer.Router.GET("/completed", func(c *ace.C) { c.HTML("completed.html", c.GetAll()) })
 	webServer.Router.GET("/failed", func(c *ace.C) { c.HTML("failed.html", c.GetAll()) })
-	webServer.Router.Static("/css", "../static/css")
-	webServer.Router.Static("/js", "../static/js")
-	webServer.Router.Static("/img", "../static/img")
+	webServer.Router.Static("/css", http.Dir(Config.Web.StaticDir+"/css"))
+	webServer.Router.Static("/js", http.Dir(Config.Web.StaticDir+"/js"))
+	webServer.Router.Static("/img", http.Dir(Config.Web.StaticDir+"/img"))
 	go func() {
 		err = webServer.ListenAndServe()
 		if err != nil {
