@@ -177,12 +177,15 @@
 {{ define "scripts" }}
     <script type="text/javascript">
         function wsHandler(obj) {
-            $("#queuedIndicator").html(obj.queued);
-            $("#dispatchedIndicator").html(obj.dispatched);
-            $("#completedIndicator").html(obj.completed);
-            $("#failedIndicator").html(obj.failed);
-            $("#stagingIndicator").html(obj.staging);
-            $("#mainIndicator").html(obj.main);
+            if (obj.type != WEB_SOCKET_STATISTICS)
+                return;
+
+            $("#queuedIndicator").html(obj.data.queued);
+            $("#dispatchedIndicator").html(obj.data.dispatched);
+            $("#completedIndicator").html(obj.data.completed);
+            $("#failedIndicator").html(obj.data.failed);
+            $("#stagingIndicator").html(obj.data.staging);
+            $("#mainIndicator").html(obj.data.main);
         }
     </script>
 {{ end }}

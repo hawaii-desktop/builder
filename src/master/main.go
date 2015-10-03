@@ -121,8 +121,13 @@ func runMaster(ctx *cli.Context) {
 
 	// Create the main object
 	master := NewMaster(webServer.Hub)
-	webServer.Hub.HandleNewConnection(func() {
-		master.webSocketQueue <- master.stats
+
+	// Handle web socket registration and unregistration
+	webServer.Hub.HandleRegister(func(c *webserver.WebSocketConnection) {
+		// Send statistics as soon as a client connects
+		master.SendStats()
+	})
+	webServer.Hub.HandleUnregister(func(c *webserver.WebSocketConnection) {
 	})
 
 	// Create master service

@@ -50,6 +50,21 @@ type Master struct {
 	sMutex sync.Mutex
 }
 
+// Generic message sent to the Web user interface.
+type message struct {
+	Type int         `json:"type"`
+	Data interface{} `json:"data,omitifempty"`
+}
+
+// Message types
+const (
+	WEB_SOCKET_STATISTICS = iota
+	WEB_SOCKET_QUEUED_JOBS
+	WEB_SOCKET_DISPATCHED_JOBS
+	WEB_SOCKET_COMPLETED_JOBS
+	WEB_SOCKET_FAILED_JOBS
+)
+
 // Statistics to show on the Web user interface.
 type statistics struct {
 	Queued     int `json:"queued"`
@@ -81,7 +96,12 @@ func (m *Master) UpdateStats(f statisticsUpdateFunc) {
 
 	f(&m.stats)
 
-	m.webSocketQueue <- m.stats
+	m.SendStats()
+}
+
+// Send statistics through the web socket.
+func (m *Master) SendStats() {
+	m.webSocketQueue <- &message{Type: WEB_SOCKET_STATISTICS, Data: m.stats}
 }
 
 // Start processing

@@ -24,6 +24,12 @@
  * $END_LICENSE$
  ***************************************************************************/
 
+var WEB_SOCKET_STATISTICS = 0;
+var WEB_SOCKET_QUEUED_JOBS = 1;
+var WEB_SOCKET_DISPATCHED_JOBS = 2;
+var WEB_SOCKET_COMPLETED_JOBS = 3;
+var WEB_SOCKET_FAILED_JOBS = 4;
+
 function createWebSocket(address, processFunc) {
     wsConn = new WebSocket(address);
     wsConn.onopen = function(event) {
