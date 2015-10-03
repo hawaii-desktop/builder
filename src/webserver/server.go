@@ -60,9 +60,11 @@ func New(address string) *WebServer {
 		c.Next()
 	})
 	ws.Router.Panic(func(c *ace.C, rcv interface{}) {
+		c.Writer.Header().Set("Content-Type", "text/html; charset=UTF-8")
+
 		switch err := rcv.(type) {
 		case error:
-			c.String(500, "%s\n%s", err, ace.Stack())
+			c.String(500, "<pre>%s\n%s</pre>", err, ace.Stack())
 			logging.Errorf("Request %s %s failed: %s\n", c.Request.Method, c.Request.URL, err)
 		}
 	})
