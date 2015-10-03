@@ -26,6 +26,31 @@
 
 package main
 
+import (
+	"github.com/hawaii-desktop/builder/src/api"
+	"github.com/hawaii-desktop/builder/src/logging"
+	"github.com/hawaii-desktop/builder/src/webserver"
+	"sync"
+	"time"
+)
+
+// Master.
+type Master struct {
+	// Web socket hub.
+	hub *webserver.WebSocketHub
+	// Buffered channel that we can send jobs on.
+	buildJobQueue chan *Job
+	// Buffered channel that holds the job channels from each slave.
+	slaveQueue chan chan *Job
+	// Broadcast queue for the web socket.
+	webSocketQueue chan interface{}
+	// Current statistics.
+	stats statistics
+	// Mutext that protects statistics.
+	sMutex sync.Mutex
+}
+
+// Statistics to show on the Web user interface.
 type statistics struct {
 	Queued     int `json:"queued"`
 	Dispatched int `json:"dispatched"`
@@ -35,13 +60,67 @@ type statistics struct {
 	Main       int `json:"main"`
 }
 
-// Broadcast queue for the web socket.
-var WebSocketQueue chan interface{}
+// Update function.
+type statisticsUpdateFunc func(s *statistics)
 
-// Statistics.
-var stats *statistics
+// Create a new master.
+func NewMaster(hub *webserver.WebSocketHub) *Master {
+	return &Master{
+		hub:            hub,
+		buildJobQueue:  make(chan *Job, Config.Build.MaxJobs),
+		slaveQueue:     make(chan chan *Job, Config.Build.MaxSlaves),
+		webSocketQueue: make(chan interface{}),
+		stats:          statistics{0, 0, 0, 0, 0, 0},
+	}
+}
 
-func init() {
-	stats = &statistics{0, 0, 0, 0, 0, 0}
-	WebSocketQueue = make(chan interface{}, 5)
+// Update statistics and send an event through the web socket.
+func (m *Master) UpdateStats(f statisticsUpdateFunc) {
+	m.sMutex.Lock()
+	defer m.sMutex.Unlock()
+
+	f(&m.stats)
+
+	m.webSocketQueue <- m.stats
+}
+
+// Start processing
+func (m *Master) Process() {
+	// Dispatch jobs
+	go func() {
+		for {
+			select {
+			case j := <-m.buildJobQueue:
+				logging.Tracef("About to dispatch job #%d...\n", j.Id)
+				go func() {
+					// Update job
+					j.Started = time.Now()
+					j.Status = api.JOB_STATUS_WAITING
+
+					// Dispatch
+					slave := <-m.slaveQueue
+					logging.Tracef("Dispatching job #%d...\n", j.Id)
+					slave <- j
+
+					// Update statistics
+					m.UpdateStats(func(s *statistics) {
+						s.Queued--
+						s.Dispatched++
+					})
+				}()
+			}
+		}
+	}()
+
+	// Queue events to the web socket
+	go func() {
+		for {
+			select {
+			case e := <-m.webSocketQueue:
+				if e != nil {
+					m.hub.Broadcast(e)
+				}
+			}
+		}
+	}()
 }

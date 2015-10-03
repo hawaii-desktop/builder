@@ -42,8 +42,6 @@ type Slave struct {
 	Active bool
 	// Channel to pick up jobs from.
 	JobChannel chan *Job
-	// Buffered channel for jobs.
-	QueueChannel chan chan *Job
 	// Channel used to stop processing jobs.
 	QuitChannel chan bool
 }
@@ -59,7 +57,6 @@ func NewSlave(id uint32, name string, chans []string, archs []string) *Slave {
 		Subscribed:    true,
 		Active:        true,
 		JobChannel:    make(chan *Job),
-		QueueChannel:  SlaveQueue,
 		QuitChannel:   make(chan bool),
 	}
 	return slave

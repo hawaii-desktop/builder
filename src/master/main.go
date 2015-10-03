@@ -101,25 +101,6 @@ func runMaster(ctx *cli.Context) {
 		defer pidFile.Unlock()
 	}
 
-	// Create master service
-	service, err := NewRpcService()
-	if err != nil {
-		logging.Errorln(err)
-		return
-	}
-	defer service.Close()
-
-	// Register RPC server
-	rpcListener, err := listenRpc(Config.Server.Address)
-	if err != nil {
-		logging.Errorln(err)
-		return
-	}
-	defer rpcListener.Close()
-	grpcServer := grpc.NewServer()
-	pb.RegisterBuilderServer(grpcServer, service)
-	go grpcServer.Serve(rpcListener)
-
 	// Web server
 	webServer := webserver.New(Config.Server.HttpAddress)
 	webServer.Router.HtmlTemplate(webserver.TemplateRenderer(Config.Web.TemplateDir))
@@ -138,21 +119,30 @@ func runMaster(ctx *cli.Context) {
 	}()
 	logging.Infoln("Web server listening on", webServer.Address())
 
-	// Start the dispatcher
-	StartDispatcher()
+	// Create the main object
+	master := NewMaster(webServer.Hub)
 
-	// Queue events to the web socket
-	go func() {
-		for {
-			select {
-			case e := <-WebSocketQueue:
-				if e == nil {
-					return
-				}
-				webServer.Hub.Broadcast(e)
-			}
-		}
-	}()
+	// Create master service
+	service, err := NewRpcService(master)
+	if err != nil {
+		logging.Errorln(err)
+		return
+	}
+	defer service.Close()
+
+	// Register RPC server
+	rpcListener, err := listenRpc(Config.Server.Address)
+	if err != nil {
+		logging.Errorln(err)
+		return
+	}
+	defer rpcListener.Close()
+	grpcServer := grpc.NewServer()
+	pb.RegisterBuilderServer(grpcServer, service)
+	go grpcServer.Serve(rpcListener)
+
+	// Start processing
+	master.Process()
 
 	// Gracefully exit with SIGINT and SIGTERM
 	sigchan := make(chan os.Signal, 2)

@@ -40,9 +40,6 @@ import (
 	"time"
 )
 
-// Buffered channel that we can send jobs on.
-var BuildJobQueue = make(chan *Job, Config.Build.MaxJobs)
-
 // RPC service.
 type RpcService struct {
 	// List of slaves.
@@ -55,6 +52,8 @@ type RpcService struct {
 	jMutex sync.Mutex
 	// Database.
 	db *database.Database
+	// Master.
+	master *Master
 }
 
 // Errors
@@ -89,7 +88,7 @@ var jobStatusMap = map[pb.EnumJobStatus]api.JobStatus{
 // The jobs list is initially empty and has a capacity as big as
 // the maximum number of jobs from the configuration.
 // This also create or open the database.
-func NewRpcService() (*RpcService, error) {
+func NewRpcService(master *Master) (*RpcService, error) {
 	db, err := database.NewDatabase(Config.Server.Database)
 	if err != nil {
 		return nil, err
@@ -99,6 +98,7 @@ func NewRpcService() (*RpcService, error) {
 	m.Slaves = make([]*Slave, 0, Config.Build.MaxSlaves)
 	m.Jobs = make([]*Job, 0, Config.Build.MaxJobs)
 	m.db = db
+	m.master = master
 	return m, nil
 }
 
@@ -196,7 +196,7 @@ func (m *RpcService) Subscribe(stream pb.Builder_SubscribeServer) error {
 			}
 
 			// Add to the queue
-			s.QueueChannel <- s.JobChannel
+			m.master.slaveQueue <- s.JobChannel
 
 			select {
 			case j := <-s.JobChannel:
@@ -497,8 +497,9 @@ func (m *RpcService) appendJob(r *Job) {
 	m.Jobs = append(m.Jobs, r)
 
 	// Broadcast web clients
-	stats.Queued = len(m.Jobs)
-	WebSocketQueue <- stats
+	m.master.UpdateStats(func(s *statistics) {
+		s.Queued = len(m.Jobs)
+	})
 }
 
 // Remove a job from the list.
@@ -524,8 +525,9 @@ func (m *RpcService) removeJob(j *Job) {
 		append(m.Jobs[:i], m.Jobs[i+1:]...), nil
 
 	// Broadcast web clients
-	stats.Queued = len(m.Jobs)
-	WebSocketQueue <- stats
+	m.master.UpdateStats(func(s *statistics) {
+		s.Queued = len(m.Jobs)
+	})
 }
 
 // Enqueue a job.
@@ -569,7 +571,7 @@ func (m *RpcService) enqueueJob(target, arch string, t pb.EnumTargetType) (*Job,
 	m.appendJob(j)
 
 	// Push it onto the queue
-	BuildJobQueue <- j
+	m.master.buildJobQueue <- j
 	logging.Infof("Queued job #%d (target \"%s\" for %s)\n", j.Id, target, arch)
 	return j, nil
 }
