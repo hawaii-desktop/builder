@@ -78,6 +78,25 @@
                         </ul>
                     </div>
                 </div>
+
+                <div class="collapse navbar-collapse navbar-ex1-collapse">
+                    <ul class="nav navbar-nav side-nav">
+                        <li class="active">
+                            <a href="/"><i class="fa fa-fw fa-dashboard"></i> Dashboard</a>
+                        </li>
+                        <li>
+                            <a href="javascript:;" data-toggle="collapse" data-target="#sideBarReports">
+                                <i class="fa fa-fw fa-bar-chart-o"></i> Reports <i class="fa fa-fw fa-caret-down"></i>
+                            </a>
+                            <ul id="sideBarReports" class="collapse">
+                                <li><a href="/queued"><i class="fa fa-fw fa-clock-o"></i> Queued</a></li>
+                                <li><a href="/dispatched"><i class="fa fa-fw fa-clock-o"></i> Dispatched</a></li>
+                                <li><a href="/completed"><i class="fa fa-fw fa-check"></i> Completed</a></li>
+                                <li><a href="/failed"><i class="fa fa-fw fa-exclamation-triangle"></i> Failed</a></li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
             </nav>
 
             <div id="page-wrapper">
