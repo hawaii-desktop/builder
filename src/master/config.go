@@ -33,6 +33,12 @@ type Settings struct {
 		HttpAddress string
 		Database    string
 	}
+	GitHub struct {
+		ClientID     string
+		ClientSecret string
+		Organization string
+		Teams        string
+	}
 	Web struct {
 		TemplateDir string
 		StaticDir   string

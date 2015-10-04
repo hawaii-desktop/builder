@@ -103,8 +103,16 @@ func runMaster(ctx *cli.Context) {
 
 	// Web server
 	webServer := webserver.New(Config.Server.HttpAddress)
+	webServer.Router.Use(func(c *ace.C) {
+		session := c.Sessions("authentication")
+		c.Set("IsLoggedIn", session.GetBool("IsLoggedIn", false))
+		c.Set("UserName", session.GetString("UserName", ""))
+		c.Next()
+	})
 	webServer.Router.HtmlTemplate(webserver.TemplateRenderer(Config.Web.TemplateDir))
 	webServer.Router.GET("/", func(c *ace.C) { c.HTML("overview.html", c.GetAll()) })
+	webServer.Router.GET("/users/login", loginHandler)
+	webServer.Router.GET("/sso/github", ssoGitHubHandler)
 	webServer.Router.GET("/queued", func(c *ace.C) { c.HTML("queued.html", c.GetAll()) })
 	webServer.Router.GET("/completed", func(c *ace.C) { c.HTML("completed.html", c.GetAll()) })
 	webServer.Router.GET("/failed", func(c *ace.C) { c.HTML("failed.html", c.GetAll()) })
