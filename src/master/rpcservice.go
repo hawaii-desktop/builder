@@ -289,6 +289,9 @@ func (m *RpcService) Subscribe(stream pb.Builder_SubscribeServer) error {
 				m.removeJob(j)
 
 				// Broadcast web clients
+				m.master.UpdateStats(func(s *statistics) {
+					s.Dispatched--
+				})
 				m.calculateStats()
 
 				// Proceed to the next job
