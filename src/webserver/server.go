@@ -54,7 +54,7 @@ func New(address string) *WebServer {
 		Hub:    NewWebSocketHub(),
 	}
 	store := cookie.NewCookieStore()
-	ws.Router.Use(ace.Session(store, nil))
+	ws.Router.Use(ace.Session(store, &ace.SessionOptions{Path: "/", MaxAge: 3600}))
 	ws.Router.Use(func(c *ace.C) {
 		c.Set("SiteHost", c.Request.Host)
 		c.Next()
