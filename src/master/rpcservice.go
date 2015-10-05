@@ -50,8 +50,6 @@ type RpcService struct {
 	sMutex sync.Mutex
 	// Protects jobs list.
 	jMutex sync.Mutex
-	// Database.
-	db *database.Database
 	// Master.
 	master *Master
 }
@@ -87,25 +85,12 @@ var jobStatusMap = map[pb.EnumJobStatus]api.JobStatus{
 // number of slaves from the configuration.
 // The jobs list is initially empty and has a capacity as big as
 // the maximum number of jobs from the configuration.
-// This also create or open the database.
-func NewRpcService(master *Master) (*RpcService, error) {
-	db, err := database.NewDatabase(Config.Server.Database)
-	if err != nil {
-		return nil, err
+func NewRpcService(master *Master) *RpcService {
+	return &RpcService{
+		Slaves: make([]*Slave, 0, Config.Build.MaxSlaves),
+		Jobs:   make([]*Job, 0, Config.Build.MaxJobs),
+		master: master,
 	}
-
-	m := &RpcService{}
-	m.Slaves = make([]*Slave, 0, Config.Build.MaxSlaves)
-	m.Jobs = make([]*Job, 0, Config.Build.MaxJobs)
-	m.db = db
-	m.master = master
-	return m, nil
-}
-
-// Close the database.
-func (m *RpcService) Close() {
-	m.db.Close()
-	m.db = nil
 }
 
 // Slave call this to initiate a dialog.
@@ -137,7 +122,7 @@ func (m *RpcService) Subscribe(stream pb.Builder_SubscribeServer) error {
 		// Retrieve target information and send
 		switch j.Type {
 		case JOB_TARGET_TYPE_PACKAGE:
-			pkg := m.db.GetPackage(j.Target)
+			pkg := m.master.db.GetPackage(j.Target)
 			if pkg == nil {
 				return
 			}
@@ -163,7 +148,7 @@ func (m *RpcService) Subscribe(stream pb.Builder_SubscribeServer) error {
 			sendEnvelope(response)
 			break
 		case JOB_TARGET_TYPE_IMAGE:
-			img := m.db.GetImage(j.Target)
+			img := m.master.db.GetImage(j.Target)
 			if img == nil {
 				return
 			}
@@ -282,7 +267,7 @@ func (m *RpcService) Subscribe(stream pb.Builder_SubscribeServer) error {
 
 				// Save on the database
 				dbJob := &database.Job{j.Id, j.Target, j.Architecture, j.Started, j.Finished, j.Status}
-				m.db.SaveJob(dbJob)
+				m.master.db.SaveJob(dbJob)
 				dbJob = nil
 
 				// Remove from the list
@@ -366,7 +351,7 @@ func (m *RpcService) AddPackage(ctx context.Context, args *pb.PackageInfo) (*pb.
 			Branch: args.UpstreamVcs.Branch,
 		},
 	}
-	if err := m.db.AddPackage(pkg); err != nil {
+	if err := m.master.db.AddPackage(pkg); err != nil {
 		return nil, err
 	}
 	return &pb.BooleanMessage{Result: true}, nil
@@ -374,7 +359,7 @@ func (m *RpcService) AddPackage(ctx context.Context, args *pb.PackageInfo) (*pb.
 
 // Remove package.
 func (m *RpcService) RemovePackage(ctx context.Context, args *pb.StringMessage) (*pb.BooleanMessage, error) {
-	err := m.db.RemovePackage(args.Name)
+	err := m.master.db.RemovePackage(args.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -388,7 +373,7 @@ func (m *RpcService) ListPackages(args *pb.StringMessage, stream pb.Builder_List
 		return err
 	}
 
-	list := m.db.ListAllPackages()
+	list := m.master.db.ListAllPackages()
 	if len(list) == 0 {
 		return ErrNoMatchingPackages
 	}
@@ -427,7 +412,7 @@ func (m *RpcService) AddImage(ctx context.Context, args *pb.ImageInfo) (*pb.Bool
 			Branch: args.Vcs.Branch,
 		},
 	}
-	if err := m.db.AddImage(img); err != nil {
+	if err := m.master.db.AddImage(img); err != nil {
 		return nil, err
 	}
 	return &pb.BooleanMessage{Result: true}, nil
@@ -435,7 +420,7 @@ func (m *RpcService) AddImage(ctx context.Context, args *pb.ImageInfo) (*pb.Bool
 
 // Remove an image.
 func (m *RpcService) RemoveImage(ctx context.Context, args *pb.StringMessage) (*pb.BooleanMessage, error) {
-	err := m.db.RemoveImage(args.Name)
+	err := m.master.db.RemoveImage(args.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -449,7 +434,7 @@ func (m *RpcService) ListImages(args *pb.StringMessage, stream pb.Builder_ListIm
 		return err
 	}
 
-	list := m.db.ListAllImages()
+	list := m.master.db.ListAllImages()
 	if len(list) == 0 {
 		return ErrNoMatchingImages
 	}
@@ -488,7 +473,7 @@ func (m *RpcService) createSlave(args *pb.SubscribeRequest) (*Slave, error) {
 	}
 
 	// Create and append slave
-	slave := NewSlave(m.db.NewSlaveId(), args.Name, args.Channels, args.Architectures)
+	slave := NewSlave(m.master.db.NewSlaveId(), args.Name, args.Channels, args.Architectures)
 	m.Slaves = append(m.Slaves, slave)
 	logging.Infof("Subscribed slave \"%s\" with id %d\n", slave.Name, slave.Id)
 	return slave, nil
@@ -541,12 +526,12 @@ func (m *RpcService) enqueueJob(target, arch string, t pb.EnumTargetType) (*Job,
 	// Verify if the target exists
 	switch t {
 	case pb.EnumTargetType_PACKAGE:
-		if !m.db.HasPackage(target) {
+		if !m.master.db.HasPackage(target) {
 			return nil, fmt.Errorf("%s package not found", target)
 		}
 		break
 	case pb.EnumTargetType_IMAGE:
-		if !m.db.HasImage(target) {
+		if !m.master.db.HasImage(target) {
 			return nil, fmt.Errorf("%s image not found", target)
 		}
 		break
@@ -556,7 +541,7 @@ func (m *RpcService) enqueueJob(target, arch string, t pb.EnumTargetType) (*Job,
 
 	// Create a job
 	j := &Job{
-		&api.Job{Id: m.db.NewJobId(),
+		&api.Job{Id: m.master.db.NewJobId(),
 			Target:       target,
 			Architecture: arch,
 			Started:      time.Time{},
@@ -569,7 +554,7 @@ func (m *RpcService) enqueueJob(target, arch string, t pb.EnumTargetType) (*Job,
 
 	// Save on the database
 	dbJob := &database.Job{j.Id, j.Target, j.Architecture, j.Started, j.Finished, j.Status}
-	err := m.db.SaveJob(dbJob)
+	err := m.master.db.SaveJob(dbJob)
 	dbJob = nil
 	if err != nil {
 		panic(err)
@@ -588,7 +573,7 @@ func (m *RpcService) calculateStats() {
 		s.Completed = 0
 		s.Failed = 0
 
-		m.db.FilterJobs(func(job *database.Job) bool {
+		m.master.db.FilterJobs(func(job *database.Job) bool {
 			if !job.Finished.After(time.Now().Add(-48 * time.Hour)) {
 				return false
 			}
@@ -600,4 +585,7 @@ func (m *RpcService) calculateStats() {
 			return false
 		})
 	})
+
+	m.master.sendJobsListToWebSocket(WEB_SOCKET_COMPLETED_JOBS)
+	m.master.sendJobsListToWebSocket(WEB_SOCKET_FAILED_JOBS)
 }

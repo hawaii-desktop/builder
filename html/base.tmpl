@@ -14,6 +14,7 @@
         <link rel="stylesheet" href="http://fonts.googleapis.com/css?family=Titillium+Web:300,400,600,700">
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
         <!-- <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap-theme.min.css"> -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.9.0/bootstrap-table.min.css">
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css">
         <link rel="stylesheet" href="/css/main.css">
         <link rel="stylesheet" href="/css/sb-admin.css">
@@ -91,18 +92,18 @@
                 <!-- Sidebar items -->
                 <div class="collapse navbar-collapse navbar-ex1-collapse">
                     <ul class="nav navbar-nav side-nav">
-                        <li class="active">
+                        <li id="sideBarDashboardSection">
                             <a href="/"><i class="fa fa-fw fa-dashboard"></i> Dashboard</a>
                         </li>
-                        <li>
-                            <a href="javascript:;" data-toggle="collapse" data-target="#sideBarReports">
-                                <i class="fa fa-fw fa-bar-chart-o"></i> Reports <i class="fa fa-fw fa-caret-down"></i>
+                        <li id="sideBarJobsSection">
+                            <a href="javascript:;" data-toggle="collapse" data-target="#sideBarJobs">
+                                <i class="fa fa-fw fa-table"></i> Jobs <i class="fa fa-fw fa-caret-down"></i>
                             </a>
-                            <ul id="sideBarReports" class="collapse">
-                                <li><a href="/queued"><i class="fa fa-fw fa-clock-o"></i> Queued</a></li>
-                                <li><a href="/dispatched"><i class="fa fa-fw fa-clock-o"></i> Dispatched</a></li>
-                                <li><a href="/completed"><i class="fa fa-fw fa-check"></i> Completed</a></li>
-                                <li><a href="/failed"><i class="fa fa-fw fa-exclamation-triangle"></i> Failed</a></li>
+                            <ul id="sideBarJobs" class="collapse">
+                                <li><a href="/jobs/queued"><i class="fa fa-fw fa-clock-o"></i> Queued</a></li>
+                                <li><a href="/jobs/dispatched"><i class="fa fa-fw fa-clock-o"></i> Dispatched</a></li>
+                                <li><a href="/jobs/completed"><i class="fa fa-fw fa-check"></i> Completed</a></li>
+                                <li><a href="/jobs/failed"><i class="fa fa-fw fa-exclamation-triangle"></i> Failed</a></li>
                             </ul>
                         </li>
                     </ul>
@@ -116,6 +117,9 @@
 
         <!-- JavaScript -->
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.9.0/bootstrap-table.min.js"></script>
+        <script src="/js/json2.js"></script>
+        <script src="/js/moment.min.js"></script>
 
         <!-- Custom scripts -->
         <script src="/js/websocket.js"></script>
@@ -124,6 +128,7 @@
             $(function() {
                 if (window["WebSocket"]) {
                     createWebSocket("ws://{{.SiteHost}}/ws", wsHandler);
+                    init();
                 } else {
                     $("#wrapper").hide();
                     $("#wsError").show();

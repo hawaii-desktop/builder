@@ -34,7 +34,7 @@
                             </div>
                         </div>
                     </div>
-                    <a href="/queued">
+                    <a href="/jobs/queued">
                         <div class="panel-footer">
                             <span class="pull-left">View Details</span>
                             <span class="pull-right"><i class="fa fa-arrow-circle-right"></i></span>
@@ -59,7 +59,7 @@
                             </div>
                         </div>
                     </div>
-                    <a href="/dispatched">
+                    <a href="/jobs/dispatched">
                         <div class="panel-footer">
                             <span class="pull-left">View Details</span>
                             <span class="pull-right"><i class="fa fa-arrow-circle-right"></i></span>
@@ -84,7 +84,7 @@
                             </div>
                         </div>
                     </div>
-                    <a href="/completed">
+                    <a href="/jobs/completed">
                         <div class="panel-footer">
                             <span class="pull-left">View Details</span>
                             <span class="pull-right"><i class="fa fa-arrow-circle-right"></i></span>
@@ -109,7 +109,7 @@
                             </div>
                         </div>
                     </div>
-                    <a href="/failed">
+                    <a href="/jobs/failed">
                         <div class="panel-footer">
                             <span class="pull-left">View Details</span>
                             <span class="pull-right"><i class="fa fa-arrow-circle-right"></i></span>
@@ -186,6 +186,10 @@
             $("#failedIndicator").html(obj.data.failed);
             $("#stagingIndicator").html(obj.data.staging);
             $("#mainIndicator").html(obj.data.main);
+        }
+
+        function init() {
+            $("#sideBarDashboardSection").addClass("active");
         }
     </script>
 {{ end }}

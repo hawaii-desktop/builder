@@ -38,6 +38,9 @@ function createWebSocket(address, processFunc) {
 
         // Hide dialog
         $("#reconnectWaitDialog").modal("hide");
+
+        // Request data from the web socket
+        wsRequestData();
     };
     wsConn.onclose = function(event) {
         var time = determineInterval(wsAttempts);
@@ -53,7 +56,7 @@ function createWebSocket(address, processFunc) {
         }, time);
     };
     wsConn.onmessage = function(event) {
-        var obj = $.parseJSON(event.data);
+        var obj = JSON.parse(event.data);
         processFunc(obj);
     };
     wsConn.onerror = function(event) {

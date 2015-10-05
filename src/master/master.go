@@ -27,7 +27,9 @@
 package main
 
 import (
+	"encoding/json"
 	"github.com/hawaii-desktop/builder/src/api"
+	"github.com/hawaii-desktop/builder/src/database"
 	"github.com/hawaii-desktop/builder/src/logging"
 	"github.com/hawaii-desktop/builder/src/webserver"
 	"sync"
@@ -36,6 +38,8 @@ import (
 
 // Master.
 type Master struct {
+	// Database.
+	db *database.Database
 	// Web socket hub.
 	hub *webserver.WebSocketHub
 	// Buffered channel that we can send jobs on.
@@ -48,6 +52,11 @@ type Master struct {
 	stats statistics
 	// Mutext that protects statistics.
 	sMutex sync.Mutex
+}
+
+// Generic request received from the Web user interface.
+type request struct {
+	Type int `json:"type"`
 }
 
 // Generic message sent to the Web user interface.
@@ -78,15 +87,37 @@ type statistics struct {
 // Update function.
 type statisticsUpdateFunc func(s *statistics)
 
+// Jobs list to show on the Web user interface.
+type jobsList struct {
+	Id           uint64    `json:"id"`
+	Target       string    `json:"target"`
+	Architecture string    `json:"arch"`
+	Started      time.Time `json:"started"`
+	Finished     time.Time `json:"finished"`
+}
+
 // Create a new master.
-func NewMaster(hub *webserver.WebSocketHub) *Master {
+// This also create or open the database.
+func NewMaster(hub *webserver.WebSocketHub) (*Master, error) {
+	db, err := database.NewDatabase(Config.Server.Database)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Master{
+		db:             db,
 		hub:            hub,
 		buildJobQueue:  make(chan *Job, Config.Build.MaxJobs),
 		slaveQueue:     make(chan chan *Job, Config.Build.MaxSlaves),
 		webSocketQueue: make(chan interface{}),
 		stats:          statistics{0, 0, 0, 0, 0, 0},
-	}
+	}, nil
+}
+
+// Close the database.
+func (m *Master) Close() {
+	m.db.Close()
+	m.db = nil
 }
 
 // Update statistics and send an event through the web socket.
@@ -97,6 +128,9 @@ func (m *Master) UpdateStats(f statisticsUpdateFunc) {
 	f(&m.stats)
 
 	m.SendStats()
+
+	m.sendJobsListToWebSocket(WEB_SOCKET_QUEUED_JOBS)
+	m.sendJobsListToWebSocket(WEB_SOCKET_DISPATCHED_JOBS)
 }
 
 // Send statistics through the web socket.
@@ -143,4 +177,44 @@ func (m *Master) Process() {
 			}
 		}
 	}()
+}
+
+// Process a request coming from the Web socket.
+func (m *Master) processWebSocketRequest(msg []byte) error {
+	var r *request
+	err := json.Unmarshal(msg, &r)
+	if err != nil {
+		return err
+	}
+
+	if r.Type == WEB_SOCKET_STATISTICS {
+		return nil
+	}
+
+	m.sendJobsListToWebSocket(r.Type)
+	return nil
+}
+
+// Send the jobs list to the Web socket.
+func (m *Master) sendJobsListToWebSocket(reqType int) {
+	var data []*jobsList
+	m.db.FilterJobs(func(job *database.Job) bool {
+		// Completed and failed jobs are interesting only if finished in the last 48 hours
+		if reqType == WEB_SOCKET_COMPLETED_JOBS || reqType == WEB_SOCKET_FAILED_JOBS {
+			if !job.Finished.After(time.Now().Add(-48 * time.Hour)) {
+				return false
+			}
+		}
+
+		// Append jobs depending on the request type
+		if (reqType == WEB_SOCKET_QUEUED_JOBS && job.Status >= api.JOB_STATUS_JUST_CREATED && job.Status <= api.JOB_STATUS_WAITING) ||
+			(reqType == WEB_SOCKET_DISPATCHED_JOBS && job.Status == api.JOB_STATUS_PROCESSING) ||
+			(reqType == WEB_SOCKET_COMPLETED_JOBS && job.Status == api.JOB_STATUS_SUCCESSFUL) ||
+			(reqType == WEB_SOCKET_FAILED_JOBS && job.Status >= api.JOB_STATUS_FAILED) {
+			data = append(data, &jobsList{job.Id, job.Target, job.Architecture, job.Started, job.Finished})
+		}
+
+		return false
+	})
+	m.webSocketQueue <- &message{Type: reqType, Data: data}
 }

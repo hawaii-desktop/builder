@@ -114,9 +114,11 @@ func runMaster(ctx *cli.Context) {
 	webServer.Router.GET("/users/login", loginHandler)
 	webServer.Router.GET("/users/logout", logoutHandler)
 	webServer.Router.GET("/sso/github", ssoGitHubHandler)
-	webServer.Router.GET("/queued", func(c *ace.C) { c.HTML("queued.html", c.GetAll()) })
-	webServer.Router.GET("/completed", func(c *ace.C) { c.HTML("completed.html", c.GetAll()) })
-	webServer.Router.GET("/failed", func(c *ace.C) { c.HTML("failed.html", c.GetAll()) })
+	webServer.Router.GET("/jobs", webJobsHandler)
+	webServer.Router.GET("/jobs/queued", webJobsQueuedHandler)
+	webServer.Router.GET("/jobs/dispatched", webJobsDispatchedHandler)
+	webServer.Router.GET("/jobs/completed", webJobsCompletedHandler)
+	webServer.Router.GET("/jobs/failed", webJobsFailedHandler)
 	webServer.Router.Static("/css", http.Dir(Config.Web.StaticDir+"/css"))
 	webServer.Router.Static("/js", http.Dir(Config.Web.StaticDir+"/js"))
 	webServer.Router.Static("/img", http.Dir(Config.Web.StaticDir+"/img"))
@@ -129,23 +131,38 @@ func runMaster(ctx *cli.Context) {
 	logging.Infoln("Web server listening on", webServer.Address())
 
 	// Create the main object
-	master := NewMaster(webServer.Hub)
+	master, err := NewMaster(webServer.Hub)
+	if err != nil {
+		logging.Errorln(err)
+		return
+	}
+	defer master.Close()
 
 	// Handle web socket registration and unregistration
 	webServer.Hub.HandleRegister(func(c *webserver.WebSocketConnection) {
 		// Send statistics as soon as a client connects
 		master.SendStats()
+
+		// Receive messages from the Web UI
+		go func() {
+			for {
+				// TODO: Find a way to quit this goroutine
+				select {
+				case m := <-c.Outgoing:
+					if err := master.processWebSocketRequest(m); err != nil {
+						logging.Errorf("Error processing request from Web socket: %s\n", err)
+						return
+					}
+					break
+				}
+			}
+		}()
 	})
 	webServer.Hub.HandleUnregister(func(c *webserver.WebSocketConnection) {
 	})
 
 	// Create master service
-	service, err := NewRpcService(master)
-	if err != nil {
-		logging.Errorln(err)
-		return
-	}
-	defer service.Close()
+	service := NewRpcService(master)
 
 	// Register RPC server
 	rpcListener, err := listenRpc(Config.Server.Address)
