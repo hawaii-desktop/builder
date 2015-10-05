@@ -120,6 +120,11 @@ func loginHandler(c *ace.C) {
 	c.Redirect(url)
 }
 
+func logoutHandler(c *ace.C) {
+	c.Sessions("authentication").Delete(c.Writer)
+	c.Redirect("/")
+}
+
 func ssoGitHubHandler(c *ace.C) {
 	if oauthConf == nil {
 		msg := fmt.Sprintf("No oauth configuration")

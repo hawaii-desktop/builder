@@ -112,6 +112,7 @@ func runMaster(ctx *cli.Context) {
 	webServer.Router.HtmlTemplate(webserver.TemplateRenderer(Config.Web.TemplateDir))
 	webServer.Router.GET("/", func(c *ace.C) { c.HTML("overview.html", c.GetAll()) })
 	webServer.Router.GET("/users/login", loginHandler)
+	webServer.Router.GET("/users/logout", logoutHandler)
 	webServer.Router.GET("/sso/github", ssoGitHubHandler)
 	webServer.Router.GET("/queued", func(c *ace.C) { c.HTML("queued.html", c.GetAll()) })
 	webServer.Router.GET("/completed", func(c *ace.C) { c.HTML("completed.html", c.GetAll()) })
