@@ -24,6 +24,34 @@
  * $END_LICENSE$
  ***************************************************************************/
 
-package builder
+package version
 
-const APP_VER = "0.0.0"
+import (
+	"fmt"
+	"io"
+	"os"
+)
+
+// Output the version string to the writer, in the following
+// format, followed by a new line:
+//
+//     <cmd> <package> <version>
+//
+// Where <cmd> is the command, <package> the canonical project
+// name and <version> the actual version string.
+//
+// For example, a binary "builder-master" built from
+// github.com/hawaii-desktop/builder with version v2.0 would
+// output the following:
+//
+//     binary-master github.com/hawaii-desktop/builder v2.0
+//
+func FprintVersion(w io.Writer) {
+	fmt.Fprintln(w, os.Args[0], Package, Version)
+}
+
+// Output version information using FprintVersion() on
+// standard output.
+func PrintVersion() {
+	FprintVersion(os.Stdout)
+}

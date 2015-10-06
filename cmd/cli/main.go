@@ -30,12 +30,11 @@ import (
 	"errors"
 	"github.com/codegangsta/cli"
 	"github.com/hawaii-desktop/builder/logging"
+	"github.com/hawaii-desktop/builder/version"
 	"gopkg.in/gcfg.v1"
 	"os"
 	"runtime"
 )
-
-const APP_VER = "0.0.0"
 
 var (
 	ErrWrongArguments = errors.New("wrong arguments")
@@ -49,7 +48,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "builder-cli"
 	app.Usage = "Command line client for Builder"
-	app.Version = APP_VER
+	app.Version = version.Version
 	app.Commands = []cli.Command{
 		CmdAddPackage,
 		CmdRemovePackage,

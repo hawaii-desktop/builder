@@ -28,11 +28,11 @@ package main
 
 import (
 	"github.com/codegangsta/cli"
-	"github.com/hawaii-desktop/builder"
 	"github.com/hawaii-desktop/builder/logging"
 	"github.com/hawaii-desktop/builder/master"
 	"github.com/hawaii-desktop/builder/pidfile"
 	pb "github.com/hawaii-desktop/builder/protocol"
+	"github.com/hawaii-desktop/builder/version"
 	"github.com/hawaii-desktop/builder/webserver"
 	"github.com/plimble/ace"
 	"google.golang.org/grpc"
@@ -53,7 +53,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "builder-master"
 	app.Usage = "Collect and dispatch build requests"
-	app.Version = builder.APP_VER
+	app.Version = version.Version
 	app.Action = runMaster
 	app.Flags = []cli.Flag{
 		cli.StringFlag{"config, c", "", "Custom configuration file path", ""},
