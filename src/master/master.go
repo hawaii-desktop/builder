@@ -119,44 +119,41 @@ func (m *Master) Close() {
 	m.db = nil
 }
 
-// Start processing
-func (m *Master) Process() {
-	// Dispatch jobs
-	go func() {
-		for {
-			select {
-			case j := <-m.buildJobQueue:
-				logging.Tracef("About to dispatch job #%d...\n", j.Id)
-				go func() {
-					// Update job
-					j.Started = time.Now()
-					j.Status = api.JOB_STATUS_WAITING
+// Dispatch jobs.
+func (m *Master) Dispatch() {
+	for {
+		select {
+		case j := <-m.buildJobQueue:
+			logging.Tracef("About to dispatch job #%d...\n", j.Id)
+			go func() {
+				// Update job
+				j.Started = time.Now()
+				j.Status = api.JOB_STATUS_WAITING
 
-					// Save on the database
-					m.saveDatabaseJob(j)
+				// Save on the database
+				m.saveDatabaseJob(j)
 
-					// Update Web socket clients
-					m.updateStatistics()
-					m.updateAllJobs()
+				// Update Web socket clients
+				m.updateStatistics()
+				m.updateAllJobs()
 
-					// Dispatch
-					slave := <-m.slaveQueue
-					logging.Tracef("Dispatching job #%d...\n", j.Id)
-					slave <- j
-				}()
+				// Dispatch
+				slave := <-m.slaveQueue
+				logging.Tracef("Dispatching job #%d...\n", j.Id)
+				slave <- j
+			}()
+		}
+	}
+}
+
+// Queue events to the Web socket.
+func (m *Master) DeliverWebSocketEvents() {
+	for {
+		select {
+		case e := <-m.webSocketQueue:
+			if e != nil {
+				m.hub.Broadcast(e)
 			}
 		}
-	}()
-
-	// Queue events to the web socket
-	go func() {
-		for {
-			select {
-			case e := <-m.webSocketQueue:
-				if e != nil {
-					m.hub.Broadcast(e)
-				}
-			}
-		}
-	}()
+	}
 }

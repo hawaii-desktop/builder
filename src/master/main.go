@@ -157,7 +157,8 @@ func runMaster(ctx *cli.Context) {
 	go grpcServer.Serve(rpcListener)
 
 	// Start processing
-	master.Process()
+	go master.Dispatch()
+	go master.DeliverWebSocketEvents()
 
 	// Gracefully exit with SIGINT and SIGTERM
 	sigchan := make(chan os.Signal, 2)
