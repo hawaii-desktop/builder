@@ -251,7 +251,7 @@ func (m *RpcService) Subscribe(stream pb.Builder_SubscribeServer) error {
 			// Update the status
 			j.Status = jobStatusMap[jobUpdate.Status]
 
-			// Handle finished jobs
+			// Handle status change
 			if j.Status >= api.JOB_STATUS_SUCCESSFUL && j.Status <= api.JOB_STATUS_CRASHED {
 				// Update finished time and notify
 				j.Finished = time.Now()
@@ -265,19 +265,8 @@ func (m *RpcService) Subscribe(stream pb.Builder_SubscribeServer) error {
 						j.Id, slave.Name)
 				}
 
-				// Save on the database
-				dbJob := &database.Job{j.Id, j.Target, j.Architecture, j.Started, j.Finished, j.Status}
-				m.master.db.SaveJob(dbJob)
-				dbJob = nil
-
 				// Remove from the list
 				m.removeJob(j)
-
-				// Broadcast web clients
-				m.master.UpdateStats(func(s *statistics) {
-					s.Dispatched--
-				})
-				m.calculateStats()
 
 				// Proceed to the next job
 				j.Channel <- true
@@ -285,6 +274,13 @@ func (m *RpcService) Subscribe(stream pb.Builder_SubscribeServer) error {
 				logging.Tracef("Change job #%d status to \"%s\"\n",
 					jobUpdate.Id, api.JobStatusDescriptionMap[j.Status])
 			}
+
+			// Save on the database
+			m.master.saveDatabaseJob(j)
+
+			// Update Web socket clients
+			m.master.updateStatistics()
+			m.master.updateAllJobs()
 		}
 	}
 }
@@ -486,11 +482,6 @@ func (m *RpcService) appendJob(r *Job) {
 
 	// Append job
 	m.Jobs = append(m.Jobs, r)
-
-	// Broadcast web clients
-	m.master.UpdateStats(func(s *statistics) {
-		s.Queued = len(m.Jobs)
-	})
 }
 
 // Remove a job from the list.
@@ -514,11 +505,6 @@ func (m *RpcService) removeJob(j *Job) {
 	// Remove
 	m.Jobs, m.Jobs[len(m.Jobs)-1] =
 		append(m.Jobs[:i], m.Jobs[i+1:]...), nil
-
-	// Broadcast web clients
-	m.master.UpdateStats(func(s *statistics) {
-		s.Queued = len(m.Jobs)
-	})
 }
 
 // Enqueue a job.
@@ -552,40 +538,18 @@ func (m *RpcService) enqueueJob(target, arch string, t pb.EnumTargetType) (*Job,
 		make(chan bool),
 	}
 
-	// Save on the database
-	dbJob := &database.Job{j.Id, j.Target, j.Architecture, j.Started, j.Finished, j.Status}
-	err := m.master.db.SaveJob(dbJob)
-	dbJob = nil
-	if err != nil {
-		panic(err)
-	}
+	// Append job
 	m.appendJob(j)
+
+	// Save on the database
+	m.master.saveDatabaseJob(j)
+
+	// Update Web socket clients
+	m.master.updateStatistics()
+	m.master.updateAllJobs()
 
 	// Push it onto the queue
 	m.master.buildJobQueue <- j
 	logging.Infof("Queued job #%d (target \"%s\" for %s)\n", j.Id, target, arch)
 	return j, nil
-}
-
-// Calculate statistics of completed and failed jobs.
-func (m *RpcService) calculateStats() {
-	m.master.UpdateStats(func(s *statistics) {
-		s.Completed = 0
-		s.Failed = 0
-
-		m.master.db.FilterJobs(func(job *database.Job) bool {
-			if !job.Finished.After(time.Now().Add(-48 * time.Hour)) {
-				return false
-			}
-			if job.Status == api.JOB_STATUS_SUCCESSFUL {
-				s.Completed++
-			} else if job.Status > api.JOB_STATUS_SUCCESSFUL {
-				s.Failed++
-			}
-			return false
-		})
-	})
-
-	m.master.sendJobsListToWebSocket(WEB_SOCKET_COMPLETED_JOBS)
-	m.master.sendJobsListToWebSocket(WEB_SOCKET_FAILED_JOBS)
 }

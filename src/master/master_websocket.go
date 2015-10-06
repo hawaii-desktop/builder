@@ -1,0 +1,141 @@
+/****************************************************************************
+ * This file is part of Builder.
+ *
+ * Copyright (C) 2015 Pier Luigi Fiorini
+ *
+ * Author(s):
+ *    Pier Luigi Fiorini <pierluigi.fiorini@gmail.com>
+ *
+ * $BEGIN_LICENSE:AGPL3+$
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * $END_LICENSE$
+ ***************************************************************************/
+
+package main
+
+import (
+	"encoding/json"
+	"github.com/hawaii-desktop/builder/src/api"
+	"github.com/hawaii-desktop/builder/src/database"
+	"github.com/hawaii-desktop/builder/src/logging"
+	"github.com/hawaii-desktop/builder/src/webserver"
+	"time"
+)
+
+// Handle Web socket connection registration.
+func (m *Master) webSocketConnectionRegistration(c *webserver.WebSocketConnection) {
+	// Send statistics as soon as a client connects
+	m.updateStatistics()
+
+	// Receive messages from the Web UI
+	go func() {
+		for {
+			// TODO: Find a way to quit this goroutine
+			select {
+			case msg := <-c.Outgoing:
+				var r *request
+				err := json.Unmarshal(msg, &r)
+				if err != nil {
+					logging.Errorf("Error processing request from Web socket: %s\n", err)
+					return
+				}
+
+				if r.Type != WEB_SOCKET_STATISTICS {
+					m.updateJobs(r.Type)
+				}
+				break
+			}
+		}
+	}()
+}
+
+// Handle Web socket connection unregistration.
+func (m *Master) webSocketConnectionUnregistration(c *webserver.WebSocketConnection) {
+}
+
+// Update statistics.
+func (m *Master) updateStatistics() {
+	// Prevent other goroutines from updating statistics
+	m.sMutex.Lock()
+	defer m.sMutex.Unlock()
+
+	// Update statistics
+	m.db.FilterJobs(func(job *database.Job) bool {
+		m.stats.Queued = 0
+		m.stats.Dispatched = 0
+		m.stats.Completed = 0
+		m.stats.Failed = 0
+
+		switch job.Status {
+		case api.JOB_STATUS_JUST_CREATED:
+			m.stats.Queued++
+			break
+		case api.JOB_STATUS_WAITING:
+			m.stats.Queued++
+			break
+		case api.JOB_STATUS_PROCESSING:
+			m.stats.Dispatched++
+			break
+		case api.JOB_STATUS_SUCCESSFUL:
+			if job.Finished.After(time.Now().Add(-48 * time.Hour)) {
+				m.stats.Completed++
+			}
+			break
+		case api.JOB_STATUS_FAILED:
+			if job.Finished.After(time.Now().Add(-48 * time.Hour)) {
+				m.stats.Failed++
+			}
+			break
+		case api.JOB_STATUS_CRASHED:
+			break
+		}
+
+		return false
+	})
+	m.webSocketQueue <- &message{Type: WEB_SOCKET_STATISTICS, Data: m.stats}
+}
+
+// Send the jobs list to the Web socket.
+func (m *Master) updateJobs(reqType int) {
+	var data []*jobsList
+	m.db.FilterJobs(func(job *database.Job) bool {
+		// Completed and failed jobs are interesting only if finished in the last 48 hours
+		if reqType == WEB_SOCKET_COMPLETED_JOBS || reqType == WEB_SOCKET_FAILED_JOBS {
+			if !job.Finished.After(time.Now().Add(-48 * time.Hour)) {
+				return false
+			}
+		}
+
+		// Append jobs depending on the request type
+		if (reqType == WEB_SOCKET_QUEUED_JOBS && job.Status >= api.JOB_STATUS_JUST_CREATED && job.Status <= api.JOB_STATUS_WAITING) ||
+			(reqType == WEB_SOCKET_DISPATCHED_JOBS && job.Status == api.JOB_STATUS_PROCESSING) ||
+			(reqType == WEB_SOCKET_COMPLETED_JOBS && job.Status == api.JOB_STATUS_SUCCESSFUL) ||
+			(reqType == WEB_SOCKET_FAILED_JOBS && job.Status >= api.JOB_STATUS_FAILED) {
+			data = append(data, &jobsList{job.Id, job.Target, job.Architecture, job.Started, job.Finished})
+		}
+
+		return false
+	})
+	m.webSocketQueue <- &message{Type: reqType, Data: data}
+}
+
+// Send the jobs list to the Web socket regardless of the status.
+func (m *Master) updateAllJobs() {
+	m.updateJobs(WEB_SOCKET_QUEUED_JOBS)
+	m.updateJobs(WEB_SOCKET_DISPATCHED_JOBS)
+	m.updateJobs(WEB_SOCKET_COMPLETED_JOBS)
+	m.updateJobs(WEB_SOCKET_FAILED_JOBS)
+}

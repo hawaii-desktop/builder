@@ -139,27 +139,8 @@ func runMaster(ctx *cli.Context) {
 	defer master.Close()
 
 	// Handle web socket registration and unregistration
-	webServer.Hub.HandleRegister(func(c *webserver.WebSocketConnection) {
-		// Send statistics as soon as a client connects
-		master.SendStats()
-
-		// Receive messages from the Web UI
-		go func() {
-			for {
-				// TODO: Find a way to quit this goroutine
-				select {
-				case m := <-c.Outgoing:
-					if err := master.processWebSocketRequest(m); err != nil {
-						logging.Errorf("Error processing request from Web socket: %s\n", err)
-						return
-					}
-					break
-				}
-			}
-		}()
-	})
-	webServer.Hub.HandleUnregister(func(c *webserver.WebSocketConnection) {
-	})
+	webServer.Hub.HandleRegister(master.webSocketConnectionRegistration)
+	webServer.Hub.HandleUnregister(master.webSocketConnectionUnregistration)
 
 	// Create master service
 	service := NewRpcService(master)
@@ -177,9 +158,6 @@ func runMaster(ctx *cli.Context) {
 
 	// Start processing
 	master.Process()
-
-	// Calculate statisti
-	service.calculateStats()
 
 	// Gracefully exit with SIGINT and SIGTERM
 	sigchan := make(chan os.Signal, 2)
