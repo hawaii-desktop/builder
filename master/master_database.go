@@ -33,7 +33,7 @@ import (
 // Save job on the database.
 func (m *Master) saveDatabaseJob(j *Job) {
 	// Save
-	dbJob := &database.Job{j.Id, j.Target, j.Architecture, j.Started, j.Finished, j.Status}
+	dbJob := &database.Job{j.Id, j.Type, j.Target, j.Architecture, j.Started, j.Finished, j.Status}
 	m.db.SaveJob(dbJob)
 	dbJob = nil
 }

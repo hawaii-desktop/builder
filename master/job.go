@@ -34,16 +34,6 @@ import (
 type Job struct {
 	// Base.
 	*builder.Job
-	// Type.
-	Type JobTargetType
 	// Channel.
 	Channel chan bool
 }
-
-// Job target type enumeration.
-type JobTargetType uint32
-
-const (
-	JOB_TARGET_TYPE_PACKAGE = iota
-	JOB_TARGET_TYPE_IMAGE
-)

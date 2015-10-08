@@ -34,6 +34,8 @@ import (
 type Job struct {
 	// Identifier.
 	Id uint64
+	// Type.
+	Type JobTargetType
 	// Target name.
 	Target string
 	// Architecture.
@@ -45,6 +47,14 @@ type Job struct {
 	// Status.
 	Status JobStatus
 }
+
+// Job target type enumeration.
+type JobTargetType uint32
+
+const (
+	JOB_TARGET_TYPE_PACKAGE = iota
+	JOB_TARGET_TYPE_IMAGE
+)
 
 // Job status enumeration.
 type JobStatus uint32

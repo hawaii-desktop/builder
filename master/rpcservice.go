@@ -65,9 +65,9 @@ var (
 )
 
 // Map to decode job type.
-var jobTargetMap = map[pb.EnumTargetType]JobTargetType{
-	pb.EnumTargetType_PACKAGE: JOB_TARGET_TYPE_PACKAGE,
-	pb.EnumTargetType_IMAGE:   JOB_TARGET_TYPE_IMAGE,
+var jobTargetMap = map[pb.EnumTargetType]builder.JobTargetType{
+	pb.EnumTargetType_PACKAGE: builder.JOB_TARGET_TYPE_PACKAGE,
+	pb.EnumTargetType_IMAGE:   builder.JOB_TARGET_TYPE_IMAGE,
 }
 
 // Map to decode job status.
@@ -121,7 +121,7 @@ func (m *RpcService) Subscribe(stream pb.Builder_SubscribeServer) error {
 
 		// Retrieve target information and send
 		switch j.Type {
-		case JOB_TARGET_TYPE_PACKAGE:
+		case builder.JOB_TARGET_TYPE_PACKAGE:
 			pkg := m.master.db.GetPackage(j.Target)
 			if pkg == nil {
 				return
@@ -147,7 +147,7 @@ func (m *RpcService) Subscribe(stream pb.Builder_SubscribeServer) error {
 			}
 			sendEnvelope(response)
 			break
-		case JOB_TARGET_TYPE_IMAGE:
+		case builder.JOB_TARGET_TYPE_IMAGE:
 			img := m.master.db.GetImage(j.Target)
 			if img == nil {
 				return
@@ -527,14 +527,15 @@ func (m *RpcService) enqueueJob(target, arch string, t pb.EnumTargetType) (*Job,
 
 	// Create a job
 	j := &Job{
-		&builder.Job{Id: m.master.db.NewJobId(),
+		&builder.Job{
+			Id:           m.master.db.NewJobId(),
+			Type:         jobTargetMap[t],
 			Target:       target,
 			Architecture: arch,
 			Started:      time.Now(),
 			Finished:     time.Time{},
 			Status:       builder.JOB_STATUS_JUST_CREATED,
 		},
-		jobTargetMap[t],
 		make(chan bool),
 	}
 

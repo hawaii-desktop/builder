@@ -36,12 +36,13 @@ import (
 )
 
 type Job struct {
-	Id           uint64            `json:"id"`
-	Target       string            `json:"target"`
-	Architecture string            `json:"arch"`
-	Started      time.Time         `json:"started"`
-	Finished     time.Time         `json:"finished"`
-	Status       builder.JobStatus `json:"status"`
+	Id           uint64                `json:"id"`
+	Type         builder.JobTargetType `json:"type"`
+	Target       string                `json:"target"`
+	Architecture string                `json:"arch"`
+	Started      time.Time             `json:"started"`
+	Finished     time.Time             `json:"finished"`
+	Status       builder.JobStatus     `json:"status"`
 }
 
 // Return a stored job.
