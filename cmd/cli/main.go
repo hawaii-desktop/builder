@@ -33,6 +33,7 @@ import (
 	"github.com/hawaii-desktop/builder/version"
 	"gopkg.in/gcfg.v1"
 	"os"
+	"os/user"
 	"runtime"
 )
 
@@ -70,8 +71,9 @@ func main() {
 		if ctx.IsSet("config") {
 			configArg = ctx.String("config")
 		} else {
+			user, _ := user.Current()
 			possible := []string{
-				"~/.config/builder/builder-cli.ini",
+				user.HomeDir + "/.config/builder/builder-cli.ini",
 				"/etc/builder/builder-cli.ini",
 				"builder-cli.ini",
 			}
