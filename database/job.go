@@ -92,6 +92,30 @@ func (db *Database) FilterJobs(filter func(job *Job) bool) []*Job {
 	return list
 }
 
+// Iterate the jobs list.
+func (db *Database) ForEachJob(f func(job *Job)) {
+	db.db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte("job"))
+		if bucket == nil {
+			return nil
+		}
+
+		bucket.ForEach(func(k, v []byte) error {
+			var job *Job
+			err := json.Unmarshal(v, &job)
+			if err != nil {
+				return err
+			}
+
+			f(job)
+
+			return nil
+		})
+
+		return nil
+	})
+}
+
 // Store a job.
 func (db *Database) SaveJob(job *Job) error {
 	return db.db.Update(func(tx *bolt.Tx) error {
