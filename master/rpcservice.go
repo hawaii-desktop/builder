@@ -44,12 +44,8 @@ import (
 type RpcService struct {
 	// List of slaves.
 	Slaves []*Slave
-	// List of jobs to be processed.
-	Jobs []*Job
 	// Protects slave list.
 	sMutex sync.Mutex
-	// Protects jobs list.
-	jMutex sync.Mutex
 	// Master.
 	master *Master
 }
@@ -88,7 +84,6 @@ var jobStatusMap = map[pb.EnumJobStatus]builder.JobStatus{
 func NewRpcService(master *Master) *RpcService {
 	return &RpcService{
 		Slaves: make([]*Slave, 0, Config.Build.MaxSlaves),
-		Jobs:   make([]*Job, 0, Config.Build.MaxJobs),
 		master: master,
 	}
 }
@@ -234,19 +229,17 @@ func (m *RpcService) Subscribe(stream pb.Builder_SubscribeServer) error {
 			}
 			m.sMutex.Unlock()
 
-			m.jMutex.Lock()
 			var j *Job = nil
-			for _, curJob := range m.Jobs {
+			m.master.forEachJob(func(curJob *Job) {
 				// Skip other jobs
 				if curJob.Id == jobUpdate.Id {
 					j = curJob
 				}
-			}
+			})
 			if j == nil {
 				logging.Errorf("Cannot find job #%d\n", jobUpdate.Id)
 				return ErrJobNotFound
 			}
-			m.jMutex.Unlock()
 
 			// Update the status
 			j.Status = jobStatusMap[jobUpdate.Status]
@@ -266,7 +259,7 @@ func (m *RpcService) Subscribe(stream pb.Builder_SubscribeServer) error {
 				}
 
 				// Remove from the list
-				m.removeJob(j)
+				m.master.removeJob(j)
 
 				// Proceed to the next job
 				j.Channel <- true
@@ -475,38 +468,6 @@ func (m *RpcService) createSlave(args *pb.SubscribeRequest) (*Slave, error) {
 	return slave, nil
 }
 
-// Append a job to the list.
-func (m *RpcService) appendJob(r *Job) {
-	m.jMutex.Lock()
-	defer m.jMutex.Unlock()
-
-	// Append job
-	m.Jobs = append(m.Jobs, r)
-}
-
-// Remove a job from the list.
-func (m *RpcService) removeJob(j *Job) {
-	m.jMutex.Lock()
-	defer m.jMutex.Unlock()
-
-	// Find index
-	i := -1
-	for k, v := range m.Jobs {
-		if v == j {
-			i = k
-			break
-		}
-	}
-	if i == -1 {
-		logging.Warningf("Unable to remove job #%d from the list\n", j.Id)
-		return
-	}
-
-	// Remove
-	m.Jobs, m.Jobs[len(m.Jobs)-1] =
-		append(m.Jobs[:i], m.Jobs[i+1:]...), nil
-}
-
 // Enqueue a job.
 func (m *RpcService) enqueueJob(target, arch string, t pb.EnumTargetType) (*Job, error) {
 	// Verify if the target exists
@@ -540,17 +501,13 @@ func (m *RpcService) enqueueJob(target, arch string, t pb.EnumTargetType) (*Job,
 	}
 
 	// Append job
-	m.appendJob(j)
+	m.master.appendJob(j)
 
 	// Save on the database
 	m.master.saveDatabaseJob(j)
 
-	// Update Web socket clients
-	m.master.updateStatistics()
-	m.master.updateAllJobs()
-
 	// Push it onto the queue
-	m.master.buildJobQueue <- j
-	logging.Infof("Queued job #%d (target \"%s\" for %s)\n", j.Id, target, arch)
+	m.master.queueJob(j)
+
 	return j, nil
 }

@@ -161,6 +161,10 @@ func runMaster(ctx *cli.Context) {
 	go m.Dispatch()
 	go m.DeliverWebSocketEvents()
 
+	// Queue jobs that were not picked up by any slave
+	// on a previous run
+	m.LoadDatabaseJobs()
+
 	// Gracefully exit with SIGINT and SIGTERM
 	sigchan := make(chan os.Signal, 2)
 	signal.Notify(sigchan, os.Interrupt)

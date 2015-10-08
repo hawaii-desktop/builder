@@ -47,6 +47,10 @@ type Master struct {
 	slaveQueue chan chan *Job
 	// Broadcast queue for the web socket.
 	webSocketQueue chan interface{}
+	// List of jobs to be processed.
+	jobs []*Job
+	// Protects jobs list.
+	jobsMutex sync.Mutex
 	// Current statistics.
 	stats statistics
 	// Mutext that protects statistics.
@@ -109,6 +113,7 @@ func NewMaster(hub *webserver.WebSocketHub) (*Master, error) {
 		buildJobQueue:  make(chan *Job, Config.Build.MaxJobs),
 		slaveQueue:     make(chan chan *Job, Config.Build.MaxSlaves),
 		webSocketQueue: make(chan interface{}),
+		jobs:           make([]*Job, 0, Config.Build.MaxJobs),
 		stats:          statistics{0, 0, 0, 0, 0, 0},
 	}, nil
 }

@@ -27,8 +27,36 @@
 package master
 
 import (
+	"github.com/hawaii-desktop/builder"
 	"github.com/hawaii-desktop/builder/database"
 )
+
+// Load jobs that were created and never dispatched before.
+// Jobs could have been created and then the master could have been
+// shut down before any slave could process them.
+func (m *Master) LoadDatabaseJobs() {
+	m.db.ForEachJob(func(job *database.Job) {
+		if job.Status != builder.JOB_STATUS_JUST_CREATED &&
+			job.Status != builder.JOB_STATUS_WAITING {
+			return
+		}
+
+		j := &Job{
+			&builder.Job{
+				Id:           job.Id,
+				Type:         job.Type,
+				Target:       job.Target,
+				Architecture: job.Architecture,
+				Started:      job.Started,
+				Finished:     job.Finished,
+				Status:       job.Status,
+			},
+			make(chan bool),
+		}
+		m.appendJob(j)
+		m.queueJob(j)
+	})
+}
 
 // Save job on the database.
 func (m *Master) saveDatabaseJob(j *Job) {
