@@ -121,19 +121,19 @@ func rpmFactoryGitFetch(repo []string, bs *BuildStep) error {
 	if repo[0] == bs.parent.job.Target {
 		r := regexp.MustCompile(`.+STD(?:OUT|ERR) `)
 
-		cmd := bs.parent.Command("sh", "-c", `git log -1 --format="%cd" | tr -d '-'`)
+		cmd := bs.parent.Command("git", "log", "-1", "--format='%cd'", "--date=short")
 		if err := utils.RunWithTimeout(cmd, cloneTimeout); err != nil {
 			return err
 		}
-		stdout := bs.parent.buffer.String()
-		bs.parent.properties["VcsDate"] = r.ReplaceAllString(stdout, "")
+		stdout := strings.Replace(r.ReplaceAllString(bs.parent.buffer.String(), ""), "-", "", -1)
+		bs.parent.properties["VcsDate"] = stdout
 
-		cmd = bs.parent.Command("sh", "-c", `git log -1 --format="%h" | tr -d '"'`)
+		cmd = bs.parent.Command("git", "log", "-1", "--format='%h'")
 		if err := utils.RunWithTimeout(cmd, cloneTimeout); err != nil {
 			return err
 		}
-		stdout = bs.parent.buffer.String()
-		bs.parent.properties["VcsShortRev"] = r.ReplaceAllString(stdout, "")
+		stdout = r.ReplaceAllString(bs.parent.buffer.String(), "")
+		bs.parent.properties["VcsShortRev"] = stdout
 	}
 
 	return nil
