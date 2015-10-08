@@ -27,80 +27,47 @@
 package database
 
 import (
-	"bytes"
-	"encoding/binary"
 	"github.com/boltdb/bolt"
 )
 
 // Return a new unique job id.
 func (db *Database) NewJobId() uint64 {
-	db.jobIdMutex.Lock()
-	defer db.jobIdMutex.Unlock()
-	db.globalJobId += 1
-	db.setLastId("job", db.globalJobId)
-	return db.globalJobId
-}
+	var id uint64
 
-// Return a new unique slave id.
-func (db *Database) NewSlaveId() uint32 {
-	db.slaveIdMutex.Lock()
-	defer db.slaveIdMutex.Unlock()
-	db.globalSlaveId += 1
-	db.setLastId("slave", uint64(db.globalSlaveId))
-	return db.globalSlaveId
-}
-
-// Return the last job id from the sequence.
-func (db *Database) LastJobId() uint64 {
-	return db.globalJobId
-}
-
-// Return the last slave id from the sequence.
-func (db *Database) LastSlaveId() uint32 {
-	return db.globalSlaveId
-}
-
-// Return the last id from the sequence specified.
-func (db *Database) getLastId(name string) (uint64, bool) {
-	var result uint64
-	err := db.db.View(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte("sequences"))
-		if bucket == nil {
-			return ErrBucketNotFound
-		}
-
-		c := bucket.Cursor()
-		for k, v := c.Seek([]byte(name)); bytes.Equal(k, []byte(name)); k, v = c.Next() {
-			buf := bytes.NewReader(v)
-			return binary.Read(buf, binary.LittleEndian, &result)
-		}
-		return nil
-	})
-	return result, err == nil
-}
-
-// Save the last id for the specified sequence.
-func (db *Database) setLastId(name string, val uint64) {
 	err := db.db.Update(func(tx *bolt.Tx) error {
-		bucket, err := tx.CreateBucketIfNotExists([]byte("sequences"))
+		bucket, err := tx.CreateBucketIfNotExists([]byte("job"))
 		if err != nil {
 			return err
 		}
 
-		buf := new(bytes.Buffer)
-		err = binary.Write(buf, binary.LittleEndian, val)
-		if err != nil {
-			return err
-		}
-
-		err = bucket.Put([]byte(name), buf.Bytes())
-		if err != nil {
-			return err
-		}
-
-		return nil
+		id, err = bucket.NextSequence()
+		return err
 	})
+
 	if err != nil {
 		panic(err)
 	}
+
+	return id
+}
+
+// Return a new unique slave id.
+func (db *Database) NewSlaveId() uint64 {
+	var id uint64
+
+	err := db.db.Update(func(tx *bolt.Tx) error {
+		bucket, err := tx.CreateBucketIfNotExists([]byte("slave"))
+		if err != nil {
+			return err
+		}
+
+		id, err = bucket.NextSequence()
+		return err
+	})
+
+	if err != nil {
+		panic(err)
+	}
+
+	return id
 }

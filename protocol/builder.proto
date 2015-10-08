@@ -136,13 +136,13 @@ message SubscribeRequest {
 // Subscription response.
 message SubscribeResponse {
   // Slave identifier.
-  uint32 id = 1;
+  uint64 id = 1;
 }
 
 // Unsubscription request.
 message UnsubscribeRequest {
   // Slave identifier.
-  uint32 id = 1;
+  uint64 id = 1;
 }
 
 // Unsubscription response.
@@ -167,7 +167,7 @@ message JobDispatchRequest {
 // Contains updated information on a job being processed.
 message JobUpdateRequest {
   // Slave identifier.
-  uint32 slave_id = 1;
+  uint64 slave_id = 1;
 
   // Identifier.
   uint64 id = 2;

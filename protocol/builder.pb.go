@@ -141,7 +141,7 @@ func (*SubscribeRequest) ProtoMessage()    {}
 // Subscription response.
 type SubscribeResponse struct {
 	// Slave identifier.
-	Id uint32 `protobuf:"varint,1,opt,name=id" json:"id,omitempty"`
+	Id uint64 `protobuf:"varint,1,opt,name=id" json:"id,omitempty"`
 }
 
 func (m *SubscribeResponse) Reset()         { *m = SubscribeResponse{} }
@@ -151,7 +151,7 @@ func (*SubscribeResponse) ProtoMessage()    {}
 // Unsubscription request.
 type UnsubscribeRequest struct {
 	// Slave identifier.
-	Id uint32 `protobuf:"varint,1,opt,name=id" json:"id,omitempty"`
+	Id uint64 `protobuf:"varint,1,opt,name=id" json:"id,omitempty"`
 }
 
 func (m *UnsubscribeRequest) Reset()         { *m = UnsubscribeRequest{} }
@@ -276,7 +276,7 @@ func _JobDispatchRequest_OneofUnmarshaler(msg proto.Message, tag, wire int, b *p
 // Contains updated information on a job being processed.
 type JobUpdateRequest struct {
 	// Slave identifier.
-	SlaveId uint32 `protobuf:"varint,1,opt,name=slave_id" json:"slave_id,omitempty"`
+	SlaveId uint64 `protobuf:"varint,1,opt,name=slave_id" json:"slave_id,omitempty"`
 	// Identifier.
 	Id uint64 `protobuf:"varint,2,opt,name=id" json:"id,omitempty"`
 	// Current status of the job.

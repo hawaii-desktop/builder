@@ -29,7 +29,7 @@ package master
 // Slave structure
 type Slave struct {
 	// Identifier.
-	Id uint32
+	Id uint64
 	// Name.
 	Name string
 	// Channels to subscribe to.
@@ -47,7 +47,7 @@ type Slave struct {
 }
 
 // Creates and returns a new Slave object
-func NewSlave(id uint32, name string, chans []string, archs []string) *Slave {
+func NewSlave(id uint64, name string, chans []string, archs []string) *Slave {
 	// Create and return the object
 	slave := &Slave{
 		Id:            id,

@@ -42,7 +42,7 @@ type Client struct {
 	client pb.BuilderClient
 	// Identifier for this slave, attributed after subscription.
 	// Its value is 0 when unsubscribed.
-	slaveId uint32
+	slaveId uint64
 	// Channel for job processing.
 	jobQueue chan *Job
 	// Channel used to synchronize all goroutines.
