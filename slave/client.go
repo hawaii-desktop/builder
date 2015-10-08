@@ -74,7 +74,6 @@ func NewClient(conn *grpc.ClientConn) *Client {
 		for {
 			select {
 			case j := <-c.jobQueue:
-				logging.Traceln(j)
 				j.Process()
 			case <-c.quit:
 				return
