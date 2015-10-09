@@ -30,9 +30,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/hawaii-desktop/builder/logging"
-	"github.com/hawaii-desktop/builder/utils"
 	"io/ioutil"
-	"log"
 	"os"
 	"os/exec"
 	"path"
@@ -63,14 +61,8 @@ type Factory struct {
 	properties VariantMap
 	// Protects the build steps array.
 	sMutex sync.Mutex
-	// Logger for capturing command output.
-	logger *log.Logger
 	// Output.
 	buffer *bytes.Buffer
-	// Log streamer for stdout.
-	logStreamerOut *logging.LogStreamer
-	// Log streamer for stderr.
-	logStreamerErr *logging.LogStreamer
 }
 
 // Build step running function.
@@ -97,64 +89,62 @@ func NewFactory(j *Job) *Factory {
 	workdir := path.Join(Config.Directory.WorkDir, j.Target)
 	os.MkdirAll(workdir, 0755)
 
-	// Logging
-	var buffer bytes.Buffer
-	logger := log.New(&buffer, "", log.Ldate|log.Ltime)
-	logStreamerOut := logging.NewLogStreamer(logger, "STDOUT ")
-	logStreamerErr := logging.NewLogStreamer(logger, "STDERR ")
-
 	// Factory
+	var buffer bytes.Buffer
 	return &Factory{
-		job:            j,
-		workdir:        workdir,
-		steps:          make([]*BuildStep, 0),
-		properties:     make(VariantMap),
-		logger:         logger,
-		buffer:         &buffer,
-		logStreamerOut: logStreamerOut,
-		logStreamerErr: logStreamerErr,
+		job:        j,
+		workdir:    workdir,
+		steps:      make([]*BuildStep, 0),
+		properties: make(VariantMap),
+		buffer:     &buffer,
 	}
 }
 
-// Create a shell command and capture the output.
-// Return a Command pointer ready to be executed.
-func (f *Factory) Command(name string, args ...string) *exec.Cmd {
-	cmd := exec.Command(name, args...)
-
-	cmd.Stdout = f.logStreamerOut
-	cmd.Stderr = f.logStreamerErr
-
-	cmd.Stdout.Write([]byte(strings.Repeat("*", 79) + "\n"))
-	cmd.Stdout.Write([]byte(fmt.Sprintf("Running: %s\n", strings.Join(cmd.Args, " "))))
-	cmd.Stdout.Write([]byte(fmt.Sprintf("Argv: %q\n", cmd.Args)))
+// Run a command with timeout.
+func (f *Factory) RunWithTimeout(cmd *exec.Cmd, timeout time.Duration) error {
 	cwd, _ := os.Getwd()
-	cmd.Stdout.Write([]byte(fmt.Sprintf("From: %s\n", cwd)))
-	cmd.Stdout.Write([]byte(strings.Repeat("*", 79) + "\n"))
 
-	return cmd
+	if len(cmd.Env) > 0 {
+		fmt.Fprintf(f.buffer, "Environment:\n")
+		for _, e := range cmd.Env {
+			fmt.Fprintf(f.buffer, "\t%s\n", e)
+		}
+	}
+	fmt.Fprintf(f.buffer, "Running: %s\n", strings.Join(cmd.Args, " "))
+	fmt.Fprintf(f.buffer, "Argv: %q\n", cmd.Args)
+	fmt.Fprintf(f.buffer, "From: %s\n", cwd)
+
+	t := time.AfterFunc(timeout, func() { cmd.Process.Kill() })
+	defer t.Stop()
+
+	output, err := cmd.CombinedOutput()
+	fmt.Fprintf(f.buffer, string(output))
+	fmt.Fprintf(f.buffer, "\n\n")
+
+	return err
 }
 
-// Create a shell command with a custom environment and capture the output.
-// Return a Command pointer ready to be executed.
-func (f *Factory) CommandWithEnv(env []string, name string, args ...string) *exec.Cmd {
-	cmd := exec.Command(name, args...)
-	cmd.Env = env
-
-	cmd.Stdout = f.logStreamerOut
-	cmd.Stderr = f.logStreamerErr
-
-	cmd.Stdout.Write([]byte(strings.Repeat("*", 79) + "\n"))
-	cmd.Stdout.Write([]byte("Environment:\n"))
-	for _, e := range cmd.Env {
-		cmd.Stdout.Write([]byte(fmt.Sprintf("\t%s\n", e)))
-	}
-	cmd.Stdout.Write([]byte(fmt.Sprintf("Running: %s\n", strings.Join(cmd.Args, " "))))
-	cmd.Stdout.Write([]byte(fmt.Sprintf("Argv: %q\n", cmd.Args)))
+func (f *Factory) RunCombinedWithTimeout(cmd *exec.Cmd, timeout time.Duration) ([]byte, error) {
 	cwd, _ := os.Getwd()
-	cmd.Stdout.Write([]byte(fmt.Sprintf("From: %s\n", cwd)))
-	cmd.Stdout.Write([]byte(strings.Repeat("*", 79) + "\n"))
 
-	return cmd
+	if len(cmd.Env) > 0 {
+		fmt.Fprintf(f.buffer, "Environment:\n")
+		for _, e := range cmd.Env {
+			fmt.Fprintf(f.buffer, "\t%s\n", e)
+		}
+	}
+	fmt.Fprintf(f.buffer, "Running: %s\n", strings.Join(cmd.Args, " "))
+	fmt.Fprintf(f.buffer, "Argv: %q\n", cmd.Args)
+	fmt.Fprintf(f.buffer, "From: %s\n", cwd)
+
+	t := time.AfterFunc(timeout, func() { cmd.Process.Kill() })
+	defer t.Stop()
+
+	output, err := cmd.CombinedOutput()
+	fmt.Fprintf(f.buffer, string(output))
+	fmt.Fprintf(f.buffer, "\n\n")
+
+	return output, err
 }
 
 // Clone or pull a git repository.
@@ -163,8 +153,8 @@ func (f *Factory) DownloadGit(url, tag, parentdir, clonedirname string) error {
 	if _, err := ioutil.ReadFile(path.Join(parentdir, clonedirname, ".git", "HEAD")); err != nil {
 		// Clone repository
 		os.Chdir(parentdir)
-		cmd := f.Command("git", "clone", url, clonedirname)
-		if err := utils.RunWithTimeout(cmd, cloneTimeout); err != nil {
+		cmd := exec.Command("git", "clone", url, clonedirname)
+		if err := f.RunWithTimeout(cmd, cloneTimeout); err != nil {
 			return err
 		}
 	}
@@ -173,20 +163,20 @@ func (f *Factory) DownloadGit(url, tag, parentdir, clonedirname string) error {
 	os.Chdir(path.Join(parentdir, clonedirname))
 
 	// Fetch from origin
-	cmd := f.Command("git", "fetch", "origin")
-	if err := utils.RunWithTimeout(cmd, cloneTimeout); err != nil {
+	cmd := exec.Command("git", "fetch", "origin")
+	if err := f.RunWithTimeout(cmd, cloneTimeout); err != nil {
 		return err
 	}
 
 	// Checkout tag or branch
-	cmd = f.Command("git", "checkout", tag)
-	if err := utils.RunWithTimeout(cmd, cloneTimeout); err != nil {
+	cmd = exec.Command("git", "checkout", tag)
+	if err := f.RunWithTimeout(cmd, cloneTimeout); err != nil {
 		return err
 	}
 
 	// Pull from an existing clone
-	cmd = f.Command("git", "pull")
-	if err := utils.RunWithTimeout(cmd, cloneTimeout); err != nil {
+	cmd = exec.Command("git", "pull")
+	if err := f.RunWithTimeout(cmd, cloneTimeout); err != nil {
 		return err
 	}
 
@@ -195,8 +185,6 @@ func (f *Factory) DownloadGit(url, tag, parentdir, clonedirname string) error {
 
 // Close the factory.
 func (f *Factory) Close() {
-	f.logStreamerOut.Close()
-	f.logStreamerErr.Close()
 }
 
 // Append the build step.
@@ -216,6 +204,12 @@ func (f *Factory) Run() bool {
 	f.sMutex.Lock()
 	defer f.sMutex.Unlock()
 
+	defer func() {
+		// Print log
+		output := f.buffer.String()
+		logging.Trace(output)
+	}()
+
 	for _, bs := range f.steps {
 		// Start measuring time
 		start := time.Now()
@@ -227,23 +221,18 @@ func (f *Factory) Run() bool {
 		logging.Infof("=> Running build step \"%s\"\n", bs.Name)
 		err := bs.Run(bs)
 
-		// Send the build step log to the master and reset
-		logging.Infoln(f.buffer.String())
-		f.buffer.Reset()
-
-		// Flush logs
-		f.logStreamerOut.FlushRecord()
-		f.logStreamerErr.FlushRecord()
-
-		// Check the result
-		if err != nil && !bs.KeepGoing {
-			logging.Errorf("Build step \"%s\" failed: %s\n", bs.Name, err)
-			return false
-		}
-
 		// Elapsed time
 		elapsed := time.Since(start)
-		logging.Traceln(elapsed)
+
+		// Check the result
+		if err == nil {
+			logging.Infof("<= Build step \"%s\" took %v\n", bs.Name, elapsed)
+		} else {
+			logging.Errorf("<= Build step \"%s\" failed in %v: %s\n", bs.Name, elapsed, err)
+			if !bs.KeepGoing {
+				return false
+			}
+		}
 	}
 
 	return true

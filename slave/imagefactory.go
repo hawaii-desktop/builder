@@ -28,7 +28,6 @@ package slave
 
 import (
 	"fmt"
-	"github.com/hawaii-desktop/builder/utils"
 	"os"
 	"os/exec"
 	"path"
@@ -85,8 +84,8 @@ func imgFactoryFlatten(bs *BuildStep) error {
 	}
 
 	// Flatten
-	cmd := bs.parent.Command("ksflatten", "-c", filename, "-o", "../flattened.ks")
-	if err := utils.RunWithTimeout(cmd, cloneTimeout); err != nil {
+	cmd := exec.Command("ksflatten", "-c", filename, "-o", "../flattened.ks")
+	if err := bs.parent.RunWithTimeout(cmd, cloneTimeout); err != nil {
 		return err
 	}
 	_, err := os.Stat("../flattened.ks")
@@ -105,19 +104,19 @@ func imgFactoryBuild(bs *BuildStep) error {
 	// Build
 	var cmd *exec.Cmd
 	if bs.parent.job.Architecture == "armhfp" {
-		cmd = bs.parent.Command("sudo", "appliance-creator",
+		cmd = exec.Command("sudo", "appliance-creator",
 			"--logfile", "results/appliance.log", "--cache", "cache",
 			"-d", "-v", "-o", "results", "--format=raw", "--checksum",
 			"--name", filename, "--version", "22", "--release", today,
 			"-c", "flattened.ks")
 		filename += ".raw"
 	} else {
-		cmd = bs.parent.Command("sudo", "livecd-creator", "--releasever=22",
+		cmd = exec.Command("sudo", "livecd-creator", "--releasever=22",
 			"--title=Hawaii", "--product=Hawaii", "-c", "flattened.ks",
 			"-f", fsname, "-d", "-v", "--cache", "cache", "--tmpdir", "tmp")
 		filename += ".iso"
 	}
-	if err := utils.RunWithTimeout(cmd, cloneTimeout); err != nil {
+	if err := bs.parent.RunWithTimeout(cmd, cloneTimeout); err != nil {
 		return err
 	}
 	_, err := os.Stat(filename)

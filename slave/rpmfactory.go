@@ -30,8 +30,8 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"github.com/hawaii-desktop/builder/utils"
 	"os"
+	"os/exec"
 	"path"
 	"regexp"
 	"strings"
@@ -54,7 +54,8 @@ func NewRpmFactory(j *Job) *Factory {
 	}
 
 	// Fetch all repositories
-	for _, repo := range repos {
+	for i := range repos {
+		repo := repos[i]
 		f.AddBuildStep(&BuildStep{
 			Name:      fmt.Sprintf("git %s", repo[0]),
 			KeepGoing: false,
@@ -119,21 +120,22 @@ func rpmFactoryGitFetch(repo []string, bs *BuildStep) error {
 
 	// Get version information from upstream
 	if repo[0] == bs.parent.job.Target {
-		r := regexp.MustCompile(`.+STD(?:OUT|ERR) `)
-
-		cmd := bs.parent.Command("git", "log", "-1", "--format='%cd'", "--date=short")
-		if err := utils.RunWithTimeout(cmd, cloneTimeout); err != nil {
+		cmd := exec.Command("git", "log", "-1", `--format="%cd"`, "--date=short")
+		output, err := bs.parent.RunCombinedWithTimeout(cmd, cloneTimeout)
+		if err != nil {
 			return err
 		}
-		stdout := strings.Replace(r.ReplaceAllString(bs.parent.buffer.String(), ""), "-", "", -1)
-		bs.parent.properties["VcsDate"] = stdout
+		result := strings.Replace(string(output), "-", "", -1)
+		result = strings.Replace(result, "\"", "", -1)
+		bs.parent.properties["VcsDate"] = strings.TrimSuffix(result, "\n")
 
-		cmd = bs.parent.Command("git", "log", "-1", "--format='%h'")
-		if err := utils.RunWithTimeout(cmd, cloneTimeout); err != nil {
+		cmd = exec.Command("git", "log", "-1", `--format="%h"`)
+		output, err = bs.parent.RunCombinedWithTimeout(cmd, cloneTimeout)
+		if err != nil {
 			return err
 		}
-		stdout = r.ReplaceAllString(bs.parent.buffer.String(), "")
-		bs.parent.properties["VcsShortRev"] = stdout
+		result = strings.Replace(string(output), "\"", "", -1)
+		bs.parent.properties["VcsShortRev"] = strings.TrimSuffix(result, "\n")
 	}
 
 	return nil
@@ -141,8 +143,9 @@ func rpmFactoryGitFetch(repo []string, bs *BuildStep) error {
 
 func rpmFactoryRpmlint(bs *BuildStep) error {
 	// Run rpmlint
-	cmd := bs.parent.Command("rpmlint", "-i", bs.parent.job.Target+".spec")
-	if err := utils.RunWithTimeout(cmd, cloneTimeout); err != nil {
+	cmd := exec.Command("rpmlint", "-i", bs.parent.job.Target+".spec")
+	output, err := bs.parent.RunCombinedWithTimeout(cmd, cloneTimeout)
+	if err != nil {
 		return err
 	}
 
@@ -151,11 +154,10 @@ func rpmFactoryRpmlint(bs *BuildStep) error {
 		errors   []string
 		warnings []string
 	)
-	r := regexp.MustCompile(`.+STD(?:OUT|ERR) `)
-	scanner := bufio.NewScanner(bs.parent.buffer)
+	scanner := bufio.NewScanner(strings.NewReader(string(output)))
 	for scanner.Scan() {
 		// Remove logging prefix
-		line := r.ReplaceAllString(scanner.Text(), "")
+		line := scanner.Text()
 
 		// Check prefix
 		if strings.HasPrefix(line, "E: ") {
@@ -178,9 +180,9 @@ func rpmFactoryRpmlint(bs *BuildStep) error {
 
 func rpmFactorySources(bs *BuildStep) error {
 	// Make sources
-	filename := bs.parent.job.Target + ".tar.xz"
-	cmd := bs.parent.Command("tar", "-cJf", filename, bs.parent.job.Target)
-	if err := utils.RunWithTimeout(cmd, cloneTimeout); err != nil {
+	filename := path.Join("packaging", bs.parent.job.Target+".tar.xz")
+	cmd := exec.Command("tar", "-cJf", filename, bs.parent.job.Target)
+	if err := bs.parent.RunWithTimeout(cmd, cloneTimeout); err != nil {
 		return err
 	}
 	_, err := os.Stat(filename)
@@ -198,8 +200,8 @@ func rpmFactorySpectool(bs *BuildStep) error {
 
 	// Make sources
 	filename := bs.parent.job.Target + ".spec"
-	cmd := bs.parent.Command("spectool", "-g", "-A", filename)
-	if err := utils.RunWithTimeout(cmd, cloneTimeout); err != nil {
+	cmd := exec.Command("spectool", "-g", "-A", filename)
+	if err := bs.parent.RunWithTimeout(cmd, cloneTimeout); err != nil {
 		return err
 	}
 	_, err := os.Stat(filename)
@@ -232,15 +234,16 @@ func rpmFactorySrpmBuild(bs *BuildStep) error {
 		if date == "" || revision == "" {
 			return ErrNoVcsInformation
 		}
-		args = append(args, fmt.Sprintf("--define \"_checkout %sgit%s\"", date, revision))
+		args = append(args, "--define", "_checkout "+fmt.Sprintf("%sgit%s", date, revision))
 	}
 
 	// Append specfile
 	args = append(args, "-bs", bs.parent.job.Target+".spec")
 
 	// Run rpmbuild
-	cmd := bs.parent.Command("rpmbuild", args...)
-	if err := utils.RunWithTimeout(cmd, cloneTimeout); err != nil {
+	cmd := exec.Command("rpmbuild", args...)
+	output, err := bs.parent.RunCombinedWithTimeout(cmd, cloneTimeout)
+	if err != nil {
 		return err
 	}
 
@@ -251,11 +254,10 @@ func rpmFactorySrpmBuild(bs *BuildStep) error {
 	var errors []string
 
 	// Scan all output lines
-	r := regexp.MustCompile(`.+STD(?:OUT|ERR) `)
-	scanner := bufio.NewScanner(bs.parent.buffer)
+	scanner := bufio.NewScanner(strings.NewReader(string(output)))
 	for scanner.Scan() {
 		// Remove logging prefix
-		line := r.ReplaceAllString(scanner.Text(), "")
+		line := scanner.Text()
 
 		// Check for errors
 		for _, prefix := range prefixes {
@@ -311,9 +313,9 @@ func rpmFactoryMockRebuild(bs *BuildStep) error {
 	// repository from master, we also need to have /sbin come first
 	// so the right mock is executed (the one that doesn't ask for a
 	// password, provided that the user is in the mock group)
-	env := []string{"PATH=/usr/local/sbin:/sbin:/usr/sbin:/usr/local/bin:/bin:/usr/bin"}
-	cmd := bs.parent.CommandWithEnv(env, "mockchain", args...)
-	if err := utils.RunWithTimeout(cmd, cloneTimeout); err != nil {
+	cmd := exec.Command("mockchain", args...)
+	cmd.Env = []string{"PATH=/usr/local/sbin:/sbin:/usr/sbin:/usr/local/bin:/bin:/usr/bin"}
+	if err := bs.parent.RunWithTimeout(cmd, cloneTimeout); err != nil {
 		return err
 	}
 
