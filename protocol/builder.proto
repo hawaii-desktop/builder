@@ -176,11 +176,30 @@ message JobUpdateRequest {
   EnumJobStatus status = 3;
 }
 
+// Contains updated information on a build step being executed.
+message BuildStepResponse {
+  // Name.
+  string name = 1;
+
+  // Whether it's still running.
+  bool running = 2;
+
+  // When it has started (nanoseconds since Epoch).
+  int64 started = 3;
+
+  // When it has finished (nanoseconds since Epoch).
+  int64 finished = 4;
+
+  // Log.
+  bytes log = 5;
+}
+
 // Communication from slave to master.
 message InputMessage {
   oneof payload {
     SubscribeRequest subscription = 1;
     JobUpdateRequest job_update = 2;
+    BuildStepResponse build_step_update = 3;
   }
 }
 

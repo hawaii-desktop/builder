@@ -114,6 +114,22 @@ func (c *Client) Subscribe() error {
 		stream.Send(args)
 	}
 
+	// Function that send job updates back to the master
+	var sendStepUpdate = func(bs *BuildStep) {
+		args := &pb.InputMessage{
+			Payload: &pb.InputMessage_BuildStepUpdate{
+				BuildStepUpdate: &pb.BuildStepResponse{
+					Name:     bs.Name,
+					Running:  !bs.finished.IsZero(),
+					Started:  bs.started.UnixNano(),
+					Finished: bs.finished.UnixNano(),
+					Log:      bs.output,
+				},
+			},
+		}
+		stream.Send(args)
+	}
+
 	// Read from stream
 	wait := make(chan struct{})
 	go func() {
@@ -181,6 +197,9 @@ func (c *Client) Subscribe() error {
 						select {
 						case <-j.UpdateChannel:
 							sendJobUpdate(j)
+							break
+						case bs := <-j.stepUpdateQueue:
+							sendStepUpdate(bs)
 							break
 						case <-j.CloseChannel:
 							j = nil

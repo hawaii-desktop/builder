@@ -71,16 +71,22 @@ type BuildStepRunFunc func(bs *BuildStep) error
 // Single build step that is part of a factory.
 // This defines the properties shared by all build steps.
 type BuildStep struct {
-	// Factory that owns this build step.
-	parent *Factory
-	// Summary with the most important log messages.
-	summary map[string]string
 	// Name of this build step.
 	Name string
 	// Indicates whether a failure should keep the factory going.
 	KeepGoing bool
 	// Running function.
 	Run BuildStepRunFunc
+	// Factory that owns this build step.
+	parent *Factory
+	// Summary with the most important log messages.
+	summary map[string]string
+	// When the step has been started.
+	started time.Time
+	// When the step has finished.
+	finished time.Time
+	// Output capture from execution.
+	output []byte
 }
 
 // Create a new factory.
@@ -204,12 +210,6 @@ func (f *Factory) Run() bool {
 	f.sMutex.Lock()
 	defer f.sMutex.Unlock()
 
-	defer func() {
-		// Print log
-		output := f.buffer.String()
-		logging.Trace(output)
-	}()
-
 	for _, bs := range f.steps {
 		// Start measuring time
 		start := time.Now()
@@ -217,12 +217,20 @@ func (f *Factory) Run() bool {
 		// Change directory
 		os.Chdir(f.workdir)
 
-		// Run the step
+		// Send the update and run the step
 		logging.Infof("=> Running build step \"%s\"\n", bs.Name)
+		bs.started = start
+		f.job.stepUpdateQueue <- bs
 		err := bs.Run(bs)
 
 		// Elapsed time
 		elapsed := time.Since(start)
+		bs.finished = start.Add(elapsed)
+
+		// Collect output and send the update
+		bs.output = f.buffer.Bytes()
+		f.buffer.Reset()
+		f.job.stepUpdateQueue <- bs
 
 		// Check the result
 		if err == nil {

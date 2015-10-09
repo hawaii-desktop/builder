@@ -18,6 +18,7 @@ It has these top-level messages:
 	UnsubscribeResponse
 	JobDispatchRequest
 	JobUpdateRequest
+	BuildStepResponse
 	InputMessage
 	OutputMessage
 	CollectJobRequest
@@ -287,11 +288,30 @@ func (m *JobUpdateRequest) Reset()         { *m = JobUpdateRequest{} }
 func (m *JobUpdateRequest) String() string { return proto.CompactTextString(m) }
 func (*JobUpdateRequest) ProtoMessage()    {}
 
+// Contains updated information on a build step being executed.
+type BuildStepResponse struct {
+	// Name.
+	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	// Whether it's still running.
+	Running bool `protobuf:"varint,2,opt,name=running" json:"running,omitempty"`
+	// When it has started (nanoseconds since Epoch).
+	Started int64 `protobuf:"varint,3,opt,name=started" json:"started,omitempty"`
+	// When it has finished (nanoseconds since Epoch).
+	Finished int64 `protobuf:"varint,4,opt,name=finished" json:"finished,omitempty"`
+	// Log.
+	Log []byte `protobuf:"bytes,5,opt,name=log,proto3" json:"log,omitempty"`
+}
+
+func (m *BuildStepResponse) Reset()         { *m = BuildStepResponse{} }
+func (m *BuildStepResponse) String() string { return proto.CompactTextString(m) }
+func (*BuildStepResponse) ProtoMessage()    {}
+
 // Communication from slave to master.
 type InputMessage struct {
 	// Types that are valid to be assigned to Payload:
 	//	*InputMessage_Subscription
 	//	*InputMessage_JobUpdate
+	//	*InputMessage_BuildStepUpdate
 	Payload isInputMessage_Payload `protobuf_oneof:"payload"`
 }
 
@@ -309,9 +329,13 @@ type InputMessage_Subscription struct {
 type InputMessage_JobUpdate struct {
 	JobUpdate *JobUpdateRequest `protobuf:"bytes,2,opt,name=job_update,oneof"`
 }
+type InputMessage_BuildStepUpdate struct {
+	BuildStepUpdate *BuildStepResponse `protobuf:"bytes,3,opt,name=build_step_update,oneof"`
+}
 
-func (*InputMessage_Subscription) isInputMessage_Payload() {}
-func (*InputMessage_JobUpdate) isInputMessage_Payload()    {}
+func (*InputMessage_Subscription) isInputMessage_Payload()    {}
+func (*InputMessage_JobUpdate) isInputMessage_Payload()       {}
+func (*InputMessage_BuildStepUpdate) isInputMessage_Payload() {}
 
 func (m *InputMessage) GetPayload() isInputMessage_Payload {
 	if m != nil {
@@ -334,11 +358,19 @@ func (m *InputMessage) GetJobUpdate() *JobUpdateRequest {
 	return nil
 }
 
+func (m *InputMessage) GetBuildStepUpdate() *BuildStepResponse {
+	if x, ok := m.GetPayload().(*InputMessage_BuildStepUpdate); ok {
+		return x.BuildStepUpdate
+	}
+	return nil
+}
+
 // XXX_OneofFuncs is for the internal use of the proto package.
 func (*InputMessage) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), []interface{}) {
 	return _InputMessage_OneofMarshaler, _InputMessage_OneofUnmarshaler, []interface{}{
 		(*InputMessage_Subscription)(nil),
 		(*InputMessage_JobUpdate)(nil),
+		(*InputMessage_BuildStepUpdate)(nil),
 	}
 }
 
@@ -354,6 +386,11 @@ func _InputMessage_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
 	case *InputMessage_JobUpdate:
 		b.EncodeVarint(2<<3 | proto.WireBytes)
 		if err := b.EncodeMessage(x.JobUpdate); err != nil {
+			return err
+		}
+	case *InputMessage_BuildStepUpdate:
+		b.EncodeVarint(3<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.BuildStepUpdate); err != nil {
 			return err
 		}
 	case nil:
@@ -381,6 +418,14 @@ func _InputMessage_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.B
 		msg := new(JobUpdateRequest)
 		err := b.DecodeMessage(msg)
 		m.Payload = &InputMessage_JobUpdate{msg}
+		return true, err
+	case 3: // payload.build_step_update
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(BuildStepResponse)
+		err := b.DecodeMessage(msg)
+		m.Payload = &InputMessage_BuildStepUpdate{msg}
 		return true, err
 	default:
 		return false, nil
