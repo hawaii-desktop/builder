@@ -73,12 +73,11 @@ func (m *Master) updateStatistics() {
 	defer m.sMutex.Unlock()
 
 	// Update statistics
-	m.db.FilterJobs(func(job *database.Job) bool {
-		m.stats.Queued = 0
-		m.stats.Dispatched = 0
-		m.stats.Completed = 0
-		m.stats.Failed = 0
-
+	m.stats.Queued = 0
+	m.stats.Dispatched = 0
+	m.stats.Completed = 0
+	m.stats.Failed = 0
+	m.db.ForEachJob(func(job *database.Job) {
 		switch job.Status {
 		case builder.JOB_STATUS_JUST_CREATED:
 			m.stats.Queued++
@@ -100,10 +99,11 @@ func (m *Master) updateStatistics() {
 			}
 			break
 		case builder.JOB_STATUS_CRASHED:
+			if job.Finished.After(time.Now().Add(-48 * time.Hour)) {
+				m.stats.Failed++
+			}
 			break
 		}
-
-		return false
 	})
 	m.webSocketQueue <- &message{Type: WEB_SOCKET_STATISTICS, Data: m.stats}
 }
