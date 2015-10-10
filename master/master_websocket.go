@@ -52,8 +52,12 @@ func (m *Master) WebSocketConnectionRegistration(c *webserver.WebSocketConnectio
 					return
 				}
 
-				if r.Type != WEB_SOCKET_STATISTICS {
+				if r.Type > WEB_SOCKET_STATISTICS && r.Type < WEB_SOCKET_JOB {
 					m.updateJobs(r.Type)
+				}
+
+				if r.Type == WEB_SOCKET_JOB {
+					m.updateJob(r.Id)
 				}
 				break
 			}
@@ -105,6 +109,14 @@ func (m *Master) updateStatistics() {
 		}
 	})
 	m.webSocketQueue <- &message{Type: WEB_SOCKET_STATISTICS, Data: m.stats}
+}
+
+// Send a specific job to the Web socket.
+func (m *Master) updateJob(id uint64) {
+	job := m.db.GetJob(id)
+	if job != nil {
+		m.webSocketQueue <- &message{Type: WEB_SOCKET_JOB, Data: job}
+	}
 }
 
 // Send the jobs list to the Web socket.

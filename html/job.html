@@ -38,36 +38,36 @@
 {{ define "scripts" }}
     <script type="text/javascript">
         function wsHandler(obj) {
-            if (obj.type != WEB_SOCKET_JOB)
+            if (obj.type != WEB_SOCKET_JOB || !obj.data)
                 return;
 
-            var contents = "", steps = "", i, j;
-            for (i = 0; i < obj.data.length; i++) {
-                var item = obj.data[i];
+            var contents = "", steps = "";
 
-                contents += '<tr>';
-                contents += '<td align="right"><strong>Type:</strong></td>';
-                contents += '<td>' + item.type + '</td>';
-                contents += '</tr>';
-                contents += '<tr>';
-                contents += '<td align="right"><strong>Name:</strong></td>';
-                contents += '<td>' + item.target + '</td>';
-                contents += '</tr>';
-                contents += '<tr>';
-                contents += '<td align="right"><strong>Architecture:</strong></td>';
-                contents += '<td>' + item.arch + '</td>';
-                contents += '</tr>';
-                contents += '<tr>';
-                contents += '<td align="right"><strong>Started:</strong></td>';
-                contents += '<td>' + (item.started ? moment(item.started).format("LLL") : "n.a.") + '</td>';
-                contents += '</tr>';
-                contents += '<tr>';
-                contents += '<td align="right"><strong>Finished:</strong></td>';
-                contents += '<td>' + (item.finished ? moment(item.finished).format("LLL") : "n.a.") + '</td>';
-                contents += '</tr>';
+            contents += '<tr>';
+            contents += '<td align="right"><strong>Type:</strong></td>';
+            contents += '<td>' + obj.data.type + '</td>';
+            contents += '</tr>';
+            contents += '<tr>';
+            contents += '<td align="right"><strong>Name:</strong></td>';
+            contents += '<td>' + obj.data.target + '</td>';
+            contents += '</tr>';
+            contents += '<tr>';
+            contents += '<td align="right"><strong>Architecture:</strong></td>';
+            contents += '<td>' + obj.data.arch + '</td>';
+            contents += '</tr>';
+            contents += '<tr>';
+            contents += '<td align="right"><strong>Started:</strong></td>';
+            contents += '<td>' + (obj.data.started ? moment(obj.data.started).format("LLL") : "n.a.") + '</td>';
+            contents += '</tr>';
+            contents += '<tr>';
+            contents += '<td align="right"><strong>Finished:</strong></td>';
+            contents += '<td>' + (obj.data.finished ? moment(obj.data.finished).format("LLL") : "n.a.") + '</td>';
+            contents += '</tr>';
 
-                for (j = 0; j < item.steps.length; j++) {
-                    var bs = item.steps[j];
+            if (obj.data.steps) {
+                var i;
+                for (i = 0; i < obj.data.steps.length; i++) {
+                    var bs = obj.data.steps[i];
 
                     steps += '<li>';
                     steps += '<h4>' + bs.name + '</h4>';
@@ -93,10 +93,9 @@
         }
 
         function wsRequestData() {
-            return wsHandler({type: WEB_SOCKET_JOB, data: [{type: "package", target: "greenisland-git", arch: "i386", started: "2015-10-10T09:10:23Z", finished: "", steps: [{name: "git packaging", started: "2015-10-10T09:10:23Z", finished: "2015-10-10T09:10:24Z", log: "aaaaaa"}, {name: "git packaging 2", started: "2015-10-10T09:10:23Z", finished: "2015-10-10T09:10:24Z", log: "bbbbbb"}]}]});
             // Ask job information
-            var id = {{.Id}};
-            var request = {"type": WEB_SOCKET_JOB, "id": id};
+            var jobId = {{.Id}};
+            var request = {type: WEB_SOCKET_JOB, id: jobId};
             wsConn.send(JSON.stringify(request, null, 2));
         }
 

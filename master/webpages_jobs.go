@@ -28,11 +28,16 @@ package master
 
 import (
 	"github.com/plimble/ace"
+	"strconv"
 )
 
 func WebJobHandler(c *ace.C) {
 	data := c.GetAll()
-	data["Id"] = c.Param("id")
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		panic(err)
+	}
+	data["Id"] = id
 	c.HTML("job.html", data)
 }
 

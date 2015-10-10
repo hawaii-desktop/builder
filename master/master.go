@@ -59,7 +59,8 @@ type Master struct {
 
 // Generic request received from the Web user interface.
 type request struct {
-	Type int `json:"type"`
+	Type int    `json:"type"`
+	Id   uint64 `json:"id,omitempty"`
 }
 
 // Generic message sent to the Web user interface.
@@ -75,6 +76,7 @@ const (
 	WEB_SOCKET_DISPATCHED_JOBS
 	WEB_SOCKET_COMPLETED_JOBS
 	WEB_SOCKET_FAILED_JOBS
+	WEB_SOCKET_JOB
 )
 
 // Statistics to show on the Web user interface.
