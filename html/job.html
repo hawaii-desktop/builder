@@ -37,6 +37,19 @@
 
 {{ define "scripts" }}
     <script type="text/javascript">
+        function decodeJobType(type) {
+            switch (type) {
+            case 0:
+                return "package";
+            case 1:
+                return "image";
+            default:
+                break;
+            }
+
+            return "unknown";
+        }
+
         function wsHandler(obj) {
             if (obj.type != WEB_SOCKET_JOB || !obj.data)
                 return;
@@ -45,7 +58,7 @@
 
             contents += '<tr>';
             contents += '<td align="right"><strong>Type:</strong></td>';
-            contents += '<td>' + obj.data.type + '</td>';
+            contents += '<td>' + decodeJobType(obj.data.type) + '</td>';
             contents += '</tr>';
             contents += '<tr>';
             contents += '<td align="right"><strong>Name:</strong></td>';
