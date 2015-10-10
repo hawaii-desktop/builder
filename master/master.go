@@ -57,28 +57,6 @@ type Master struct {
 	sMutex sync.Mutex
 }
 
-// Generic request received from the Web user interface.
-type request struct {
-	Type int    `json:"type"`
-	Id   uint64 `json:"id,omitempty"`
-}
-
-// Generic message sent to the Web user interface.
-type message struct {
-	Type int         `json:"type"`
-	Data interface{} `json:"data,omitempty"`
-}
-
-// Message types
-const (
-	WEB_SOCKET_STATISTICS = iota
-	WEB_SOCKET_QUEUED_JOBS
-	WEB_SOCKET_DISPATCHED_JOBS
-	WEB_SOCKET_COMPLETED_JOBS
-	WEB_SOCKET_FAILED_JOBS
-	WEB_SOCKET_JOB
-)
-
 // Statistics to show on the Web user interface.
 type statistics struct {
 	Queued     int `json:"queued"`
@@ -91,15 +69,6 @@ type statistics struct {
 
 // Update function.
 type statisticsUpdateFunc func(s *statistics)
-
-// Jobs list to show on the Web user interface.
-type jobsList struct {
-	Id           uint64    `json:"id"`
-	Target       string    `json:"target"`
-	Architecture string    `json:"arch"`
-	Started      time.Time `json:"started"`
-	Finished     time.Time `json:"finished"`
-}
 
 // Create a new master.
 // This also create or open the database.

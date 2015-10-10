@@ -34,6 +34,28 @@ import (
 	"time"
 )
 
+// Generic request received from the Web user interface.
+type wsRequest struct {
+	Type int    `json:"type"`
+	Id   uint64 `json:"id,omitempty"`
+}
+
+// Generic message sent to the Web user interface.
+type wsResponse struct {
+	Type int         `json:"type"`
+	Data interface{} `json:"data,omitempty"`
+}
+
+// Message types.
+const (
+	WEB_SOCKET_STATISTICS = iota
+	WEB_SOCKET_QUEUED_JOBS
+	WEB_SOCKET_DISPATCHED_JOBS
+	WEB_SOCKET_COMPLETED_JOBS
+	WEB_SOCKET_FAILED_JOBS
+	WEB_SOCKET_JOB
+)
+
 // Handle Web socket connection registration.
 func (m *Master) WebSocketConnectionRegistration(c *webserver.WebSocketConnection) {
 	// Send statistics as soon as a client connects
@@ -45,7 +67,7 @@ func (m *Master) WebSocketConnectionRegistration(c *webserver.WebSocketConnectio
 			// TODO: Find a way to quit this goroutine
 			select {
 			case msg := <-c.Outgoing:
-				var r *request
+				var r *wsRequest
 				err := json.Unmarshal(msg, &r)
 				if err != nil {
 					logging.Errorf("Error processing request from Web socket: %s\n", err)
@@ -108,21 +130,20 @@ func (m *Master) updateStatistics() {
 			break
 		}
 	})
-	m.webSocketQueue <- &message{Type: WEB_SOCKET_STATISTICS, Data: m.stats}
+	m.webSocketQueue <- &wsResponse{Type: WEB_SOCKET_STATISTICS, Data: m.stats}
 }
 
 // Send a specific job to the Web socket.
 func (m *Master) updateJob(id uint64) {
 	job := m.db.GetJob(id)
 	if job != nil {
-		m.webSocketQueue <- &message{Type: WEB_SOCKET_JOB, Data: job}
+		m.webSocketQueue <- &wsResponse{Type: WEB_SOCKET_JOB, Data: job}
 	}
 }
 
 // Send the jobs list to the Web socket.
 func (m *Master) updateJobs(reqType int) {
-	var data []*jobsList
-	m.db.FilterJobs(func(job *builder.Job) bool {
+	jobs := m.db.FilterJobs(func(job *builder.Job) bool {
 		// Completed and failed jobs are interesting only if finished in the last 48 hours
 		if reqType == WEB_SOCKET_COMPLETED_JOBS || reqType == WEB_SOCKET_FAILED_JOBS {
 			if !job.Finished.After(time.Now().Add(-48 * time.Hour)) {
@@ -135,12 +156,12 @@ func (m *Master) updateJobs(reqType int) {
 			(reqType == WEB_SOCKET_DISPATCHED_JOBS && job.Status == builder.JOB_STATUS_PROCESSING) ||
 			(reqType == WEB_SOCKET_COMPLETED_JOBS && job.Status == builder.JOB_STATUS_SUCCESSFUL) ||
 			(reqType == WEB_SOCKET_FAILED_JOBS && job.Status >= builder.JOB_STATUS_FAILED) {
-			data = append(data, &jobsList{job.Id, job.Target, job.Architecture, job.Started, job.Finished})
+			return true
 		}
 
 		return false
 	})
-	m.webSocketQueue <- &message{Type: reqType, Data: data}
+	m.webSocketQueue <- &wsResponse{Type: reqType, Data: jobs}
 }
 
 // Send the jobs list to the Web socket regardless of the status.
