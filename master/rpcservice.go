@@ -275,6 +275,38 @@ func (m *RpcService) Subscribe(stream pb.Builder_SubscribeServer) error {
 			m.master.updateStatistics()
 			m.master.updateAllJobs()
 		}
+
+		stepUpdate := in.GetStepUpdate()
+		if stepUpdate != nil {
+			// Do we have a valid job here?
+			var j *Job = nil
+			m.master.forEachJob(func(curJob *Job) {
+				// Skip other jobs
+				if curJob.Id == stepUpdate.JobId {
+					j = curJob
+				}
+			})
+			if j == nil {
+				logging.Errorf("Cannot find job #%d\n", stepUpdate.JobId)
+				return ErrJobNotFound
+			}
+
+			// Append the build step
+			step := &builder.Step{
+				Name:     stepUpdate.Name,
+				Started:  time.Unix(0, stepUpdate.Started),
+				Finished: time.Unix(0, stepUpdate.Finished),
+				Log:      stepUpdate.Log,
+			}
+			j.Steps = append(j.Steps, step)
+
+			// Save on the database
+			m.master.saveDatabaseJob(j)
+
+			// Update Web socket clients
+			m.master.updateStatistics()
+			m.master.updateAllJobs()
+		}
 	}
 }
 
@@ -496,6 +528,7 @@ func (m *RpcService) enqueueJob(target, arch string, t pb.EnumTargetType) (*Job,
 			Started:      time.Now(),
 			Finished:     time.Time{},
 			Status:       builder.JOB_STATUS_JUST_CREATED,
+			Steps:        make([]*builder.Step, 0),
 		},
 		make(chan bool),
 	}

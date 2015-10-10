@@ -49,6 +49,7 @@ func (m *Master) LoadDatabaseJobs() {
 				Started:      job.Started,
 				Finished:     job.Finished,
 				Status:       job.Status,
+				Steps:        make([]*builder.Step, 0),
 			},
 			make(chan bool),
 		}

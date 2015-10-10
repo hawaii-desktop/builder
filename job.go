@@ -46,6 +46,20 @@ type Job struct {
 	Finished time.Time `json:"finished"`
 	// Status.
 	Status JobStatus `json:"status"`
+	// Build steps.
+	Steps []*Step `json:"steps"`
+}
+
+// Step represents the step of a job.
+type Step struct {
+	// Name.
+	Name string `json:"name"`
+	// When the step was started.
+	Started time.Time `json:"started"`
+	// When the step has finished.
+	Finished time.Time `json:"finished"`
+	// Output.
+	Log []byte `json:"log"`
 }
 
 // Job target type enumeration.

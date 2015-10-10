@@ -115,10 +115,11 @@ func (c *Client) Subscribe() error {
 	}
 
 	// Function that send job updates back to the master
-	var sendStepUpdate = func(bs *BuildStep) {
+	var sendStepUpdate = func(j *Job, bs *BuildStep) {
 		args := &pb.InputMessage{
-			Payload: &pb.InputMessage_BuildStepUpdate{
-				BuildStepUpdate: &pb.BuildStepResponse{
+			Payload: &pb.InputMessage_StepUpdate{
+				StepUpdate: &pb.StepResponse{
+					JobId:    j.Id,
 					Name:     bs.Name,
 					Running:  !bs.finished.IsZero(),
 					Started:  bs.started.UnixNano(),
@@ -199,7 +200,7 @@ func (c *Client) Subscribe() error {
 							sendJobUpdate(j)
 							break
 						case bs := <-j.stepUpdateQueue:
-							sendStepUpdate(bs)
+							sendStepUpdate(j, bs)
 							break
 						case <-j.CloseChannel:
 							j = nil

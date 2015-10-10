@@ -177,21 +177,24 @@ message JobUpdateRequest {
 }
 
 // Contains updated information on a build step being executed.
-message BuildStepResponse {
+message StepResponse {
+  // Job identifier.
+  uint64 job_id = 1;
+
   // Name.
-  string name = 1;
+  string name = 2;
 
   // Whether it's still running.
-  bool running = 2;
+  bool running = 3;
 
   // When it has started (nanoseconds since Epoch).
-  int64 started = 3;
+  int64 started = 4;
 
   // When it has finished (nanoseconds since Epoch).
-  int64 finished = 4;
+  int64 finished = 5;
 
   // Log.
-  bytes log = 5;
+  bytes log = 6;
 }
 
 // Communication from slave to master.
@@ -199,7 +202,7 @@ message InputMessage {
   oneof payload {
     SubscribeRequest subscription = 1;
     JobUpdateRequest job_update = 2;
-    BuildStepResponse build_step_update = 3;
+    StepResponse step_update = 3;
   }
 }
 
