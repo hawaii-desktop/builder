@@ -41,6 +41,8 @@ type Master struct {
 	db *database.Database
 	// Web socket hub.
 	hub *webserver.WebSocketHub
+	// Web socket client subscriptions.
+	subscriptions map[*webserver.WebSocketConnection]*wsSubscription
 	// Buffered channel that we can send jobs on.
 	buildJobQueue chan *Job
 	// Buffered channel that holds the job channels from each slave.
@@ -81,6 +83,7 @@ func NewMaster(hub *webserver.WebSocketHub) (*Master, error) {
 	return &Master{
 		db:             db,
 		hub:            hub,
+		subscriptions:  make(map[*webserver.WebSocketConnection]*wsSubscription),
 		buildJobQueue:  make(chan *Job, Config.Build.MaxJobs),
 		slaveQueue:     make(chan chan *Job, Config.Build.MaxSlaves),
 		webSocketQueue: make(chan interface{}),

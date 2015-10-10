@@ -28,6 +28,7 @@ package master
 
 import (
 	"github.com/hawaii-desktop/builder"
+	"github.com/hawaii-desktop/builder/logging"
 )
 
 // Load jobs that were created and never dispatched before.
@@ -60,5 +61,7 @@ func (m *Master) LoadDatabaseJobs() {
 
 // Save job on the database.
 func (m *Master) saveDatabaseJob(job *Job) {
-	m.db.SaveJob(job)
+	if err := m.db.SaveJob(job); err != nil {
+		logging.Errorf("Unable to save job #%d: %s\n", job.Id, err)
+	}
 }

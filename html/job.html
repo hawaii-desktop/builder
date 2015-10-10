@@ -53,6 +53,7 @@
         function wsHandler(obj) {
             if (obj.type != WEB_SOCKET_JOB || !obj.data)
                 return;
+            console.log(obj);
 
             var contents = "", steps = "";
 
