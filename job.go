@@ -33,19 +33,19 @@ import (
 // Represents a job.
 type Job struct {
 	// Identifier.
-	Id uint64
+	Id uint64 `json:"id"`
 	// Type.
-	Type JobTargetType
+	Type JobTargetType `json:"type"`
 	// Target name.
-	Target string
+	Target string `json:"target"`
 	// Architecture.
-	Architecture string
+	Architecture string `json:"arch"`
 	// When the job has started.
-	Started time.Time
+	Started time.Time `json:"started"`
 	// When the job has finished.
-	Finished time.Time
+	Finished time.Time `json:"finished"`
 	// Status.
-	Status JobStatus
+	Status JobStatus `json:"status"`
 }
 
 // Job target type enumeration.

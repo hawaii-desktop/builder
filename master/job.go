@@ -35,5 +35,5 @@ type Job struct {
 	// Base.
 	*builder.Job
 	// Channel.
-	Channel chan bool
+	Channel chan bool `json:"-"`
 }

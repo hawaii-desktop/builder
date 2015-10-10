@@ -29,7 +29,6 @@ package master
 import (
 	"encoding/json"
 	"github.com/hawaii-desktop/builder"
-	"github.com/hawaii-desktop/builder/database"
 	"github.com/hawaii-desktop/builder/logging"
 	"github.com/hawaii-desktop/builder/webserver"
 	"time"
@@ -77,7 +76,7 @@ func (m *Master) updateStatistics() {
 	m.stats.Dispatched = 0
 	m.stats.Completed = 0
 	m.stats.Failed = 0
-	m.db.ForEachJob(func(job *database.Job) {
+	m.db.ForEachJob(func(job *builder.Job) {
 		switch job.Status {
 		case builder.JOB_STATUS_JUST_CREATED:
 			m.stats.Queued++
@@ -111,7 +110,7 @@ func (m *Master) updateStatistics() {
 // Send the jobs list to the Web socket.
 func (m *Master) updateJobs(reqType int) {
 	var data []*jobsList
-	m.db.FilterJobs(func(job *database.Job) bool {
+	m.db.FilterJobs(func(job *builder.Job) bool {
 		// Completed and failed jobs are interesting only if finished in the last 48 hours
 		if reqType == WEB_SOCKET_COMPLETED_JOBS || reqType == WEB_SOCKET_FAILED_JOBS {
 			if !job.Finished.After(time.Now().Add(-48 * time.Hour)) {

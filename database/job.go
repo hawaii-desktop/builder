@@ -29,25 +29,15 @@ package database
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"github.com/boltdb/bolt"
 	"github.com/hawaii-desktop/builder"
 	"strconv"
-	"time"
 )
 
-type Job struct {
-	Id           uint64                `json:"id"`
-	Type         builder.JobTargetType `json:"type"`
-	Target       string                `json:"target"`
-	Architecture string                `json:"arch"`
-	Started      time.Time             `json:"started"`
-	Finished     time.Time             `json:"finished"`
-	Status       builder.JobStatus     `json:"status"`
-}
-
 // Return a stored job.
-func (db *Database) GetJob(id uint64) *Job {
-	var job *Job = nil
+func (db *Database) GetJob(id uint64) *builder.Job {
+	var job *builder.Job = nil
 	db.db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte("job"))
 		if bucket == nil {
@@ -67,8 +57,8 @@ func (db *Database) GetJob(id uint64) *Job {
 }
 
 // Return a list of jobs that match a certain criteria.
-func (db *Database) FilterJobs(filter func(job *Job) bool) []*Job {
-	var list []*Job
+func (db *Database) FilterJobs(filter func(job *builder.Job) bool) []*builder.Job {
+	var list []*builder.Job
 	db.db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte("job"))
 		if bucket == nil {
@@ -76,7 +66,7 @@ func (db *Database) FilterJobs(filter func(job *Job) bool) []*Job {
 		}
 
 		bucket.ForEach(func(k, v []byte) error {
-			var job *Job
+			var job *builder.Job
 			err := json.Unmarshal(v, &job)
 			if err != nil {
 				return err
@@ -94,7 +84,7 @@ func (db *Database) FilterJobs(filter func(job *Job) bool) []*Job {
 }
 
 // Iterate the jobs list.
-func (db *Database) ForEachJob(f func(job *Job)) {
+func (db *Database) ForEachJob(f func(job *builder.Job)) {
 	db.db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte("job"))
 		if bucket == nil {
@@ -102,7 +92,7 @@ func (db *Database) ForEachJob(f func(job *Job)) {
 		}
 
 		bucket.ForEach(func(k, v []byte) error {
-			var job *Job
+			var job *builder.Job
 			err := json.Unmarshal(v, &job)
 			if err != nil {
 				return err
@@ -118,7 +108,12 @@ func (db *Database) ForEachJob(f func(job *Job)) {
 }
 
 // Store a job.
-func (db *Database) SaveJob(job *Job) error {
+func (db *Database) SaveJob(data interface{}) error {
+	job, ok := data.(*builder.Job)
+	if !ok {
+		return errors.New("invalid data")
+	}
+
 	return db.db.Update(func(tx *bolt.Tx) error {
 		// Find bucket and return an error if it doesn't exist
 		bucket, err := tx.CreateBucketIfNotExists([]byte("job"))
