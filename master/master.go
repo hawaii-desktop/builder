@@ -65,7 +65,7 @@ type request struct {
 // Generic message sent to the Web user interface.
 type message struct {
 	Type int         `json:"type"`
-	Data interface{} `json:"data,omitifempty"`
+	Data interface{} `json:"data,omitempty"`
 }
 
 // Message types
