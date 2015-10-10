@@ -29,6 +29,7 @@ var WEB_SOCKET_QUEUED_JOBS = 1;
 var WEB_SOCKET_DISPATCHED_JOBS = 2;
 var WEB_SOCKET_COMPLETED_JOBS = 3;
 var WEB_SOCKET_FAILED_JOBS = 4;
+var WEB_SOCKET_JOB = 5;
 
 function createWebSocket(address, processFunc) {
     wsConn = new WebSocket(address);

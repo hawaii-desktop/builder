@@ -115,6 +115,7 @@ func runMaster(ctx *cli.Context) {
 	webServer.Router.GET("/users/login", master.LoginHandler)
 	webServer.Router.GET("/users/logout", master.LogoutHandler)
 	webServer.Router.GET("/sso/github", master.SsoGitHubHandler)
+	webServer.Router.GET("/job/:id", master.WebJobHandler)
 	webServer.Router.GET("/jobs", master.WebJobsHandler)
 	webServer.Router.GET("/jobs/queued", master.WebJobsQueuedHandler)
 	webServer.Router.GET("/jobs/dispatched", master.WebJobsDispatchedHandler)

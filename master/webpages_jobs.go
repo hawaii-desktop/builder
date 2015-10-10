@@ -30,6 +30,12 @@ import (
 	"github.com/plimble/ace"
 )
 
+func WebJobHandler(c *ace.C) {
+	data := c.GetAll()
+	data["Id"] = c.Param("id")
+	c.HTML("job.html", data)
+}
+
 func WebJobsHandler(c *ace.C) {
 	c.HTML("jobs.html", c.GetAll())
 }

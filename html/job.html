@@ -1,0 +1,110 @@
+{{ define "title" }}Job - Builder{{ end }}
+
+{{ define "content" }}
+    <div class="container-fluid">
+        <!-- Page heading -->
+        <div class="row">
+            <div class="col-lg-12">
+                <h1 class="page-header">
+                    Builder <small>Job {{.Id}}</small>
+                </h1>
+
+                <ol class="breadcrumb">
+                    <li>
+                        <i class="fa fa-dashboard"></i> <a href="/">Dashboard</a>
+                    </li>
+                    <li>
+                        <i class="fa fa-table"></i> <a href="/jobs">Jobs</a>
+                    </li>
+                    <li class="active">
+                        <i class="fa fa-table"></i> Job {{.Id}}
+                    </li>
+                </ol>
+            </div>
+        </div>
+        <!-- /.row -->
+
+        <table class="table no-border hover">
+            <tbody>
+            </tbody>
+        </table>
+
+        <div id="steps">
+            <ul></ul>
+        </div>
+    </div>
+{{ end }}
+
+{{ define "scripts" }}
+    <script type="text/javascript">
+        function wsHandler(obj) {
+            if (obj.type != WEB_SOCKET_JOB)
+                return;
+
+            var contents = "", steps = "", i, j;
+            for (i = 0; i < obj.data.length; i++) {
+                var item = obj.data[i];
+
+                contents += '<tr>';
+                contents += '<td align="right"><strong>Type:</strong></td>';
+                contents += '<td>' + item.type + '</td>';
+                contents += '</tr>';
+                contents += '<tr>';
+                contents += '<td align="right"><strong>Name:</strong></td>';
+                contents += '<td>' + item.target + '</td>';
+                contents += '</tr>';
+                contents += '<tr>';
+                contents += '<td align="right"><strong>Architecture:</strong></td>';
+                contents += '<td>' + item.arch + '</td>';
+                contents += '</tr>';
+                contents += '<tr>';
+                contents += '<td align="right"><strong>Started:</strong></td>';
+                contents += '<td>' + (item.started ? moment(item.started).format("LLL") : "n.a.") + '</td>';
+                contents += '</tr>';
+                contents += '<tr>';
+                contents += '<td align="right"><strong>Finished:</strong></td>';
+                contents += '<td>' + (item.finished ? moment(item.finished).format("LLL") : "n.a.") + '</td>';
+                contents += '</tr>';
+
+                for (j = 0; j < item.steps.length; j++) {
+                    var bs = item.steps[j];
+
+                    steps += '<li>';
+                    steps += '<h4>' + bs.name + '</h4>';
+                    steps += '<table class="table no-border hover">';
+                    steps += '<tr>';
+                    steps += '<td align="right"><strong>Started:</strong></td>';
+                    steps += '<td>' + (bs.started ? moment(bs.started).format("LLL") : "n.a.") + '</td>';
+                    steps += '</tr>';
+                    steps += '<tr>';
+                    steps += '<td align="right"><strong>Finished:</strong></td>';
+                    steps += '<td>' + (bs.finished ? moment(bs.finished).format("LLL") : "n.a.") + '</td>';
+                    steps += '</tr>';
+                    steps += '<tr>';
+                    steps += '<td colspan="2"><pre>' + bs.log + '</pre></td>';
+                    steps += '</tr>';
+                    steps += '</table>';
+                    steps += '</li>';
+                }
+            }
+
+            $("table tbody").html(contents);
+            $("#steps ul").html(steps);
+        }
+
+        function wsRequestData() {
+            return wsHandler({type: WEB_SOCKET_JOB, data: [{type: "package", target: "greenisland-git", arch: "i386", started: "2015-10-10T09:10:23Z", finished: "", steps: [{name: "git packaging", started: "2015-10-10T09:10:23Z", finished: "2015-10-10T09:10:24Z", log: "aaaaaa"}, {name: "git packaging 2", started: "2015-10-10T09:10:23Z", finished: "2015-10-10T09:10:24Z", log: "bbbbbb"}]}]});
+            // Ask job information
+            var id = {{.Id}};
+            var request = {"type": WEB_SOCKET_JOB, "id": id};
+            wsConn.send(JSON.stringify(request, null, 2));
+        }
+
+        function init() {
+            $("#sideBarJobsSection").addClass("active");
+            $("#sideBarJobs").addClass("in").attr("aria-expanded", "true");
+        }
+    </script>
+{{ end }}
+
+<!-- vim: set noai ts=4 sw=4 expandtab: -->
