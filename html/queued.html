@@ -26,19 +26,7 @@
 
         <!-- Table -->
         <div class="table-responsive">
-            <table class="table table-bordered table-hover table-striped">
-                <thead>
-                    <tr>
-                        <th>Build</th>
-                        <th>Name</th>
-                        <th>Architecture</th>
-                        <th>Started</th>
-                        <th>Finished</th>
-                    </tr>
-                </thead>
-                <tbody>
-                </tbody>
-            </table>
+            <table class="table table-bordered table-hover table-striped"></table>
         </div>
         <!-- /Table -->
     </div>
@@ -50,17 +38,50 @@
             if (obj.type != WEB_SOCKET_QUEUED_JOBS)
                 return;
 
-            var contents = "", i;
+            var data = [];
+
+            var i;
             for (i = 0; i < obj.data.length; i++) {
-                contents += '<tr>';
-                contents += '<td><a href="/build/' + obj.data[i].id + '/">' + obj.data[i].id + '</a></td>';
-                contents += '<td>' + obj.data[i].target + '</td>';
-                contents += '<td>' + obj.data[i].arch + '</td>';
-                contents += '<td>' + moment(obj.data[i].started).format("LLL") + '</td>';
-                contents += '<td>' + moment(obj.data[i].finished).format("LLL") + '</td>';
-                contents += '</tr>';
+                data.push(obj.data[i]);
             }
-            $("table tbody").html(contents);
+
+            $("table").bootstrapTable({
+                sortName: "id",
+                sortOrder: "desc",
+                pagination: true,
+                columns: [{
+                    field: "id",
+                    title: "Build",
+                    sortable: true,
+                    formatter: function(value) {
+                        return '<a href="/job/' + value + '/">' + value + '</a>';
+                    },
+                }, {
+                    field: "target",
+                    title: "Name",
+                    sortable: true,
+                }, {
+                    field: "arch",
+                    title: "Architecture",
+                    sortable: true,
+                }, {
+                    field: "started",
+                    title: "Started",
+                    sortable: true,
+                    formatter: function(value) {
+                        return moment(value).format("LLL");
+                    },
+                }, {
+                    field: "finished",
+                    title: "Finished",
+                    sortable: true,
+                    formatter: function(value) {
+                        return moment(value).format("LLL");
+                    },
+                }],
+                data: data
+            });
+
         }
 
         function wsRequestData() {
