@@ -40,9 +40,11 @@
 
             var data = [];
 
-            var i;
-            for (i = 0; i < obj.data.length; i++) {
-                data.push(obj.data[i]);
+            if (obj.data) {
+                var i;
+                for (i = 0; i < obj.data.length; i++) {
+                    data.push(obj.data[i]);
+                }
             }
 
             $("table").bootstrapTable({
