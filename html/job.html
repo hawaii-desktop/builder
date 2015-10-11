@@ -30,7 +30,7 @@
         </table>
 
         <div id="steps">
-            <ul></ul>
+            <div class="panel-group" id="accordion" role="tablist" aria-multiselectable="true"></div>
         </div>
     </div>
 {{ end }}
@@ -82,8 +82,13 @@
                 for (i = 0; i < obj.data.steps.length; i++) {
                     var bs = obj.data.steps[i];
 
-                    steps += '<li>';
-                    steps += '<h4>' + bs.name + '</h4>';
+                    steps += '<div class="panel panel-default">';
+                    steps += '<div class="panel-heading" role="tab" id="heading' + i + '">';
+                    steps += '<h4 class="panel-title">';
+                    steps += '<a role="button" data-toggle="collapse" data-parent="#accordion" href="#collapse' + i + '" aria-expanded="true" aria-controls="collapse' + i + '">';
+                    steps += bs.name + '</a></h4></div>';
+                    steps += '<div id="collapse' + i + '" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="heading' + i + '">';
+                    steps += '<div class="panel-body">';
                     steps += '<table class="table no-border hover">';
                     steps += '<tr>';
                     steps += '<td align="right"><strong>Started:</strong></td>';
@@ -97,12 +102,12 @@
                     steps += '<td colspan="2"><pre class="log"><code>' + bs.log + '</code></pre></td>';
                     steps += '</tr>';
                     steps += '</table>';
-                    steps += '</li>';
+                    steps += '</div></div></div>';
                 }
             }
 
             $("table tbody").html(contents);
-            $("#steps ul").html(steps);
+            $("#accordion").html(steps);
         }
 
         function wsRequestData() {
