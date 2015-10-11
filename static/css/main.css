@@ -27,3 +27,14 @@
 html, body {
     font-family: 'Titillium Web', sans-serif;
 }
+
+code, kbd, pre, samp {
+    font-family: 'Source Code Pro', monospace;
+}
+
+pre.log {
+    background-color: #272822;
+    color: #f8f8f2;
+    max-height: 340px;
+    overflow-y: scroll;
+}
