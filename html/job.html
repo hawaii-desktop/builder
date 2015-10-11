@@ -115,15 +115,15 @@
                     }
                     if (bs.logs) {
                         steps += '<tr>';
-                        steps += '<td align="right"><strong>Additional logs:</strong></td>';
-                        steps += '<td><ul>';
+                        steps += '<td colspan="2">';
+                        steps += '<h3>Additional Logs</h3>';
                         for (var key in bs.logs) {
                             if (bs.logs.hasOwnProperty(key)) {
-                                for (var j = 0; j < bs.logs[key].length; j++)
-                                    steps += '<li>' + bs.logs[key][j] + '</li>';
+                                steps += '<h4>' + key + '</h4>';
+                                steps += '<pre class="log"><code>' + window.atob(bs.logs[key]) + '</code></pre>';
                             }
-                            steps += '</ul></td>';
                         }
+                        steps += '</td>';
                         steps += '</tr>';
                     }
                     steps += '<tr>';
