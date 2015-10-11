@@ -111,7 +111,6 @@ func (m *Master) PrepareTopics() {
 		for _, arch := range m.db.ListArchitectures() {
 			topic := ttype + "/" + arch
 			if _, ok := m.slaveQueues[topic]; !ok {
-				logging.Tracef("Preparing topic %s...\n", topic)
 				m.slaveQueues[topic] = make(chan chan *Job, Config.Build.MaxSlaves)
 			}
 		}
