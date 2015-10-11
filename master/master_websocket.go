@@ -203,7 +203,6 @@ func (m *Master) prepareJobsList(reqType int) *wsResponse {
 
 		// Append jobs depending on the request type
 		if reqType == WEB_SOCKET_QUEUED_JOBS {
-			logging.Traceln(job.Status, builder.JOB_STATUS_JUST_CREATED, builder.JOB_STATUS_WAITING)
 			return job.Status >= builder.JOB_STATUS_JUST_CREATED && job.Status <= builder.JOB_STATUS_WAITING
 		}
 		if reqType == WEB_SOCKET_DISPATCHED_JOBS {
