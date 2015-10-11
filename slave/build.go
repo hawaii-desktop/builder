@@ -85,9 +85,7 @@ type BuildStep struct {
 	started time.Time
 	// When the step has finished.
 	finished time.Time
-	// Output capture from execution.
-	output []byte
-	// Additional logs.
+	// Logs.
 	logs map[string][]byte
 }
 
@@ -229,7 +227,7 @@ func (f *Factory) Run() bool {
 		bs.finished = start.Add(elapsed)
 
 		// Collect output and send the update
-		bs.output = f.buffer.Bytes()
+		bs.logs["stdio"] = f.buffer.Bytes()
 		f.buffer.Reset()
 		f.job.stepUpdateQueue <- bs
 

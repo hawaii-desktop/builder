@@ -196,11 +196,8 @@ message StepResponse {
   // Optional summary of this step.
   map<string, string> summary = 6;
 
-  // Log.
-  bytes log = 7;
-
   // Other optional logs.
-  map<string, bytes> logs = 8;
+  map<string, bytes> logs = 7;
 }
 
 // Communication from slave to master.

@@ -63,8 +63,6 @@ type Step struct {
 	Finished time.Time `json:"finished"`
 	// Summary.
 	Summary map[string][]string `json:"summary,omitempty"`
-	// Output.
-	Log string `json:"log"`
 	// Additional logs.
 	Logs map[string][]byte `json:"logs,omitempty"`
 }

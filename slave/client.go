@@ -127,7 +127,6 @@ func (c *Client) Subscribe() error {
 					Started:  bs.started.UnixNano(),
 					Finished: bs.finished.UnixNano(),
 					Summary:  utils.MapStringSlice(bs.summary),
-					Log:      bs.output,
 					Logs:     bs.logs,
 				},
 			},

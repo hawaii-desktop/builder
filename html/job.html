@@ -118,7 +118,6 @@
                     if (bs.logs) {
                         steps += '<tr>';
                         steps += '<td colspan="2">';
-                        steps += '<h3>Additional Logs</h3>';
                         for (var key in bs.logs) {
                             if (bs.logs.hasOwnProperty(key)) {
                                 steps += '<h4>' + key + '</h4>';
@@ -128,9 +127,6 @@
                         steps += '</td>';
                         steps += '</tr>';
                     }
-                    steps += '<tr>';
-                    steps += '<td colspan="2"><pre class="log"><code>' + bs.log + '</code></pre></td>';
-                    steps += '</tr>';
                     steps += '</table>';
                     steps += '</div></div></div>';
                 }
