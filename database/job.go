@@ -29,7 +29,6 @@ package database
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"github.com/boltdb/bolt"
 	"github.com/hawaii-desktop/builder"
 	"strconv"
@@ -108,12 +107,7 @@ func (db *Database) ForEachJob(f func(job *builder.Job)) {
 }
 
 // Store a job.
-func (db *Database) SaveJob(data interface{}) error {
-	job, ok := data.(*builder.Job)
-	if !ok {
-		return errors.New("invalid data")
-	}
-
+func (db *Database) SaveJob(job *builder.Job) error {
 	return db.db.Update(func(tx *bolt.Tx) error {
 		// Find bucket and return an error if it doesn't exist
 		bucket, err := tx.CreateBucketIfNotExists([]byte("job"))

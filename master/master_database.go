@@ -61,7 +61,20 @@ func (m *Master) LoadDatabaseJobs() {
 
 // Save job on the database.
 func (m *Master) saveDatabaseJob(job *Job) {
-	if err := m.db.SaveJob(job); err != nil {
+	j := &builder.Job{
+		Id:           job.Id,
+		Type:         job.Type,
+		Target:       job.Target,
+		Architecture: job.Architecture,
+		Started:      job.Started,
+		Finished:     job.Finished,
+		Status:       job.Status,
+		Steps:        job.Steps,
+	}
+
+	if err := m.db.SaveJob(j); err != nil {
 		logging.Errorf("Unable to save job #%d: %s\n", job.Id, err)
 	}
+
+	j = nil
 }
