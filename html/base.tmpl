@@ -11,17 +11,17 @@
         <title>{{ template "title" . }}</title>
 
         <!-- Style sheets -->
-        <link rel="stylesheet" href="http://fonts.googleapis.com/css?family=Titillium+Web:300,400,600,700">
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Oxygen+Mono">
-        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
-        <!-- <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap-theme.min.css"> -->
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.9.0/bootstrap-table.min.css">
-        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css">
-        <link rel="stylesheet" href="/css/main.css">
-        <link rel="stylesheet" href="/css/sb-admin.css">
+        <link type="text/css" rel="stylesheet" href="http://fonts.googleapis.com/css?family=Titillium+Web:300,400,600,700">
+        <link type="text/css" rel="stylesheet" href="https://fonts.googleapis.com/css?family=Oxygen+Mono">
+        <link type="text/css" rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+        <!-- <link type="text/css" rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap-theme.min.css"> -->
+        <link type="text/css" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.9.0/bootstrap-table.min.css">
+        <link type="text/css" rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css">
+        <link type="text/css" rel="stylesheet" href="/css/main.css">
+        <link type="text/css" rel="stylesheet" href="/css/sb-admin.css">
 
         <!-- JavaScript -->
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+        <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
         <script type="text/javascript">
             var wsConn;
             var wsAttempts = 1;
@@ -117,15 +117,15 @@
         </div>
 
         <!-- JavaScript -->
-        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.9.0/bootstrap-table.min.js"></script>
-        <script src="/js/json2.js"></script>
-        <script src="/js/moment.min.js"></script>
+        <script type="text/javascript" src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.9.0/bootstrap-table.min.js"></script>
+        <script type="text/javascript" src="/js/json2.js"></script>
+        <script type="text/javascript" src="/js/moment.min.js"></script>
 
         <!-- Custom scripts -->
-        <script src="/js/websocket.js"></script>
+        <script type="text/javascript" src="/js/websocket.js"></script>
         {{ template "scripts" . }}
-        <script type="text/javascript">
+        <script type="text/javascript" type="text/javascript">
             $(function() {
                 if (window["WebSocket"]) {
                     createWebSocket("ws://{{.SiteHost}}/ws", wsHandler);
