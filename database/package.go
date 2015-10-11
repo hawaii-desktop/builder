@@ -120,7 +120,7 @@ func (db *Database) GetPackage(name string) *Package {
 func (db *Database) AddPackage(pkg *Package) error {
 	encoded, err := json.Marshal(pkg)
 	if err != nil {
-		return nil
+		return err
 	}
 	return db.db.Update(func(tx *bolt.Tx) error {
 		bucket, err := tx.CreateBucketIfNotExists([]byte("package"))
