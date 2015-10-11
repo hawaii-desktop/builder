@@ -296,7 +296,7 @@ func (m *RpcService) Subscribe(stream pb.Builder_SubscribeServer) error {
 				Name:     stepUpdate.Name,
 				Started:  time.Unix(0, stepUpdate.Started),
 				Finished: time.Unix(0, stepUpdate.Finished),
-				Log:      stepUpdate.Log,
+				Log:      string(stepUpdate.Log),
 			}
 			j.Steps = append(j.Steps, step)
 

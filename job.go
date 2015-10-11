@@ -59,7 +59,7 @@ type Step struct {
 	// When the step has finished.
 	Finished time.Time `json:"finished"`
 	// Output.
-	Log []byte `json:"log"`
+	Log string `json:"log"`
 }
 
 // Job target type enumeration.
