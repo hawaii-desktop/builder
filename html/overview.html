@@ -188,6 +188,12 @@
             $("#mainIndicator").html(obj.data.main);
         }
 
+        function wsRequestData() {
+            // Ask jobs list
+            var request = {"type": WEB_SOCKET_STATISTICS};
+            wsConn.send(JSON.stringify(request, null, 2));
+        }
+
         function init() {
             $("#sideBarDashboardSection").addClass("active");
         }
