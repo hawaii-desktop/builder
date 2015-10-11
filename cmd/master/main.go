@@ -140,6 +140,12 @@ func runMaster(ctx *cli.Context) {
 	}
 	defer m.Close()
 
+	// Create storage
+	if err := m.CreateStorage(); err != nil {
+		logging.Errorln(err)
+		return
+	}
+
 	// Handle web socket registration and unregistration
 	webServer.Hub.HandleRegister(m.WebSocketConnectionRegistration)
 	webServer.Hub.HandleUnregister(m.WebSocketConnectionUnregistration)

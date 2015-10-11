@@ -27,10 +27,12 @@
 package master
 
 import (
+	"fmt"
 	"github.com/hawaii-desktop/builder"
 	"github.com/hawaii-desktop/builder/database"
 	"github.com/hawaii-desktop/builder/logging"
 	"github.com/hawaii-desktop/builder/webserver"
+	"os"
 	"sync"
 	"time"
 )
@@ -114,6 +116,20 @@ func (m *Master) PrepareTopics() {
 			}
 		}
 	}
+}
+
+// Create storage directories.
+func (m *Master) CreateStorage() error {
+	if err := os.MkdirAll(Config.Storage.MainRepoDir, 0755); err != nil {
+		fmt.Errorf("Failed to create main repository directory \"%s\": %s\n", Config.Storage.MainRepoDir, err)
+	}
+	if err := os.MkdirAll(Config.Storage.StagingRepoDir, 0755); err != nil {
+		fmt.Errorf("Failed to create staging repository directory \"%s\": %s\n", Config.Storage.StagingRepoDir, err)
+	}
+	if err := os.MkdirAll(Config.Storage.ImagesDir, 0755); err != nil {
+		fmt.Errorf("Failed to create images storage \"%s\": %s\n", Config.Storage.ImagesDir, err)
+	}
+	return nil
 }
 
 // Dispatch jobs.

@@ -33,6 +33,11 @@ type Settings struct {
 		HttpAddress string
 		Database    string
 	}
+	Storage struct {
+		MainRepoDir    string
+		StagingRepoDir string
+		ImagesDir      string
+	}
 	GitHub struct {
 		ClientID     string
 		ClientSecret string
