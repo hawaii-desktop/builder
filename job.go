@@ -27,6 +27,7 @@
 package builder
 
 import (
+	"sync"
 	"time"
 )
 
@@ -48,6 +49,8 @@ type Job struct {
 	Status JobStatus `json:"status"`
 	// Build steps.
 	Steps []*Step `json:"steps"`
+	// Mutex that serialize access to this job.
+	Mutex sync.Mutex `json:"-"`
 }
 
 // Step represents the step of a job.

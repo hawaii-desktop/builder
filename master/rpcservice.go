@@ -291,14 +291,28 @@ func (m *RpcService) Subscribe(stream pb.Builder_SubscribeServer) error {
 				return ErrJobNotFound
 			}
 
-			// Append the build step
-			step := &builder.Step{
-				Name:     stepUpdate.Name,
-				Started:  time.Unix(0, stepUpdate.Started),
-				Finished: time.Unix(0, stepUpdate.Finished),
-				Log:      string(stepUpdate.Log),
+			// Append or replace the build step
+			j.Mutex.Lock()
+			found := false
+			for _, step := range j.Steps {
+				if step.Name == stepUpdate.Name {
+					step.Started = time.Unix(0, stepUpdate.Started)
+					step.Finished = time.Unix(0, stepUpdate.Finished)
+					step.Log = string(stepUpdate.Log)
+					found = true
+					break
+				}
 			}
-			j.Steps = append(j.Steps, step)
+			if !found {
+				step := &builder.Step{
+					Name:     stepUpdate.Name,
+					Started:  time.Unix(0, stepUpdate.Started),
+					Finished: time.Unix(0, stepUpdate.Finished),
+					Log:      string(stepUpdate.Log),
+				}
+				j.Steps = append(j.Steps, step)
+			}
+			j.Mutex.Unlock()
 
 			// Save on the database
 			m.master.saveDatabaseJob(j)
