@@ -62,7 +62,7 @@ type Step struct {
 	// When the step has finished.
 	Finished time.Time `json:"finished"`
 	// Summary.
-	Summary map[string][]string `json:"summary"`
+	Summary map[string][]string `json:"summary,omitempty"`
 	// Output.
 	Log string `json:"log"`
 	// Additional logs.
