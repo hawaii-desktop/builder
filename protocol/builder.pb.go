@@ -300,13 +300,22 @@ type StepResponse struct {
 	Started int64 `protobuf:"varint,4,opt,name=started" json:"started,omitempty"`
 	// When it has finished (nanoseconds since Epoch).
 	Finished int64 `protobuf:"varint,5,opt,name=finished" json:"finished,omitempty"`
+	// Optional summary of this step.
+	Summary map[string]string `protobuf:"bytes,6,rep,name=summary" json:"summary,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// Log.
-	Log []byte `protobuf:"bytes,6,opt,name=log,proto3" json:"log,omitempty"`
+	Log []byte `protobuf:"bytes,7,opt,name=log,proto3" json:"log,omitempty"`
 }
 
 func (m *StepResponse) Reset()         { *m = StepResponse{} }
 func (m *StepResponse) String() string { return proto.CompactTextString(m) }
 func (*StepResponse) ProtoMessage()    {}
+
+func (m *StepResponse) GetSummary() map[string]string {
+	if m != nil {
+		return m.Summary
+	}
+	return nil
+}
 
 // Communication from slave to master.
 type InputMessage struct {

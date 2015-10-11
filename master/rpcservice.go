@@ -33,6 +33,7 @@ import (
 	"github.com/hawaii-desktop/builder/database"
 	"github.com/hawaii-desktop/builder/logging"
 	pb "github.com/hawaii-desktop/builder/protocol"
+	"github.com/hawaii-desktop/builder/utils"
 	"golang.org/x/net/context"
 	"io"
 	"regexp"
@@ -302,6 +303,7 @@ func (m *RpcService) Subscribe(stream pb.Builder_SubscribeServer) error {
 				if step.Name == stepUpdate.Name {
 					step.Started = time.Unix(0, stepUpdate.Started)
 					step.Finished = time.Unix(0, stepUpdate.Finished)
+					step.Summary = utils.MapSliceString(stepUpdate.Summary)
 					step.Log = string(stepUpdate.Log)
 					found = true
 					break
@@ -312,6 +314,7 @@ func (m *RpcService) Subscribe(stream pb.Builder_SubscribeServer) error {
 					Name:     stepUpdate.Name,
 					Started:  time.Unix(0, stepUpdate.Started),
 					Finished: time.Unix(0, stepUpdate.Finished),
+					Summary:  utils.MapSliceString(stepUpdate.Summary),
 					Log:      string(stepUpdate.Log),
 				}
 				j.Steps = append(j.Steps, step)

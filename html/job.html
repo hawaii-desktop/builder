@@ -99,6 +99,21 @@
                     steps += '<td>' + (bs.finished ? moment(bs.finished).format("LLL") : "n.a.") + '</td>';
                     steps += '</tr>';
                     steps += '<tr>';
+                    if (bs.summary) {
+                        steps += '<td align="right"><strong>Summary:</strong></td>';
+                        steps += '<td><ul>';
+                        for (var key in bs.summary) {
+                            if (bs.summary.hasOwnProperty(key)) {
+                                steps += '<li><strong>' + key + '</strong><ol>';
+                                for (var j = 0; j < bs.summary[key].length; j++)
+                                    steps += '<li>' + bs.summary[key][j] + '</li>'
+                                steps += '</ol></li>';
+                            }
+                        }
+                        steps += '</ul></td>';
+                        steps += '</tr>';
+                    }
+                    steps += '<tr>';
                     steps += '<td colspan="2"><pre class="log"><code>' + bs.log + '</code></pre></td>';
                     steps += '</tr>';
                     steps += '</table>';

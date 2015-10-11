@@ -80,7 +80,7 @@ type BuildStep struct {
 	// Factory that owns this build step.
 	parent *Factory
 	// Summary with the most important log messages.
-	summary map[string]string
+	summary map[string][]string
 	// When the step has been started.
 	started time.Time
 	// When the step has finished.
@@ -197,7 +197,7 @@ func (f *Factory) AddBuildStep(bs *BuildStep) {
 	f.sMutex.Lock()
 	defer f.sMutex.Unlock()
 	bs.parent = f
-	bs.summary = make(map[string]string)
+	bs.summary = make(map[string][]string)
 	f.steps = append(f.steps, bs)
 }
 
@@ -246,5 +246,5 @@ func (f *Factory) Run() bool {
 
 // Add a summary entry that will be shown by the user interface.
 func (bs *BuildStep) AddSummary(label string, value string) {
-	bs.summary[label] = value
+	bs.summary[label] = append(bs.summary[label], value)
 }

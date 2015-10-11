@@ -30,6 +30,7 @@ import (
 	"github.com/hawaii-desktop/builder"
 	"github.com/hawaii-desktop/builder/logging"
 	pb "github.com/hawaii-desktop/builder/protocol"
+	"github.com/hawaii-desktop/builder/utils"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"io"
@@ -125,6 +126,7 @@ func (c *Client) Subscribe() error {
 					Running:  !bs.finished.IsZero(),
 					Started:  bs.started.UnixNano(),
 					Finished: bs.finished.UnixNano(),
+					Summary:  utils.MapStringSlice(bs.summary),
 					Log:      bs.output,
 				},
 			},

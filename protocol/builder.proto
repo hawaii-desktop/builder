@@ -193,8 +193,11 @@ message StepResponse {
   // When it has finished (nanoseconds since Epoch).
   int64 finished = 5;
 
+  // Optional summary of this step.
+  map<string, string> summary = 6;
+
   // Log.
-  bytes log = 6;
+  bytes log = 7;
 }
 
 // Communication from slave to master.

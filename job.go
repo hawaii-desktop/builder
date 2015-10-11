@@ -61,6 +61,8 @@ type Step struct {
 	Started time.Time `json:"started"`
 	// When the step has finished.
 	Finished time.Time `json:"finished"`
+	// Summary.
+	Summary map[string][]string `json:"summary"`
 	// Output.
 	Log string `json:"log"`
 }
