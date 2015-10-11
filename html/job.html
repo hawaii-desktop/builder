@@ -25,7 +25,7 @@
         <!-- /.row -->
 
         <table class="table no-border hover">
-            <tbody>
+            <tbody id="table">
             </tbody>
         </table>
 
@@ -54,8 +54,7 @@
             if (obj.type != WEB_SOCKET_JOB || !obj.data)
                 return;
 
-            var contents = "", steps = "";
-
+            var contents = "";
             contents += '<tr>';
             contents += '<td align="right"><strong>Type:</strong></td>';
             contents += '<td>' + decodeJobType(obj.data.type) + '</td>';
@@ -76,8 +75,11 @@
             contents += '<td align="right"><strong>Finished:</strong></td>';
             contents += '<td>' + (obj.data.finished ? moment(obj.data.finished).format("LLL") : "n.a.") + '</td>';
             contents += '</tr>';
+            document.getElementById("table").innerHTML = contents;
 
             if (obj.data.steps) {
+                var steps = "";
+                
                 var i;
                 for (i = 0; i < obj.data.steps.length; i++) {
                     var bs = obj.data.steps[i];
@@ -132,10 +134,9 @@
                     steps += '</table>';
                     steps += '</div></div></div>';
                 }
-            }
 
-            $("table tbody").html(contents);
-            $("#accordion").html(steps);
+                document.getElementById("accordion").innerHTML = steps;
+            }
         }
 
         function wsRequestData() {
