@@ -158,6 +158,9 @@ func runMaster(ctx *cli.Context) {
 	pb.RegisterBuilderServer(grpcServer, service)
 	go grpcServer.Serve(rpcListener)
 
+	// Prepare topics
+	m.PrepareTopics()
+
 	// Start processing
 	go m.Dispatch()
 	go m.DeliverWebSocketEvents()

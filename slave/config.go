@@ -33,8 +33,8 @@ type Settings struct {
 	}
 	Slave struct {
 		Name          string
-		Channels      []string
-		Architectures []string
+		Types         string
+		Architectures string
 	}
 	Directory struct {
 		WorkDir string

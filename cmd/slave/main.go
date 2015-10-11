@@ -94,10 +94,10 @@ func runSlave(ctx *cli.Context) {
 	if slave.Config.Slave.Name == "" {
 		logging.Fatalln("You must specify the slave name")
 	}
-	if len(slave.Config.Slave.Channels) == 0 {
+	if slave.Config.Slave.Types == "" {
 		logging.Fatalln("You must specify the channels to subscribe")
 	}
-	if len(slave.Config.Slave.Architectures) == 0 {
+	if slave.Config.Slave.Architectures == "" {
 		logging.Fatalln("You must specify the supported architectures")
 	}
 

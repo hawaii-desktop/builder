@@ -32,34 +32,53 @@ type Slave struct {
 	Id uint64
 	// Name.
 	Name string
-	// Channels to subscribe to.
-	Channels []string
+	// Types of targets supported.
+	Types []string
 	// Supported architectures.
 	Architectures []string
 	// Whether it has subscribed to the stream or not.
 	Subscribed bool
 	// Whether it is active or not.
 	Active bool
-	// Channel to pick up jobs from.
-	JobChannel chan *Job
-	// Channel used to stop processing jobs.
-	QuitChannel chan bool
+	// Channels to pick up jobs from for each topic.
+	jobChannels map[string]chan *Job
+	// Channel used to stop processing jobs for each topic.
+	quitChannels map[string]chan bool
 }
 
 // Creates and returns a new Slave object
-func NewSlave(id uint64, name string, chans []string, archs []string) *Slave {
+func NewSlave(id uint64, name string, types []string, archs []string) *Slave {
 	// Create and return the object
 	slave := &Slave{
 		Id:            id,
 		Name:          name,
-		Channels:      chans,
+		Types:         types,
 		Architectures: archs,
 		Subscribed:    true,
 		Active:        true,
-		JobChannel:    make(chan *Job),
-		QuitChannel:   make(chan bool),
+		jobChannels:   make(map[string]chan *Job),
+		quitChannels:  make(map[string]chan bool),
 	}
+
+	// Initialize job channels based on topics
+	for _, topic := range slave.Topics() {
+		slave.jobChannels[topic] = make(chan *Job)
+		slave.quitChannels[topic] = make(chan bool)
+	}
+
+	// Return
 	return slave
+}
+
+// Return the topics that this slave is interested in.
+func (s *Slave) Topics() []string {
+	var topics []string
+	for _, ttype := range s.Types {
+		for _, arch := range s.Architectures {
+			topics = append(topics, ttype+"/"+arch)
+		}
+	}
+	return topics
 }
 
 // Ask the slave to stop after the jobs assigned to it has finished.
@@ -67,6 +86,8 @@ func (s *Slave) Stop() {
 	s.Active = false
 
 	go func() {
-		s.QuitChannel <- true
+		for _, topic := range s.Topics() {
+			s.quitChannels[topic] <- true
+		}
 	}()
 }

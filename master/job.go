@@ -37,3 +37,17 @@ type Job struct {
 	// Channel.
 	Channel chan bool `json:"-"`
 }
+
+// Return the slave topic name based in the <type>/<arch> format,
+// where type is the job type (package or image) and <arch> the
+// architecture (i386, x86_64, ...).
+func (j *Job) TopicName() string {
+	switch j.Type {
+	case builder.JOB_TARGET_TYPE_PACKAGE:
+		return "package/" + j.Architecture
+	case builder.JOB_TARGET_TYPE_IMAGE:
+		return "image/" + j.Architecture
+	}
+
+	panic("Unknown job type")
+}

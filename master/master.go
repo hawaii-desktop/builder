@@ -45,8 +45,11 @@ type Master struct {
 	subscriptions map[*webserver.WebSocketConnection]*wsSubscription
 	// Buffered channel that we can send jobs on.
 	buildJobQueue chan *Job
-	// Buffered channel that holds the job channels from each slave.
-	slaveQueue chan chan *Job
+	// Map a slave topic (that is a combination of what job types and
+	// architectures supported by a slave, for example package/x86_64 for
+	// x86_64 packages) to a buffered channel that holds the job channels
+	// from each slave.
+	slaveQueues map[string]chan chan *Job
 	// Broadcast queue for the web socket.
 	webSocketQueue chan interface{}
 	// List of jobs to be processed.
@@ -85,7 +88,7 @@ func NewMaster(hub *webserver.WebSocketHub) (*Master, error) {
 		hub:            hub,
 		subscriptions:  make(map[*webserver.WebSocketConnection]*wsSubscription),
 		buildJobQueue:  make(chan *Job, Config.Build.MaxJobs),
-		slaveQueue:     make(chan chan *Job, Config.Build.MaxSlaves),
+		slaveQueues:    make(map[string]chan chan *Job),
 		webSocketQueue: make(chan interface{}),
 		jobs:           make([]*Job, 0, Config.Build.MaxJobs),
 		stats:          statistics{0, 0, 0, 0, 0, 0},
@@ -96,6 +99,21 @@ func NewMaster(hub *webserver.WebSocketHub) (*Master, error) {
 func (m *Master) Close() {
 	m.db.Close()
 	m.db = nil
+}
+
+// Prepare the topics.
+func (m *Master) PrepareTopics() {
+	// Create a bufferer channel of jobs for the topic, unless
+	// it has already been created
+	for _, ttype := range []string{"package", "image"} {
+		for _, arch := range m.db.ListArchitectures() {
+			topic := ttype + "/" + arch
+			if _, ok := m.slaveQueues[topic]; !ok {
+				logging.Tracef("Preparing topic %s...\n", topic)
+				m.slaveQueues[topic] = make(chan chan *Job, Config.Build.MaxSlaves)
+			}
+		}
+	}
 }
 
 // Dispatch jobs.
@@ -116,10 +134,11 @@ func (m *Master) Dispatch() {
 				m.updateStatistics()
 				m.updateAllJobs()
 
-				// Dispatch
-				slave := <-m.slaveQueue
-				logging.Tracef("Dispatching job #%d...\n", j.Id)
-				slave <- j
+				// Dispatch job based on job type and architecture
+				topic := j.TopicName()
+				slaveQueue := <-m.slaveQueues[topic]
+				logging.Tracef("Dispatching job #%d (topic %s)...\n", j.Id, topic)
+				slaveQueue <- j
 			}()
 		}
 	}

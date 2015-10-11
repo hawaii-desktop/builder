@@ -169,26 +169,30 @@ func (m *RpcService) Subscribe(stream pb.Builder_SubscribeServer) error {
 
 	// Slave loop
 	var slaveLoop = func(s *Slave) {
-		for {
-			// Do not queue a slave that suddenly unregisters itself
-			if !s.Subscribed || !s.Active {
-				return
-			}
+		for _, topic := range s.Topics() {
+			go func(topic string) {
+				for {
+					// Do not queue a slave that suddenly unregisters itself
+					if !s.Subscribed || !s.Active {
+						return
+					}
 
-			// Add to the queue
-			m.master.slaveQueue <- s.JobChannel
+					// Add to the queue
+					m.master.slaveQueues[topic] <- s.jobChannels[topic]
 
-			select {
-			case j := <-s.JobChannel:
-				// Send the job to the slave
-				sendJob(s, j)
+					select {
+					case j := <-s.jobChannels[topic]:
+						// Send the job to the slave
+						sendJob(s, j)
 
-				// Wait for processing on the other side
-				<-j.Channel
-			case <-s.QuitChannel:
-				// Slave has been asked to stop
-				return
-			}
+						// Wait for processing on the other side
+						<-j.Channel
+					case <-s.quitChannels[topic]:
+						// Slave has been asked to stop
+						return
+					}
+				}
+			}(topic)
 		}
 	}
 
@@ -508,7 +512,7 @@ func (m *RpcService) createSlave(args *pb.SubscribeRequest) (*Slave, error) {
 	}
 
 	// Create and append slave
-	slave := NewSlave(m.master.db.NewSlaveId(), args.Name, args.Channels, args.Architectures)
+	slave := NewSlave(m.master.db.NewSlaveId(), args.Name, args.Types, args.Architectures)
 	m.Slaves = append(m.Slaves, slave)
 	logging.Infof("Subscribed slave \"%s\" with id %d\n", slave.Name, slave.Id)
 	return slave, nil

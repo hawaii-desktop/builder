@@ -129,8 +129,8 @@ func (*StringListMessage) ProtoMessage()    {}
 type SubscribeRequest struct {
 	// Name.
 	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
-	// Channels.
-	Channels []string `protobuf:"bytes,2,rep,name=channels" json:"channels,omitempty"`
+	// Topics.
+	Types []string `protobuf:"bytes,2,rep,name=types" json:"types,omitempty"`
 	// Architectures.
 	Architectures []string `protobuf:"bytes,3,rep,name=architectures" json:"architectures,omitempty"`
 }

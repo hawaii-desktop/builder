@@ -126,8 +126,8 @@ message SubscribeRequest {
   // Name.
   string name = 1;
 
-  // Channels.
-  repeated string channels = 2;
+  // Topics.
+  repeated string types = 2;
 
   // Architectures.
   repeated string architectures = 3;

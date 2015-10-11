@@ -34,6 +34,7 @@ import (
 	"google.golang.org/grpc"
 	"io"
 	"runtime"
+	"strings"
 )
 
 // Store important data used during the life time of the slave.
@@ -220,8 +221,8 @@ func (c *Client) Subscribe() error {
 		Payload: &pb.InputMessage_Subscription{
 			Subscription: &pb.SubscribeRequest{
 				Name:          Config.Slave.Name,
-				Channels:      Config.Slave.Channels,
-				Architectures: Config.Slave.Architectures,
+				Types:         strings.Split(Config.Slave.Types, ","),
+				Architectures: strings.Split(Config.Slave.Architectures, ","),
 			},
 		},
 	}
