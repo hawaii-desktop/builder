@@ -125,7 +125,6 @@ func (f *Factory) RunWithTimeout(cmd *exec.Cmd, timeout time.Duration) error {
 
 	output, err := cmd.CombinedOutput()
 	fmt.Fprintf(f.buffer, string(output))
-	fmt.Fprintf(f.buffer, "\n\n")
 
 	return err
 }
@@ -148,7 +147,6 @@ func (f *Factory) RunCombinedWithTimeout(cmd *exec.Cmd, timeout time.Duration) (
 
 	output, err := cmd.CombinedOutput()
 	fmt.Fprintf(f.buffer, string(output))
-	fmt.Fprintf(f.buffer, "\n\n")
 
 	return output, err
 }
