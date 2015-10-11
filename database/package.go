@@ -122,7 +122,8 @@ func (db *Database) AddPackage(pkg *Package) error {
 	if err != nil {
 		return err
 	}
-	return db.db.Update(func(tx *bolt.Tx) error {
+
+	err = db.db.Update(func(tx *bolt.Tx) error {
 		bucket, err := tx.CreateBucketIfNotExists([]byte("package"))
 		if err != nil {
 			return err
@@ -135,6 +136,16 @@ func (db *Database) AddPackage(pkg *Package) error {
 
 		return nil
 	})
+
+	if err == nil {
+		// Add the architectures as supported
+		err = db.SaveArchitectures(pkg.Architectures...)
+		if err != nil {
+			return err
+		}
+	}
+
+	return err
 }
 
 // Remove a package from the database.
@@ -145,10 +156,49 @@ func (db *Database) RemovePackage(name string) error {
 			return nil
 		}
 
-		err := bucket.Delete([]byte(name))
-		if err != nil {
+		// Unmarshal the package
+		pkg := &Package{}
+		c := bucket.Cursor()
+		for k, v := c.Seek([]byte(name)); bytes.Equal(k, []byte(name)); k, v = c.Next() {
+			if err := json.Unmarshal(v, &pkg); err != nil {
+				return err
+			}
+		}
+
+		// Delete the bucket
+		if err := bucket.Delete([]byte(name)); err != nil {
 			return err
 		}
+
+		// Remove these architectures if they are not referenced
+		// by any other package or image
+		if err := db.RemoveArchitectures(pkg.Architectures...); err != nil {
+			return err
+		}
+
+		return nil
+	})
+}
+
+// Iterate the packages list.
+func (db *Database) ForEachPackage(f func(pkg *Package)) {
+	db.db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte("package"))
+		if bucket == nil {
+			return nil
+		}
+
+		bucket.ForEach(func(k, v []byte) error {
+			var pkg *Package
+			err := json.Unmarshal(v, &pkg)
+			if err != nil {
+				return err
+			}
+
+			f(pkg)
+
+			return nil
+		})
 
 		return nil
 	})

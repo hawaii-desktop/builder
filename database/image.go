@@ -121,7 +121,8 @@ func (db *Database) AddImage(img *Image) error {
 	if err != nil {
 		return nil
 	}
-	return db.db.Update(func(tx *bolt.Tx) error {
+
+	err = db.db.Update(func(tx *bolt.Tx) error {
 		bucket, err := tx.CreateBucketIfNotExists([]byte("image"))
 		if err != nil {
 			return err
@@ -134,6 +135,16 @@ func (db *Database) AddImage(img *Image) error {
 
 		return nil
 	})
+
+	if err == nil {
+		// Add the architectures as supported
+		err = db.SaveArchitectures(img.Architectures...)
+		if err != nil {
+			return err
+		}
+	}
+
+	return err
 }
 
 // Remove an image from the database.
@@ -144,10 +155,50 @@ func (db *Database) RemoveImage(name string) error {
 			return nil
 		}
 
+		// Unmarshal the image
+		img := &Image{}
+		c := bucket.Cursor()
+		for k, v := c.Seek([]byte(name)); bytes.Equal(k, []byte(name)); k, v = c.Next() {
+			if err := json.Unmarshal(v, &img); err != nil {
+				return err
+			}
+		}
+
+		// Delete the bucket
 		err := bucket.Delete([]byte(name))
 		if err != nil {
 			return err
 		}
+
+		// Remove these architectures if they are not referenced
+		// by any other package or image
+		if err := db.RemoveArchitectures(img.Architectures...); err != nil {
+			return err
+		}
+
+		return nil
+	})
+}
+
+// Iterate the images list.
+func (db *Database) ForEachImage(f func(img *Image)) {
+	db.db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte("image"))
+		if bucket == nil {
+			return nil
+		}
+
+		bucket.ForEach(func(k, v []byte) error {
+			var img *Image
+			err := json.Unmarshal(v, &img)
+			if err != nil {
+				return err
+			}
+
+			f(img)
+
+			return nil
+		})
 
 		return nil
 	})
