@@ -231,8 +231,10 @@ func (c *Client) Subscribe() error {
 	stream.Send(args)
 
 	// Wait until the stream is clsed
-	<-wait
-	stream.CloseSend()
+	go func() {
+		<-wait
+		stream.CloseSend()
+	}()
 
 	return nil
 }

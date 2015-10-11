@@ -127,7 +127,11 @@ func runSlave(ctx *cli.Context) {
 	// Subscribe
 	err = client.Subscribe()
 	if err == nil {
-		defer client.Unsubscribe()
+		// Unsubscribe and close the connection when quitting
+		defer func() {
+			client.Unsubscribe()
+			client.Close()
+		}()
 	} else {
 		logging.Errorf("Unable to register slave: %s\n", err)
 		return
@@ -143,7 +147,4 @@ func runSlave(ctx *cli.Context) {
 
 	// Now quit
 	logging.Traceln("Quitting...")
-
-	// Close client
-	client.Close()
 }
