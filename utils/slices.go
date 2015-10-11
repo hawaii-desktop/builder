@@ -24,10 +24,10 @@
  * $END_LICENSE$
  ***************************************************************************/
 
-package slices
+package utils
 
 // Contains returns whether the slice contains the given value.
-func ContainsString(slice []string, val string) bool {
+func StringSliceContains(slice []string, val string) bool {
 	for _, v := range slice {
 		if v == val {
 			return true
@@ -37,7 +37,7 @@ func ContainsString(slice []string, val string) bool {
 }
 
 // Deduplicate returns the given slice without duplicate elements.
-func DeduplicateString(slice []string) []string {
+func DeduplicateStringSlice(slice []string) []string {
 	encountered := make(map[string]bool)
 	for _, v := range slice {
 		encountered[v] = true

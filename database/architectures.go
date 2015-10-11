@@ -29,7 +29,7 @@ package database
 import (
 	"encoding/json"
 	"github.com/boltdb/bolt"
-	"github.com/hawaii-desktop/builder/slices"
+	"github.com/hawaii-desktop/builder/utils"
 )
 
 // Return a list of all the architectures.
@@ -55,7 +55,7 @@ func (db *Database) ListArchitectures() []string {
 // Save the list of supported architectures.
 func (db *Database) SaveArchitectures(archsList ...string) error {
 	// Make sure the list has only unique architectures
-	archs := slices.DeduplicateString(archsList)
+	archs := utils.DeduplicateStringSlice(archsList)
 
 	return db.db.Update(func(tx *bolt.Tx) error {
 		bucket, err := tx.CreateBucketIfNotExists([]byte("data"))
@@ -76,7 +76,7 @@ func (db *Database) SaveArchitectures(archsList ...string) error {
 		// Add the architectures only if needed
 		changed := false
 		for _, a := range archs {
-			if !slices.ContainsString(savedArchs, a) {
+			if !utils.StringSliceContains(savedArchs, a) {
 				savedArchs = append(savedArchs, a)
 				changed = true
 			}
@@ -102,7 +102,7 @@ func (db *Database) SaveArchitectures(archsList ...string) error {
 // by any package or image.
 func (db *Database) RemoveArchitectures(archsList ...string) error {
 	// Make sure the list has only unique architectures
-	archs := slices.DeduplicateString(archsList)
+	archs := utils.DeduplicateStringSlice(archsList)
 
 	return db.db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte("data"))
@@ -124,13 +124,13 @@ func (db *Database) RemoveArchitectures(archsList ...string) error {
 			referenced := false
 
 			db.ForEachPackage(func(pkg *Package) {
-				if slices.ContainsString(pkg.Architectures, arch) {
+				if utils.StringSliceContains(pkg.Architectures, arch) {
 					referenced = true
 				}
 			})
 
 			db.ForEachImage(func(img *Image) {
-				if slices.ContainsString(img.Architectures, arch) {
+				if utils.StringSliceContains(img.Architectures, arch) {
 					referenced = true
 				}
 			})
