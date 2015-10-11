@@ -65,6 +65,8 @@ type Step struct {
 	Summary map[string][]string `json:"summary"`
 	// Output.
 	Log string `json:"log"`
+	// Additional logs.
+	Logs map[string][]byte `json:"logs,omitempty"`
 }
 
 // Job target type enumeration.

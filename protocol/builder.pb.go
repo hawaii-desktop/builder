@@ -304,6 +304,8 @@ type StepResponse struct {
 	Summary map[string]string `protobuf:"bytes,6,rep,name=summary" json:"summary,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// Log.
 	Log []byte `protobuf:"bytes,7,opt,name=log,proto3" json:"log,omitempty"`
+	// Other optional logs.
+	Logs map[string][]byte `protobuf:"bytes,8,rep,name=logs" json:"logs,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value,proto3"`
 }
 
 func (m *StepResponse) Reset()         { *m = StepResponse{} }
@@ -313,6 +315,13 @@ func (*StepResponse) ProtoMessage()    {}
 func (m *StepResponse) GetSummary() map[string]string {
 	if m != nil {
 		return m.Summary
+	}
+	return nil
+}
+
+func (m *StepResponse) GetLogs() map[string][]byte {
+	if m != nil {
+		return m.Logs
 	}
 	return nil
 }

@@ -87,6 +87,8 @@ type BuildStep struct {
 	finished time.Time
 	// Output capture from execution.
 	output []byte
+	// Additional logs.
+	logs map[string][]byte
 }
 
 // Create a new factory.
@@ -198,6 +200,7 @@ func (f *Factory) AddBuildStep(bs *BuildStep) {
 	defer f.sMutex.Unlock()
 	bs.parent = f
 	bs.summary = make(map[string][]string)
+	bs.logs = make(map[string][]byte)
 	f.steps = append(f.steps, bs)
 }
 

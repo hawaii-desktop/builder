@@ -30,9 +30,12 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"github.com/hawaii-desktop/builder/logging"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"regexp"
 	"strings"
 )
@@ -326,6 +329,21 @@ func rpmFactoryMockRebuild(bs *BuildStep) error {
 	cmd.Env = []string{"PATH=/usr/local/sbin:/sbin:/usr/sbin:/usr/local/bin:/bin:/usr/bin"}
 	if err := bs.parent.RunWithTimeout(cmd, cloneTimeout); err != nil {
 		return err
+	}
+
+	// Collect the result logs
+	files, err := filepath.Glob("../results/*.log")
+	if err == nil {
+		for _, file := range files {
+			contents, err := ioutil.ReadFile(file)
+			if err == nil {
+				bs.logs[filepath.Base(file)] = contents
+			} else {
+				logging.Warningf("Unable to read \"%s\": %s\n", file, err)
+			}
+		}
+	} else {
+		logging.Warningf("Unable to collect mock logs: %s\n", err)
 	}
 
 	return nil

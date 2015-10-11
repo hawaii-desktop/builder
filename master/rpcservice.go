@@ -305,6 +305,7 @@ func (m *RpcService) Subscribe(stream pb.Builder_SubscribeServer) error {
 					step.Finished = time.Unix(0, stepUpdate.Finished)
 					step.Summary = utils.MapSliceString(stepUpdate.Summary)
 					step.Log = string(stepUpdate.Log)
+					step.Logs = stepUpdate.Logs
 					found = true
 					break
 				}
@@ -316,6 +317,7 @@ func (m *RpcService) Subscribe(stream pb.Builder_SubscribeServer) error {
 					Finished: time.Unix(0, stepUpdate.Finished),
 					Summary:  utils.MapSliceString(stepUpdate.Summary),
 					Log:      string(stepUpdate.Log),
+					Logs:     stepUpdate.Logs,
 				}
 				j.Steps = append(j.Steps, step)
 			}
