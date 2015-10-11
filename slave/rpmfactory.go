@@ -164,10 +164,15 @@ func rpmFactoryRpmlint(bs *BuildStep) error {
 		line := scanner.Text()
 
 		// Check prefix
-		if strings.HasPrefix(line, "E: ") {
-			errors = append(errors, line)
-		} else if strings.HasPrefix(line, "W: ") {
-			warnings = append(warnings, line)
+
+		re := regexp.MustCompile("(E|W): ")
+		m := re.FindStringSubmatch(line)
+		if len(m) > 0 {
+			if m[1] == "E" {
+				errors = append(errors, line)
+			} else if m[1] == "W" {
+				warnings = append(warnings, line)
+			}
 		}
 	}
 
