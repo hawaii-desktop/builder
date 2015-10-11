@@ -119,7 +119,7 @@ func (db *Database) GetImage(name string) *Image {
 func (db *Database) AddImage(img *Image) error {
 	encoded, err := json.Marshal(img)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	err = db.db.Update(func(tx *bolt.Tx) error {
