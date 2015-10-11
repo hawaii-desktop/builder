@@ -142,6 +142,10 @@ func rpmFactoryGitFetch(repo []string, bs *BuildStep) error {
 }
 
 func rpmFactoryRpmlint(bs *BuildStep) error {
+	// Change directory
+	cwd := path.Join(bs.parent.workdir, "packaging")
+	os.Chdir(cwd)
+
 	// Run rpmlint
 	cmd := exec.Command("rpmlint", "-i", bs.parent.job.Target+".spec")
 	output, err := bs.parent.RunCombinedWithTimeout(cmd, cloneTimeout)
