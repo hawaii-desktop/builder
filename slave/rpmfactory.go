@@ -346,5 +346,24 @@ func rpmFactoryMockRebuild(bs *BuildStep) error {
 		logging.Warningf("Unable to collect mock logs: %s\n", err)
 	}
 
+	// Collect the artifacts
+	files, err = filepath.Glob("../results/*.rpm")
+	if err == nil {
+		for _, file := range files {
+			fullpath, err := filepath.Abs(file)
+			if err != nil {
+				return fmt.Errorf("Failed to determine absolute path of \"%s\": %s\n", file, err)
+			}
+			destpath := "/tmp/" + filepath.Base(file)
+			bs.parent.job.artifacts = append(bs.parent.job.artifacts, &Artifact{
+				Source:      fullpath,
+				Destination: destpath,
+				Permission:  0644,
+			})
+		}
+	} else {
+		return fmt.Errorf("Unable to collect artifacts: %s\n", err)
+	}
+
 	return nil
 }

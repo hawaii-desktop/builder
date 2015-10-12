@@ -65,6 +65,20 @@ type Job struct {
 	stepUpdateQueue chan *BuildStep
 	// Channel used to quit the goroutine responsible for sending updates to the master.
 	CloseChannel chan bool
+	// Artifacts.
+	artifacts []*Artifact
+	// Send a value to this channel to trigger artifacts upload.
+	artifactsChannel chan bool
+}
+
+// Artifact.
+type Artifact struct {
+	// Artifact full path on slave.
+	Source string
+	// Artifact full path on master.
+	Destination string
+	// File permission on master.
+	Permission uint32
 }
 
 // Create a new job object.
@@ -80,6 +94,8 @@ func NewJob(id uint64, target, arch string, info *TargetInfo) *Job {
 		info,
 		make(chan bool),
 		make(chan *BuildStep),
+		make(chan bool),
+		make([]*Artifact, 0),
 		make(chan bool),
 	}
 	return j
@@ -121,7 +137,14 @@ func (j *Job) Process() {
 	} else {
 		j.Status = builder.JOB_STATUS_FAILED
 	}
+
+	// Close factory
 	f.Close()
+
+	// Upload artifacts
+	if j.Status == builder.JOB_STATUS_SUCCESSFUL {
+		j.artifactsChannel <- true
+	}
 
 	// Update job on master
 	j.UpdateChannel <- true

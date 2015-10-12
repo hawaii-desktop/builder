@@ -27,6 +27,8 @@
 package slave
 
 import (
+	"crypto/sha256"
+	"fmt"
 	"github.com/hawaii-desktop/builder"
 	"github.com/hawaii-desktop/builder/logging"
 	pb "github.com/hawaii-desktop/builder/protocol"
@@ -34,8 +36,12 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"io"
+	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
+	"time"
 )
 
 // Store important data used during the life time of the slave.
@@ -205,6 +211,12 @@ func (c *Client) Subscribe() error {
 						case bs := <-j.stepUpdateQueue:
 							sendStepUpdate(j, bs)
 							break
+						case <-j.artifactsChannel:
+							if err := c.UploadArtifacts(j.artifacts); err != nil {
+								j.Status = builder.JOB_STATUS_FAILED
+								j.Finished = time.Now()
+								logging.Errorln(err)
+							}
 						case <-j.CloseChannel:
 							j = nil
 							return
@@ -247,4 +259,134 @@ func (c *Client) Unsubscribe() error {
 		c.slaveId = 0
 	}
 	return err
+}
+
+// Upload an artifact to the master.
+func (c *Client) UploadArtifact(artifact *Artifact) error {
+	// Logging
+	logging.Infof("Uploading \"%s\" to the staging repository...\n",
+		filepath.Base(artifact.Source))
+
+	// Determine how many bytes are left to send
+	stat, err := os.Stat(artifact.Source)
+	if err != nil {
+		return fmt.Errorf("Failed to stat \"%s\": %s", err)
+	}
+
+	// Open the file
+	file, err := os.Open(artifact.Source)
+	if err != nil {
+		return fmt.Errorf("Failed to open \"%s\": %s", err)
+	}
+
+	// SHA256 hash
+	hasher := sha256.New()
+
+	// Open the stream
+	stream, err := c.client.Upload(context.Background())
+	if err != nil {
+		return err
+	}
+
+	// Begin transfer
+	args := &pb.UploadMessage{
+		Payload: &pb.UploadMessage_Request{
+			Request: &pb.UploadRequest{
+				FileName: artifact.Destination,
+			},
+		},
+	}
+	if err := stream.Send(args); err != nil {
+		stream.CloseSend()
+		return fmt.Errorf("Failed to start upload of \"%s\": %s",
+			filepath.Base(artifact.Source), err)
+	}
+
+	// Read a chunk and transfer
+	file.Seek(0, 0)
+	for {
+		// Send 1MB chunks
+		chunk := make([]byte, 1024*1024)
+		size, err := file.Read(chunk)
+		if err == nil {
+			args := &pb.UploadMessage{
+				Payload: &pb.UploadMessage_Chunk{
+					Chunk: &pb.UploadChunk{
+						Data: chunk,
+						Hash: hasher.Sum(chunk[:size]),
+					},
+				},
+			}
+			if err := stream.Send(args); err != nil {
+				stream.CloseSend()
+				return fmt.Errorf("Unable to upload a chunk of \"%s\": %s",
+					filepath.Base(artifact.Source), err)
+			}
+		} else if err == io.EOF {
+			break
+		} else {
+			stream.CloseSend()
+			return fmt.Errorf("Failed to read \"%s\": %s",
+				filepath.Base(artifact.Source), err)
+		}
+	}
+
+	// Close file
+	file.Close()
+
+	// End transfer
+	args = &pb.UploadMessage{
+		Payload: &pb.UploadMessage_End{
+			End: &pb.UploadEnd{
+				Hash:       hasher.Sum(nil),
+				Permission: artifact.Permission,
+			},
+		},
+	}
+	if err := stream.Send(args); err != nil {
+		stream.CloseSend()
+		return fmt.Errorf("Failed to end upload of \"%s\": %s",
+			filepath.Base(artifact.Source), err)
+	}
+
+	// Close stream and receive reply
+	reply, err := stream.CloseAndRecv()
+	if err == nil {
+		if reply.TotalSize != stat.Size() {
+			return fmt.Errorf("Upload of \"%s\" failed: uploaded %d bytes but file is %d bytes",
+				filepath.Base(artifact.Source), reply.TotalSize, stat.Size())
+		}
+	} else {
+		return fmt.Errorf("Error uploading \"%s\": %s",
+			filepath.Base(artifact.Source), err)
+	}
+
+	return nil
+}
+
+// Upload artifacts to the master.
+func (c *Client) UploadArtifacts(artifacts []*Artifact) error {
+	var wg sync.WaitGroup
+	var mutex sync.RWMutex
+	var errors []string
+
+	for _, artifact := range artifacts {
+		wg.Add(1)
+		go func(artifact *Artifact) {
+			defer wg.Done()
+			if err := c.UploadArtifact(artifact); err != nil {
+				mutex.Lock()
+				errors = append(errors, err.Error())
+				mutex.Unlock()
+			}
+		}(artifact)
+	}
+
+	wg.Wait()
+
+	if len(errors) > 0 {
+		return fmt.Errorf("Failed to upload artifacts:\n%s\n", strings.Join(errors, "\n"))
+	}
+
+	return nil
 }
