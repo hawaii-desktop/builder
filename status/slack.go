@@ -37,10 +37,24 @@ import (
 type Slack string
 
 type SlackMessage struct {
-	Channel   string `json:"channel,omitempty"`
-	UserName  string `json:"username,omitempty"`
-	IconEmoji string `json:"icon_emoji,omitempty"`
-	Text      string `json:"text"`
+	Channel     string             `json:"channel,omitempty"`
+	UserName    string             `json:"username,omitempty"`
+	IconEmoji   string             `json:"icon_emoji,omitempty"`
+	Attachments []*SlackAttachment `json:"attachments,omitempty"`
+	Text        string             `json:"text"`
+}
+
+type SlackAttachment struct {
+	Fallback string         `json:"fallback"`
+	Pretext  string         `json:"pretext,omitempty"`
+	Color    string         `json:"color,omitempty"`
+	Fields   []*SlackFields `json:"fields,omitempty"`
+}
+
+type SlackFields struct {
+	Title string `json:"title,omitempty"`
+	Value string `json:"value,omitempty"`
+	Short bool   `json:"short"`
 }
 
 func (s Slack) String() string {
