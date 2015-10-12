@@ -38,6 +38,12 @@ type Settings struct {
 		StagingRepoDir string
 		ImagesDir      string
 	}
+	Notifications struct {
+		Slack bool
+	}
+	Slack struct {
+		URL string
+	}
 	GitHub struct {
 		ClientID     string
 		ClientSecret string
