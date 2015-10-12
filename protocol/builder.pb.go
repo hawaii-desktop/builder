@@ -23,6 +23,15 @@ It has these top-level messages:
 	OutputMessage
 	CollectJobRequest
 	CollectJobResponse
+	UploadRequest
+	UploadChunk
+	UploadEnd
+	UploadMessage
+	UploadResponse
+	DownloadRequest
+	DownloadChunk
+	DownloadEnd
+	DownloadResponse
 	VcsInfo
 	PackageInfo
 	ImageInfo
@@ -576,6 +585,310 @@ func (m *CollectJobResponse) Reset()         { *m = CollectJobResponse{} }
 func (m *CollectJobResponse) String() string { return proto.CompactTextString(m) }
 func (*CollectJobResponse) ProtoMessage()    {}
 
+// An upload request.
+type UploadRequest struct {
+	// Desired file name.
+	FileName string `protobuf:"bytes,1,opt,name=file_name" json:"file_name,omitempty"`
+}
+
+func (m *UploadRequest) Reset()         { *m = UploadRequest{} }
+func (m *UploadRequest) String() string { return proto.CompactTextString(m) }
+func (*UploadRequest) ProtoMessage()    {}
+
+// Chunk of a file being uploaded.
+type UploadChunk struct {
+	// A chunk of data.
+	Data []byte `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
+	// SHA256 hash of this chunk.
+	Hash []byte `protobuf:"bytes,2,opt,name=hash,proto3" json:"hash,omitempty"`
+}
+
+func (m *UploadChunk) Reset()         { *m = UploadChunk{} }
+func (m *UploadChunk) String() string { return proto.CompactTextString(m) }
+func (*UploadChunk) ProtoMessage()    {}
+
+// Signal the end of upload.
+type UploadEnd struct {
+	// SHA256 hash of the whole file.
+	Hash []byte `protobuf:"bytes,1,opt,name=hash,proto3" json:"hash,omitempty"`
+	// Desired permission.
+	Permission uint32 `protobuf:"varint,2,opt,name=permission" json:"permission,omitempty"`
+}
+
+func (m *UploadEnd) Reset()         { *m = UploadEnd{} }
+func (m *UploadEnd) String() string { return proto.CompactTextString(m) }
+func (*UploadEnd) ProtoMessage()    {}
+
+// Upload message.
+type UploadMessage struct {
+	// Types that are valid to be assigned to Payload:
+	//	*UploadMessage_Request
+	//	*UploadMessage_Chunk
+	//	*UploadMessage_End
+	Payload isUploadMessage_Payload `protobuf_oneof:"payload"`
+}
+
+func (m *UploadMessage) Reset()         { *m = UploadMessage{} }
+func (m *UploadMessage) String() string { return proto.CompactTextString(m) }
+func (*UploadMessage) ProtoMessage()    {}
+
+type isUploadMessage_Payload interface {
+	isUploadMessage_Payload()
+}
+
+type UploadMessage_Request struct {
+	Request *UploadRequest `protobuf:"bytes,1,opt,name=request,oneof"`
+}
+type UploadMessage_Chunk struct {
+	Chunk *UploadChunk `protobuf:"bytes,2,opt,name=chunk,oneof"`
+}
+type UploadMessage_End struct {
+	End *UploadEnd `protobuf:"bytes,3,opt,name=end,oneof"`
+}
+
+func (*UploadMessage_Request) isUploadMessage_Payload() {}
+func (*UploadMessage_Chunk) isUploadMessage_Payload()   {}
+func (*UploadMessage_End) isUploadMessage_Payload()     {}
+
+func (m *UploadMessage) GetPayload() isUploadMessage_Payload {
+	if m != nil {
+		return m.Payload
+	}
+	return nil
+}
+
+func (m *UploadMessage) GetRequest() *UploadRequest {
+	if x, ok := m.GetPayload().(*UploadMessage_Request); ok {
+		return x.Request
+	}
+	return nil
+}
+
+func (m *UploadMessage) GetChunk() *UploadChunk {
+	if x, ok := m.GetPayload().(*UploadMessage_Chunk); ok {
+		return x.Chunk
+	}
+	return nil
+}
+
+func (m *UploadMessage) GetEnd() *UploadEnd {
+	if x, ok := m.GetPayload().(*UploadMessage_End); ok {
+		return x.End
+	}
+	return nil
+}
+
+// XXX_OneofFuncs is for the internal use of the proto package.
+func (*UploadMessage) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), []interface{}) {
+	return _UploadMessage_OneofMarshaler, _UploadMessage_OneofUnmarshaler, []interface{}{
+		(*UploadMessage_Request)(nil),
+		(*UploadMessage_Chunk)(nil),
+		(*UploadMessage_End)(nil),
+	}
+}
+
+func _UploadMessage_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
+	m := msg.(*UploadMessage)
+	// payload
+	switch x := m.Payload.(type) {
+	case *UploadMessage_Request:
+		b.EncodeVarint(1<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.Request); err != nil {
+			return err
+		}
+	case *UploadMessage_Chunk:
+		b.EncodeVarint(2<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.Chunk); err != nil {
+			return err
+		}
+	case *UploadMessage_End:
+		b.EncodeVarint(3<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.End); err != nil {
+			return err
+		}
+	case nil:
+	default:
+		return fmt.Errorf("UploadMessage.Payload has unexpected type %T", x)
+	}
+	return nil
+}
+
+func _UploadMessage_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
+	m := msg.(*UploadMessage)
+	switch tag {
+	case 1: // payload.request
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(UploadRequest)
+		err := b.DecodeMessage(msg)
+		m.Payload = &UploadMessage_Request{msg}
+		return true, err
+	case 2: // payload.chunk
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(UploadChunk)
+		err := b.DecodeMessage(msg)
+		m.Payload = &UploadMessage_Chunk{msg}
+		return true, err
+	case 3: // payload.end
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(UploadEnd)
+		err := b.DecodeMessage(msg)
+		m.Payload = &UploadMessage_End{msg}
+		return true, err
+	default:
+		return false, nil
+	}
+}
+
+// Upload response.
+type UploadResponse struct {
+	// How many bytes were written.
+	TotalSize int64 `protobuf:"varint,1,opt,name=total_size" json:"total_size,omitempty"`
+}
+
+func (m *UploadResponse) Reset()         { *m = UploadResponse{} }
+func (m *UploadResponse) String() string { return proto.CompactTextString(m) }
+func (*UploadResponse) ProtoMessage()    {}
+
+// A download request.
+type DownloadRequest struct {
+	// Desired file name.
+	FileName string `protobuf:"bytes,1,opt,name=file_name" json:"file_name,omitempty"`
+}
+
+func (m *DownloadRequest) Reset()         { *m = DownloadRequest{} }
+func (m *DownloadRequest) String() string { return proto.CompactTextString(m) }
+func (*DownloadRequest) ProtoMessage()    {}
+
+// Chunk of a file being downloaded.
+type DownloadChunk struct {
+	// A chunk of data.
+	Data []byte `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
+	// SHA256 hash of this chunk.
+	Hash []byte `protobuf:"bytes,2,opt,name=hash,proto3" json:"hash,omitempty"`
+}
+
+func (m *DownloadChunk) Reset()         { *m = DownloadChunk{} }
+func (m *DownloadChunk) String() string { return proto.CompactTextString(m) }
+func (*DownloadChunk) ProtoMessage()    {}
+
+// Signal the end of download.
+type DownloadEnd struct {
+	// SHA256 hash of the whole file.
+	Hash []byte `protobuf:"bytes,1,opt,name=hash,proto3" json:"hash,omitempty"`
+	// Total file size
+	Size int64 `protobuf:"varint,2,opt,name=size" json:"size,omitempty"`
+}
+
+func (m *DownloadEnd) Reset()         { *m = DownloadEnd{} }
+func (m *DownloadEnd) String() string { return proto.CompactTextString(m) }
+func (*DownloadEnd) ProtoMessage()    {}
+
+// Download response.
+type DownloadResponse struct {
+	// Types that are valid to be assigned to Payload:
+	//	*DownloadResponse_Chunk
+	//	*DownloadResponse_End
+	Payload isDownloadResponse_Payload `protobuf_oneof:"payload"`
+}
+
+func (m *DownloadResponse) Reset()         { *m = DownloadResponse{} }
+func (m *DownloadResponse) String() string { return proto.CompactTextString(m) }
+func (*DownloadResponse) ProtoMessage()    {}
+
+type isDownloadResponse_Payload interface {
+	isDownloadResponse_Payload()
+}
+
+type DownloadResponse_Chunk struct {
+	Chunk *DownloadChunk `protobuf:"bytes,1,opt,name=chunk,oneof"`
+}
+type DownloadResponse_End struct {
+	End *DownloadEnd `protobuf:"bytes,2,opt,name=end,oneof"`
+}
+
+func (*DownloadResponse_Chunk) isDownloadResponse_Payload() {}
+func (*DownloadResponse_End) isDownloadResponse_Payload()   {}
+
+func (m *DownloadResponse) GetPayload() isDownloadResponse_Payload {
+	if m != nil {
+		return m.Payload
+	}
+	return nil
+}
+
+func (m *DownloadResponse) GetChunk() *DownloadChunk {
+	if x, ok := m.GetPayload().(*DownloadResponse_Chunk); ok {
+		return x.Chunk
+	}
+	return nil
+}
+
+func (m *DownloadResponse) GetEnd() *DownloadEnd {
+	if x, ok := m.GetPayload().(*DownloadResponse_End); ok {
+		return x.End
+	}
+	return nil
+}
+
+// XXX_OneofFuncs is for the internal use of the proto package.
+func (*DownloadResponse) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), []interface{}) {
+	return _DownloadResponse_OneofMarshaler, _DownloadResponse_OneofUnmarshaler, []interface{}{
+		(*DownloadResponse_Chunk)(nil),
+		(*DownloadResponse_End)(nil),
+	}
+}
+
+func _DownloadResponse_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
+	m := msg.(*DownloadResponse)
+	// payload
+	switch x := m.Payload.(type) {
+	case *DownloadResponse_Chunk:
+		b.EncodeVarint(1<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.Chunk); err != nil {
+			return err
+		}
+	case *DownloadResponse_End:
+		b.EncodeVarint(2<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.End); err != nil {
+			return err
+		}
+	case nil:
+	default:
+		return fmt.Errorf("DownloadResponse.Payload has unexpected type %T", x)
+	}
+	return nil
+}
+
+func _DownloadResponse_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
+	m := msg.(*DownloadResponse)
+	switch tag {
+	case 1: // payload.chunk
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(DownloadChunk)
+		err := b.DecodeMessage(msg)
+		m.Payload = &DownloadResponse_Chunk{msg}
+		return true, err
+	case 2: // payload.end
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(DownloadEnd)
+		err := b.DecodeMessage(msg)
+		m.Payload = &DownloadResponse_End{msg}
+		return true, err
+	default:
+		return false, nil
+	}
+}
+
 // VCS information.
 type VcsInfo struct {
 	Url    string `protobuf:"bytes,1,opt,name=url" json:"url,omitempty"`
@@ -678,6 +991,14 @@ type BuilderClient interface {
 	// Master will enqueue a new job and the dispatcher will find a suitable
 	// slave and dispatch to it.
 	CollectJob(ctx context.Context, in *CollectJobRequest, opts ...grpc.CallOption) (*CollectJobResponse, error)
+	// Upload a file to the master.
+	//
+	// Send a file from slave to master, a chunk at a time via streaming.
+	Upload(ctx context.Context, opts ...grpc.CallOption) (Builder_UploadClient, error)
+	// Download a file from the master.
+	//
+	// Send a file from master to slave, a chunk at a time via streaming.
+	Download(ctx context.Context, in *DownloadRequest, opts ...grpc.CallOption) (Builder_DownloadClient, error)
 	// Add or update a package.
 	//
 	// Store package information so that it can be referenced later when
@@ -767,6 +1088,72 @@ func (c *builderClient) CollectJob(ctx context.Context, in *CollectJobRequest, o
 	return out, nil
 }
 
+func (c *builderClient) Upload(ctx context.Context, opts ...grpc.CallOption) (Builder_UploadClient, error) {
+	stream, err := grpc.NewClientStream(ctx, &_Builder_serviceDesc.Streams[1], c.cc, "/protocol.Builder/Upload", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &builderUploadClient{stream}
+	return x, nil
+}
+
+type Builder_UploadClient interface {
+	Send(*UploadMessage) error
+	CloseAndRecv() (*UploadResponse, error)
+	grpc.ClientStream
+}
+
+type builderUploadClient struct {
+	grpc.ClientStream
+}
+
+func (x *builderUploadClient) Send(m *UploadMessage) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *builderUploadClient) CloseAndRecv() (*UploadResponse, error) {
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	m := new(UploadResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *builderClient) Download(ctx context.Context, in *DownloadRequest, opts ...grpc.CallOption) (Builder_DownloadClient, error) {
+	stream, err := grpc.NewClientStream(ctx, &_Builder_serviceDesc.Streams[2], c.cc, "/protocol.Builder/Download", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &builderDownloadClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Builder_DownloadClient interface {
+	Recv() (*DownloadResponse, error)
+	grpc.ClientStream
+}
+
+type builderDownloadClient struct {
+	grpc.ClientStream
+}
+
+func (x *builderDownloadClient) Recv() (*DownloadResponse, error) {
+	m := new(DownloadResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 func (c *builderClient) AddPackage(ctx context.Context, in *PackageInfo, opts ...grpc.CallOption) (*BooleanMessage, error) {
 	out := new(BooleanMessage)
 	err := grpc.Invoke(ctx, "/protocol.Builder/AddPackage", in, out, c.cc, opts...)
@@ -786,7 +1173,7 @@ func (c *builderClient) RemovePackage(ctx context.Context, in *StringMessage, op
 }
 
 func (c *builderClient) ListPackages(ctx context.Context, in *StringMessage, opts ...grpc.CallOption) (Builder_ListPackagesClient, error) {
-	stream, err := grpc.NewClientStream(ctx, &_Builder_serviceDesc.Streams[1], c.cc, "/protocol.Builder/ListPackages", opts...)
+	stream, err := grpc.NewClientStream(ctx, &_Builder_serviceDesc.Streams[3], c.cc, "/protocol.Builder/ListPackages", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -836,7 +1223,7 @@ func (c *builderClient) RemoveImage(ctx context.Context, in *StringMessage, opts
 }
 
 func (c *builderClient) ListImages(ctx context.Context, in *StringMessage, opts ...grpc.CallOption) (Builder_ListImagesClient, error) {
-	stream, err := grpc.NewClientStream(ctx, &_Builder_serviceDesc.Streams[2], c.cc, "/protocol.Builder/ListImages", opts...)
+	stream, err := grpc.NewClientStream(ctx, &_Builder_serviceDesc.Streams[4], c.cc, "/protocol.Builder/ListImages", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -895,6 +1282,14 @@ type BuilderServer interface {
 	// Master will enqueue a new job and the dispatcher will find a suitable
 	// slave and dispatch to it.
 	CollectJob(context.Context, *CollectJobRequest) (*CollectJobResponse, error)
+	// Upload a file to the master.
+	//
+	// Send a file from slave to master, a chunk at a time via streaming.
+	Upload(Builder_UploadServer) error
+	// Download a file from the master.
+	//
+	// Send a file from master to slave, a chunk at a time via streaming.
+	Download(*DownloadRequest, Builder_DownloadServer) error
 	// Add or update a package.
 	//
 	// Store package information so that it can be referenced later when
@@ -979,6 +1374,53 @@ func _Builder_CollectJob_Handler(srv interface{}, ctx context.Context, codec grp
 		return nil, err
 	}
 	return out, nil
+}
+
+func _Builder_Upload_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(BuilderServer).Upload(&builderUploadServer{stream})
+}
+
+type Builder_UploadServer interface {
+	SendAndClose(*UploadResponse) error
+	Recv() (*UploadMessage, error)
+	grpc.ServerStream
+}
+
+type builderUploadServer struct {
+	grpc.ServerStream
+}
+
+func (x *builderUploadServer) SendAndClose(m *UploadResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *builderUploadServer) Recv() (*UploadMessage, error) {
+	m := new(UploadMessage)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func _Builder_Download_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(DownloadRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(BuilderServer).Download(m, &builderDownloadServer{stream})
+}
+
+type Builder_DownloadServer interface {
+	Send(*DownloadResponse) error
+	grpc.ServerStream
+}
+
+type builderDownloadServer struct {
+	grpc.ServerStream
+}
+
+func (x *builderDownloadServer) Send(m *DownloadResponse) error {
+	return x.ServerStream.SendMsg(m)
 }
 
 func _Builder_AddPackage_Handler(srv interface{}, ctx context.Context, codec grpc.Codec, buf []byte) (interface{}, error) {
@@ -1106,6 +1548,16 @@ var _Builder_serviceDesc = grpc.ServiceDesc{
 			Handler:       _Builder_Subscribe_Handler,
 			ServerStreams: true,
 			ClientStreams: true,
+		},
+		{
+			StreamName:    "Upload",
+			Handler:       _Builder_Upload_Handler,
+			ClientStreams: true,
+		},
+		{
+			StreamName:    "Download",
+			Handler:       _Builder_Download_Handler,
+			ServerStreams: true,
 		},
 		{
 			StreamName:    "ListPackages",

@@ -27,6 +27,9 @@
 package master
 
 import (
+	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"github.com/hawaii-desktop/builder"
@@ -36,6 +39,8 @@ import (
 	"github.com/hawaii-desktop/builder/utils"
 	"golang.org/x/net/context"
 	"io"
+	"os"
+	"path/filepath"
 	"regexp"
 	"sync"
 	"time"
@@ -379,6 +384,146 @@ func (m *RpcService) CollectJob(ctx context.Context, args *pb.CollectJobRequest)
 
 	reply := &pb.CollectJobResponse{Result: result, Id: id}
 	return reply, nil
+}
+
+// Upload a file from slave to master.
+func (m *RpcService) Upload(stream pb.Builder_UploadServer) error {
+	var file *os.File = nil
+	defer func() {
+		if file != nil {
+			file.Close()
+		}
+	}()
+
+	// Count how many bytes we write
+	total := int64(0)
+
+	// SHA256 hash
+	hasher := sha256.New()
+
+	for {
+		// Read request from the stream
+		in, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+
+		// Create the file if needed
+		request := in.GetRequest()
+		if request != nil {
+			logging.Infof("Receiving upload of \"%s\"...\n", request.FileName)
+			err = os.MkdirAll(filepath.Dir(request.FileName), 0755)
+			if err != nil {
+				return err
+			}
+
+			file, err = os.Create(request.FileName)
+			if err != nil {
+				return err
+			}
+		}
+
+		// Write chunks
+		chunk := in.GetChunk()
+		if chunk != nil {
+			// Write chunk
+			size, err := file.Write(chunk.Data)
+			if err != nil {
+				return err
+			}
+			total += int64(size)
+
+			// Update hash with this chunk
+			hash := hasher.Sum(chunk.Data)
+
+			// Verify chunk hash
+			if !bytes.Equal(hash, chunk.Hash) {
+				return fmt.Errorf("wrong SHA256 hash \"%s\" for the chunk, expected \"%s\"",
+					hex.EncodeToString(hash), hex.EncodeToString(chunk.Hash))
+			}
+		}
+		file.Sync()
+
+		// End transfer
+		end := in.GetEnd()
+		if end != nil {
+			// Close file
+			file.Close()
+
+			// Verify hash
+			hash := hasher.Sum(nil)
+			if !bytes.Equal(hash, end.Hash) {
+				return fmt.Errorf("wrong SHA256 hash \"%s\", expected \"%s\"",
+					hex.EncodeToString(hash), hex.EncodeToString(end.Hash))
+			}
+
+			// Change permission
+			file.Chmod(os.FileMode(end.Permission))
+
+			break
+		}
+	}
+
+	return stream.SendAndClose(&pb.UploadResponse{total})
+}
+
+// Download a file from master to slave.
+func (m *RpcService) Download(request *pb.DownloadRequest, stream pb.Builder_DownloadServer) error {
+	// SHA256 hash
+	hasher := sha256.New()
+
+	// Open the file
+	file, err := os.Open(request.FileName)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	stat, err := os.Stat(request.FileName)
+	if err != nil {
+		return err
+	}
+
+	for {
+		// Read a chunk and transfer
+		chunk := make([]byte, 1024*1024)
+		size, err := file.Read(chunk)
+		if err == io.EOF {
+			break
+		}
+		if err == nil {
+			response := &pb.DownloadResponse{
+				Payload: &pb.DownloadResponse_Chunk{
+					Chunk: &pb.DownloadChunk{
+						Data: chunk[:size],
+						Hash: hasher.Sum(chunk[:size]),
+					},
+				},
+			}
+			if err := stream.Send(response); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+	}
+
+	// End transfer
+	response := &pb.DownloadResponse{
+		Payload: &pb.DownloadResponse_End{
+			End: &pb.DownloadEnd{
+				Hash: hasher.Sum(nil),
+				Size: stat.Size(),
+			},
+		},
+	}
+	if err := stream.Send(response); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Add or update a package.

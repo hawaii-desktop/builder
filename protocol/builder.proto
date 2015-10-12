@@ -62,6 +62,18 @@ service Builder {
 
   ////////////////////////////////////////////////////////////////////////////
 
+  // Upload a file to the master.
+  //
+  // Send a file from slave to master, a chunk at a time via streaming.
+  rpc Upload(stream UploadMessage) returns (UploadResponse);
+
+  // Download a file from the master.
+  //
+  // Send a file from master to slave, a chunk at a time via streaming.
+  rpc Download(DownloadRequest) returns (stream DownloadResponse);
+
+  ////////////////////////////////////////////////////////////////////////////
+
   // Add or update a package.
   //
   // Store package information so that it can be referenced later when
@@ -237,6 +249,94 @@ message CollectJobResponse {
   // Identifier.
   uint64 id = 2;
 }
+
+/****************************************************************************/
+
+// Upload transfer.
+// When the transfer starts an UploadRequest message is sent to
+// the master, then one UploadChunk message for each chunk and finally
+// an UploadEnd messages to signal the end of transmission.
+// Master replies with UploadResponse when all is done successfully.
+
+// An upload request.
+message UploadRequest {
+  // Desired file name.
+  string file_name = 1;
+}
+
+// Chunk of a file being uploaded.
+message UploadChunk {
+  // A chunk of data.
+  bytes data = 1;
+
+  // SHA256 hash of this chunk.
+  bytes hash = 2;
+}
+
+// Signal the end of upload.
+message UploadEnd {
+  // SHA256 hash of the whole file.
+  bytes hash = 1;
+
+  // Desired permission.
+  uint32 permission = 2;
+}
+
+// Upload message.
+message UploadMessage {
+  oneof payload {
+    UploadRequest request = 1;
+    UploadChunk chunk = 2;
+    UploadEnd end = 3;
+  }
+}
+
+// Upload response.
+message UploadResponse {
+  // How many bytes were written.
+  int64 total_size = 1;
+}
+
+/****************************************************************************/
+
+// Download transfer.
+// When the transfer starts a DownloadRequest message is sent to the master.
+// Master streams several DownloadResponse messages, one of each chunk of
+// data and finally one to signal the end of transmission.
+
+// A download request.
+message DownloadRequest {
+  // Desired file name.
+  string file_name = 1;
+}
+
+// Chunk of a file being downloaded.
+message DownloadChunk {
+  // A chunk of data.
+  bytes data = 1;
+
+  // SHA256 hash of this chunk.
+  bytes hash = 2;
+}
+
+// Signal the end of download.
+message DownloadEnd {
+  // SHA256 hash of the whole file.
+  bytes hash = 1;
+
+  // Total file size
+  int64 size = 2;
+}
+
+// Download response.
+message DownloadResponse {
+  oneof payload {
+    DownloadChunk chunk = 1;
+    DownloadEnd end = 2;
+  }
+}
+
+/****************************************************************************/
 
 // Job status.
 enum EnumJobStatus {
