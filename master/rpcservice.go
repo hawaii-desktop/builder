@@ -263,6 +263,9 @@ func (m *RpcService) Subscribe(stream pb.Builder_SubscribeServer) error {
 						j.Id, slave.Name)
 				}
 
+				// Send status notification(s)
+				m.master.sendStatusNotifications(j)
+
 				// Remove from the list
 				m.master.removeJob(j)
 
