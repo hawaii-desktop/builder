@@ -98,10 +98,14 @@ func NewRpcService(master *Master) *RpcService {
 func (m *RpcService) Subscribe(stream pb.Builder_SubscribeServer) error {
 	// Function to send back the slave identifier
 	var sendSlaveId = func(s *Slave) {
-		response := &pb.SubscribeResponse{Id: s.Id}
 		reply := &pb.OutputMessage{
 			Payload: &pb.OutputMessage_Subscription{
-				Subscription: response,
+				Subscription: &pb.SubscribeResponse{
+					Id:             s.Id,
+					MainRepoDir:    Config.Storage.MainRepoDir,
+					StagingRepoDir: Config.Storage.StagingRepoDir,
+					ImagesDir:      Config.Storage.ImagesDir,
+				},
 			},
 		}
 		stream.Send(reply)

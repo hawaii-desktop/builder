@@ -149,6 +149,15 @@ message SubscribeRequest {
 message SubscribeResponse {
   // Slave identifier.
   uint64 id = 1;
+
+  // Main repository path.
+  string main_repo_dir = 2;
+
+  // Staging repository path.
+  string staging_repo_dir = 3;
+
+  // Images repository path.
+  string images_dir = 4;
 }
 
 // Unsubscription request.

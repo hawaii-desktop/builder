@@ -152,6 +152,12 @@ func (*SubscribeRequest) ProtoMessage()    {}
 type SubscribeResponse struct {
 	// Slave identifier.
 	Id uint64 `protobuf:"varint,1,opt,name=id" json:"id,omitempty"`
+	// Main repository path.
+	MainRepoDir string `protobuf:"bytes,2,opt,name=main_repo_dir" json:"main_repo_dir,omitempty"`
+	// Staging repository path.
+	StagingRepoDir string `protobuf:"bytes,3,opt,name=staging_repo_dir" json:"staging_repo_dir,omitempty"`
+	// Images repository path.
+	ImagesDir string `protobuf:"bytes,4,opt,name=images_dir" json:"images_dir,omitempty"`
 }
 
 func (m *SubscribeResponse) Reset()         { *m = SubscribeResponse{} }
