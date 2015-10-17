@@ -53,6 +53,12 @@ type Client struct {
 	// Identifier for this slave, attributed after subscription.
 	// Its value is 0 when unsubscribed.
 	slaveId uint64
+	// Main repository path on master.
+	mainRepoDir string
+	// Staging repository path on master.
+	stagingRepoDir string
+	// Images repository path on master
+	imagesDir string
 	// Channel for job processing.
 	jobQueue chan *Job
 	// Channel used to synchronize all goroutines.
@@ -160,6 +166,9 @@ func (c *Client) Subscribe() error {
 			subscription := in.GetSubscription()
 			if subscription != nil {
 				c.slaveId = subscription.Id
+				c.mainRepoDir = subscription.MainRepoDir
+				c.stagingRepoDir = subscription.StagingRepoDir
+				c.imagesDir = subscription.ImagesDir
 				logging.Infof("Slave subscribed with id %d\n", c.slaveId)
 			}
 
@@ -259,6 +268,9 @@ func (c *Client) Unsubscribe() error {
 	reply, err := c.client.Unsubscribe(context.Background(), args)
 	if reply.Result {
 		c.slaveId = 0
+		c.mainRepoDir = ""
+		c.stagingRepoDir = ""
+		c.imagesDir = ""
 	}
 	return err
 }
