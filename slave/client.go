@@ -27,7 +27,9 @@
 package slave
 
 import (
+	"bytes"
 	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"github.com/hawaii-desktop/builder"
 	"github.com/hawaii-desktop/builder/logging"
@@ -386,6 +388,80 @@ func (c *Client) UploadArtifacts(artifacts []*Artifact) error {
 
 	if len(errors) > 0 {
 		return fmt.Errorf("Failed to upload artifacts:\n%s\n", strings.Join(errors, "\n"))
+	}
+
+	return nil
+}
+
+// Download a file from the master.
+func (c *Client) DownloadFile(srcfilename, dstfilename string) error {
+	// Open file
+	file, err := os.Create(dstfilename)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	// Initiate download
+	stream, err := c.client.Download(context.Background(), &pb.DownloadRequest{srcfilename})
+	if err != nil {
+		return err
+	}
+
+	// Count total size
+	total := int64(0)
+
+	// SHA256 hash
+	hasher := sha256.New()
+
+	// Write chunks received from master
+	for {
+		r, err := stream.Recv()
+		if err != nil {
+			return err
+		}
+
+		chunk := r.GetChunk()
+		if chunk != nil {
+			// Write chunk
+			size, err := file.Write(chunk.Data)
+			if err != nil {
+				return err
+			}
+			file.Sync()
+
+			// Size check
+			if size != len(chunk.Data) {
+				return fmt.Errorf("chunk size mismatch download (%d bytes wrote, %d expected): %s",
+					size, len(chunk.Data), err)
+			}
+
+			// Hash check
+			hash := hasher.Sum(chunk.Data)
+			if !bytes.Equal(hash, chunk.Hash) {
+				return fmt.Errorf("wrong SHA256 hash \"%s\" for the chunk, expected \"%s\"",
+					hex.EncodeToString(hash), hex.EncodeToString(chunk.Hash))
+			}
+
+			// Increment size
+			total += int64(size)
+		}
+
+		end := r.GetEnd()
+		if end != nil {
+			// Size check
+			if total != end.Size {
+				return fmt.Errorf("size mismatch: %d bytes received, %d expected",
+					total, end.Size)
+			}
+
+			// Hash check
+			hash := hasher.Sum(nil)
+			if !bytes.Equal(hash, end.Hash) {
+				return fmt.Errorf("wrong SHA256 hash \"%s\", expected \"%s\"",
+					hex.EncodeToString(hash), hex.EncodeToString(end.Hash))
+			}
+		}
 	}
 
 	return nil
