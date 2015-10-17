@@ -346,6 +346,15 @@ func rpmFactoryMockRebuild(bs *BuildStep) error {
 		logging.Warningf("Unable to collect mock logs: %s\n", err)
 	}
 
+	// Get the context data
+	d, ok := FromContext(bs.parent.job.ctx)
+	if !ok {
+		logging.Fatalln("Internal error: no data from context")
+	}
+
+	// Regular expressions for RPMs
+	re := regexp.MustCompile(`^([^/]+).([a-z0-9]+).rpm$`)
+
 	// Collect the artifacts
 	files, err = filepath.Glob("../results/*.rpm")
 	if err == nil {
@@ -354,12 +363,24 @@ func rpmFactoryMockRebuild(bs *BuildStep) error {
 			if err != nil {
 				return fmt.Errorf("Failed to determine absolute path of \"%s\": %s\n", file, err)
 			}
-			destpath := "/tmp/" + filepath.Base(file)
-			bs.parent.job.artifacts = append(bs.parent.job.artifacts, &Artifact{
-				Source:      fullpath,
-				Destination: destpath,
-				Permission:  0644,
-			})
+
+			m := re.FindStringSubmatch(filepath.Base(file))
+			if len(m) > 0 {
+				releasever := "22"
+				basearch := "x86_64"
+				if m[2] == "src" {
+					basearch = "source"
+				}
+				letter := m[2][:1]
+
+				destpath := fmt.Sprintf("%s/fedora/releases/%s/Everything/%s/os/Packages/%s/%s",
+					d.StagingRepoDir, releasever, basearch, letter, m[0])
+				bs.parent.job.artifacts = append(bs.parent.job.artifacts, &Artifact{
+					Source:      fullpath,
+					Destination: destpath,
+					Permission:  0644,
+				})
+			}
 		}
 	} else {
 		return fmt.Errorf("Unable to collect artifacts: %s\n", err)
