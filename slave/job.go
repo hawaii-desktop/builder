@@ -29,6 +29,7 @@ package slave
 import (
 	"github.com/hawaii-desktop/builder"
 	"github.com/hawaii-desktop/builder/logging"
+	"golang.org/x/net/context"
 	"time"
 )
 
@@ -61,6 +62,8 @@ type Job struct {
 	Info *TargetInfo
 	// Channel used to signal when an update should be sent to master.
 	UpdateChannel chan bool
+	// Context.
+	ctx context.Context
 	// Build step updates are queued here and then sent to the master.
 	stepUpdateQueue chan *BuildStep
 	// Channel used to quit the goroutine responsible for sending updates to the master.
@@ -82,7 +85,7 @@ type Artifact struct {
 }
 
 // Create a new job object.
-func NewJob(id uint64, target, arch string, info *TargetInfo) *Job {
+func NewJob(ctx context.Context, id uint64, target, arch string, info *TargetInfo) *Job {
 	j := &Job{
 		&builder.Job{Id: id,
 			Target:       target,
@@ -93,6 +96,7 @@ func NewJob(id uint64, target, arch string, info *TargetInfo) *Job {
 		},
 		info,
 		make(chan bool),
+		ctx,
 		make(chan *BuildStep),
 		make(chan bool),
 		make([]*Artifact, 0),

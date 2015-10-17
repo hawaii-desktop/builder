@@ -33,6 +33,7 @@ import (
 	"github.com/hawaii-desktop/builder/pidfile"
 	"github.com/hawaii-desktop/builder/slave"
 	"github.com/hawaii-desktop/builder/version"
+	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"gopkg.in/gcfg.v1"
 	"os"
@@ -125,13 +126,13 @@ func runSlave(ctx *cli.Context) {
 	client := slave.NewClient(conn)
 
 	// Subscribe
-	err = client.Subscribe()
+	clientCtx, err := client.Subscribe()
 	if err == nil {
 		// Unsubscribe and close the connection when quitting
-		defer func() {
-			client.Unsubscribe()
+		defer func(ctx context.Context) {
+			client.Unsubscribe(ctx)
 			client.Close()
-		}()
+		}(clientCtx)
 	} else {
 		logging.Errorf("Unable to register slave: %s\n", err)
 		return

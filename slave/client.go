@@ -50,15 +50,6 @@ import (
 type Client struct {
 	// RPC proxy.
 	client pb.BuilderClient
-	// Identifier for this slave, attributed after subscription.
-	// Its value is 0 when unsubscribed.
-	slaveId uint64
-	// Main repository path on master.
-	mainRepoDir string
-	// Staging repository path on master.
-	stagingRepoDir string
-	// Images repository path on master
-	imagesDir string
 	// Channel for job processing.
 	jobQueue chan *Job
 	// Channel used to synchronize all goroutines.
@@ -81,7 +72,6 @@ func NewClient(conn *grpc.ClientConn) *Client {
 	// processed at the same time
 	c := &Client{}
 	c.client = pb.NewBuilderClient(conn)
-	c.slaveId = 0
 	c.jobQueue = make(chan *Job, (runtime.NumCPU()/2)+1)
 	c.quit = make(chan bool)
 
@@ -109,19 +99,26 @@ func (c *Client) Close() {
 }
 
 // Subscribe to the master.
-func (c *Client) Subscribe() error {
+func (c *Client) Subscribe() (context.Context, error) {
+	var ctx context.Context
+
 	// Subscribe and take the stream
 	stream, err := c.client.Subscribe(context.Background())
 	if err != nil {
-		return err
+		return ctx, err
 	}
 
 	// Function that send job updates back to the master
 	var sendJobUpdate = func(j *Job) {
+		d, ok := FromContext(j.ctx)
+		if !ok {
+			logging.Fatalf("Internal error: no data from context")
+		}
+
 		args := &pb.InputMessage{
 			Payload: &pb.InputMessage_JobUpdate{
 				JobUpdate: &pb.JobUpdateRequest{
-					SlaveId: c.slaveId,
+					SlaveId: d.Id,
 					Id:      j.Id,
 					Status:  jobStatusMap[j.Status],
 				},
@@ -150,7 +147,7 @@ func (c *Client) Subscribe() error {
 
 	// Read from stream
 	wait := make(chan struct{})
-	go func() {
+	go func(ctx context.Context) {
 		for {
 			in, err := stream.Recv()
 			if err == io.EOF {
@@ -165,11 +162,14 @@ func (c *Client) Subscribe() error {
 			// Subscription reply
 			subscription := in.GetSubscription()
 			if subscription != nil {
-				c.slaveId = subscription.Id
-				c.mainRepoDir = subscription.MainRepoDir
-				c.stagingRepoDir = subscription.StagingRepoDir
-				c.imagesDir = subscription.ImagesDir
-				logging.Infof("Slave subscribed with id %d\n", c.slaveId)
+				data := &SlaveData{
+					Id:             subscription.Id,
+					MainRepoDir:    subscription.MainRepoDir,
+					StagingRepoDir: subscription.StagingRepoDir,
+					ImagesDir:      subscription.ImagesDir,
+				}
+				ctx = NewContext(context.Background(), data)
+				logging.Infof("Slave subscribed with id %d\n", data.Id)
 			}
 
 			// Job dispatched to us
@@ -210,7 +210,7 @@ func (c *Client) Subscribe() error {
 						VcsBranch: img.Vcs.Branch,
 					}
 				}
-				j := NewJob(jobDispatch.Id, target, arch, &TargetInfo{pkgInfo, imgInfo})
+				j := NewJob(ctx, jobDispatch.Id, target, arch, &TargetInfo{pkgInfo, imgInfo})
 
 				// Send updates back to master
 				go func() {
@@ -239,7 +239,7 @@ func (c *Client) Subscribe() error {
 				c.jobQueue <- j
 			}
 		}
-	}()
+	}(ctx)
 
 	// First of all: subscribe
 	args := &pb.InputMessage{
@@ -259,19 +259,18 @@ func (c *Client) Subscribe() error {
 		stream.CloseSend()
 	}()
 
-	return nil
+	return ctx, nil
 }
 
 // Unsubscribe from the master.
-func (c *Client) Unsubscribe() error {
-	args := &pb.UnsubscribeRequest{Id: c.slaveId}
-	reply, err := c.client.Unsubscribe(context.Background(), args)
-	if reply.Result {
-		c.slaveId = 0
-		c.mainRepoDir = ""
-		c.stagingRepoDir = ""
-		c.imagesDir = ""
+func (c *Client) Unsubscribe(ctx context.Context) error {
+	d, ok := FromContext(ctx)
+	if !ok {
+		logging.Fatalln("Internal error: no data from context")
 	}
+
+	args := &pb.UnsubscribeRequest{Id: d.Id}
+	_, err := c.client.Unsubscribe(ctx, args)
 	return err
 }
 
