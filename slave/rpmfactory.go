@@ -353,7 +353,7 @@ func rpmFactoryMockRebuild(bs *BuildStep) error {
 	}
 
 	// Regular expressions for RPMs
-	re := regexp.MustCompile(`^([^/]+).([a-z0-9]+).rpm$`)
+	re := regexp.MustCompile(`^(.+)\.([a-z0-9\-_]+)\.rpm$`)
 
 	// Collect the artifacts
 	files, err = filepath.Glob("../results/*.rpm")
@@ -365,13 +365,13 @@ func rpmFactoryMockRebuild(bs *BuildStep) error {
 			}
 
 			m := re.FindStringSubmatch(filepath.Base(file))
-			if len(m) > 0 {
+			if len(m) == 3 {
 				releasever := "22"
 				basearch := "x86_64"
 				if m[2] == "src" {
 					basearch = "source"
 				}
-				letter := m[2][:1]
+				letter := m[1][:1]
 
 				destpath := fmt.Sprintf("%s/fedora/releases/%s/Everything/%s/os/Packages/%s/%s",
 					d.StagingRepoDir, releasever, basearch, letter, m[0])
