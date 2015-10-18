@@ -299,7 +299,11 @@ func rpmFactoryMockRebuild(bs *BuildStep) error {
 	cwd := path.Join(bs.parent.workdir, "packaging")
 	os.Chdir(cwd)
 
-	root := fmt.Sprintf("fedora-%s-%s", "22", "x86_64")
+	// Fedora release
+	releasever := "22"
+
+	// Determine mock root
+	root := fmt.Sprintf("fedora-%s-%s", releasever, bs.parent.job.Architecture)
 
 	args := []string{"--root", root, "-m", "--resultdir=../results"}
 	if bs.parent.job.Info.Package.Ci {
@@ -366,8 +370,7 @@ func rpmFactoryMockRebuild(bs *BuildStep) error {
 
 			m := re.FindStringSubmatch(filepath.Base(file))
 			if len(m) == 3 {
-				releasever := "22"
-				basearch := "x86_64"
+				basearch := bs.parent.job.Architecture
 				if m[2] == "src" {
 					basearch = "source"
 				}
