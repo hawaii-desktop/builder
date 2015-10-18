@@ -138,6 +138,17 @@ func runSlave(ctx *cli.Context) {
 		return
 	}
 
+	// Channel used to close all goroutines
+	waitc := make(chan struct{})
+
+	// Pick up jobs from the master
+	go func() {
+		if err := client.PickJob(clientCtx, waitc); err != nil {
+			logging.Errorf("Failed to pick up jobs: %s\n", err)
+			return
+		}
+	}()
+
 	// TODO: We need to register the slave again if the master is restarted
 
 	// Gracefully exit with SIGINT and SIGTERM
@@ -148,4 +159,5 @@ func runSlave(ctx *cli.Context) {
 
 	// Now quit
 	logging.Traceln("Quitting...")
+	close(waitc)
 }

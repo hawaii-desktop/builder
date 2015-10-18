@@ -102,25 +102,49 @@ func (c *Client) Close() {
 func (c *Client) Subscribe() (context.Context, error) {
 	var ctx context.Context
 
-	// Subscribe and take the stream
-	stream, err := c.client.Subscribe(context.Background())
+	request := &pb.SubscribeRequest{
+		Name:          Config.Slave.Name,
+		Types:         strings.Split(Config.Slave.Types, ","),
+		Architectures: strings.Split(Config.Slave.Architectures, ","),
+	}
+	response, err := c.client.Subscribe(context.Background(), request)
 	if err != nil {
 		return ctx, err
 	}
 
+	data := &SlaveData{
+		Id:             response.Id,
+		MainRepoDir:    response.MainRepoDir,
+		StagingRepoDir: response.StagingRepoDir,
+		ImagesDir:      response.ImagesDir,
+	}
+	logging.Infof("Slave subscribed with id %d\n", data.Id)
+	ctx = NewContext(context.Background(), data)
+
+	return ctx, nil
+}
+
+// PickJobs picks up jobs from the master and send back updates.
+func (c *Client) PickJob(ctx context.Context, waitc <-chan struct{}) error {
+	// Get data from context
+	data, ok := FromContext(ctx)
+	if !ok {
+		return fmt.Errorf("no data from context")
+	}
+
+	// Initiate communication
+	stream, err := c.client.PickJob(context.Background())
+	if err != nil {
+		return err
+	}
+
 	// Function that send job updates back to the master
 	var sendJobUpdate = func(j *Job) {
-		d, ok := FromContext(j.ctx)
-		if !ok {
-			logging.Fatalf("Internal error: no data from context")
-		}
-
-		args := &pb.InputMessage{
-			Payload: &pb.InputMessage_JobUpdate{
+		args := &pb.PickJobRequest{
+			Payload: &pb.PickJobRequest_JobUpdate{
 				JobUpdate: &pb.JobUpdateRequest{
-					SlaveId: d.Id,
-					Id:      j.Id,
-					Status:  jobStatusMap[j.Status],
+					Id:     j.Id,
+					Status: jobStatusMap[j.Status],
 				},
 			},
 		}
@@ -129,9 +153,9 @@ func (c *Client) Subscribe() (context.Context, error) {
 
 	// Function that send job updates back to the master
 	var sendStepUpdate = func(j *Job, bs *BuildStep) {
-		args := &pb.InputMessage{
-			Payload: &pb.InputMessage_StepUpdate{
-				StepUpdate: &pb.StepResponse{
+		args := &pb.PickJobRequest{
+			Payload: &pb.PickJobRequest_StepUpdate{
+				StepUpdate: &pb.StepUpdateRequest{
 					JobId:    j.Id,
 					Name:     bs.Name,
 					Running:  !bs.finished.IsZero(),
@@ -145,131 +169,108 @@ func (c *Client) Subscribe() (context.Context, error) {
 		stream.Send(args)
 	}
 
-	// Read from stream
-	wait := make(chan struct{})
-	go func(ctx context.Context) {
-		for {
-			in, err := stream.Recv()
-			if err == io.EOF {
-				close(wait)
-				return
-			}
-			if err != nil {
-				logging.Errorf("Failed to receive stream: %s", err)
-				return
-			}
-
-			// Subscription reply
-			subscription := in.GetSubscription()
-			if subscription != nil {
-				data := &SlaveData{
-					Id:             subscription.Id,
-					MainRepoDir:    subscription.MainRepoDir,
-					StagingRepoDir: subscription.StagingRepoDir,
-					ImagesDir:      subscription.ImagesDir,
-				}
-				ctx = NewContext(context.Background(), data)
-				logging.Infof("Slave subscribed with id %d\n", data.Id)
-			}
-
-			// Job dispatched to us
-			jobDispatch := in.GetJobDispatch()
-			if jobDispatch != nil {
-				// Read build information from the request
-				var (
-					target string
-					arch   string
-				)
-				pkg := jobDispatch.GetPackage()
-				if pkg != nil {
-					target = pkg.Name
-					arch = pkg.Architectures[0]
-				}
-				img := jobDispatch.GetImage()
-				if img != nil {
-					target = img.Name
-					arch = img.Architectures[0]
-				}
-
-				// Create a new job
-				logging.Infof("Processing job #%d (target \"%s\" for %s)\n",
-					jobDispatch.Id, target, arch)
-				var pkgInfo *PackageInfo = nil
-				var imgInfo *ImageInfo = nil
-				if pkg != nil {
-					pkgInfo = &PackageInfo{
-						Ci:                pkg.Ci,
-						VcsUrl:            pkg.Vcs.Url,
-						VcsBranch:         pkg.Vcs.Branch,
-						UpstreamVcsUrl:    pkg.UpstreamVcs.Url,
-						UpstreamVcsBranch: pkg.UpstreamVcs.Branch,
-					}
-				} else if img != nil {
-					imgInfo = &ImageInfo{
-						VcsUrl:    img.Vcs.Url,
-						VcsBranch: img.Vcs.Branch,
-					}
-				}
-				j := NewJob(ctx, jobDispatch.Id, target, arch, &TargetInfo{pkgInfo, imgInfo})
-
-				// Send updates back to master
-				go func() {
-					for {
-						select {
-						case <-j.UpdateChannel:
-							sendJobUpdate(j)
-							break
-						case bs := <-j.stepUpdateQueue:
-							sendStepUpdate(j, bs)
-							break
-						case <-j.artifactsChannel:
-							if err := c.UploadArtifacts(j.artifacts); err != nil {
-								j.Status = builder.JOB_STATUS_FAILED
-								j.Finished = time.Now()
-								logging.Errorln(err)
-							}
-						case <-j.CloseChannel:
-							j = nil
-							return
-						}
-					}
-				}()
-
-				// Process
-				c.jobQueue <- j
-			}
-		}
-	}(ctx)
-
-	// First of all: subscribe
-	args := &pb.InputMessage{
-		Payload: &pb.InputMessage_Subscription{
-			Subscription: &pb.SubscribeRequest{
-				Name:          Config.Slave.Name,
-				Types:         strings.Split(Config.Slave.Types, ","),
-				Architectures: strings.Split(Config.Slave.Architectures, ","),
+	// Start the dispatcher
+	args := &pb.PickJobRequest{
+		Payload: &pb.PickJobRequest_SlaveStart{
+			SlaveStart: &pb.SlaveStartRequest{
+				Id: data.Id,
 			},
 		},
 	}
 	stream.Send(args)
 
-	// Wait until the stream is clsed
+	// Read from the stream
+	for {
+		// Receive
+		in, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+
+		// Read build information from the request
+		var (
+			target string
+			arch   string
+		)
+		pkg := in.GetPackage()
+		if pkg != nil {
+			target = pkg.Name
+			arch = pkg.Architectures[0]
+		}
+		img := in.GetImage()
+		if img != nil {
+			target = img.Name
+			arch = img.Architectures[0]
+		}
+
+		// Create a new job
+		logging.Infof("Processing job #%d (target \"%s\" for %s)\n",
+			in.Id, target, arch)
+		var pkgInfo *PackageInfo = nil
+		var imgInfo *ImageInfo = nil
+		if pkg != nil {
+			pkgInfo = &PackageInfo{
+				Ci:                pkg.Ci,
+				VcsUrl:            pkg.Vcs.Url,
+				VcsBranch:         pkg.Vcs.Branch,
+				UpstreamVcsUrl:    pkg.UpstreamVcs.Url,
+				UpstreamVcsBranch: pkg.UpstreamVcs.Branch,
+			}
+		} else if img != nil {
+			imgInfo = &ImageInfo{
+				VcsUrl:    img.Vcs.Url,
+				VcsBranch: img.Vcs.Branch,
+			}
+		}
+		j := NewJob(ctx, in.Id, target, arch, &TargetInfo{pkgInfo, imgInfo})
+
+		// Send updates back to master
+		go func(j *Job) {
+			for {
+				select {
+				case <-j.UpdateChannel:
+					sendJobUpdate(j)
+				case bs := <-j.stepUpdateQueue:
+					sendStepUpdate(j, bs)
+				case <-j.artifactsChannel:
+					if err := c.UploadArtifacts(j.artifacts); err != nil {
+						j.Status = builder.JOB_STATUS_FAILED
+						j.Finished = time.Now()
+						logging.Errorln(err)
+					}
+				case <-j.CloseChannel:
+					j = nil
+					return
+				case <-waitc:
+					return
+				}
+			}
+		}(j)
+
+		// Process
+		c.jobQueue <- j
+	}
+
+	// Close the stream
 	go func() {
-		<-wait
+		<-waitc
 		stream.CloseSend()
 	}()
 
-	return ctx, nil
+	return nil
 }
 
 // Unsubscribe from the master.
 func (c *Client) Unsubscribe(ctx context.Context) error {
-	d, ok := FromContext(ctx)
+	data, ok := FromContext(ctx)
 	if !ok {
-		logging.Fatalln("Internal error: no data from context")
+		return fmt.Errorf("no data from context")
 	}
 
-	args := &pb.UnsubscribeRequest{Id: d.Id}
+	args := &pb.UnsubscribeRequest{Id: data.Id}
 	_, err := c.client.Unsubscribe(ctx, args)
 	return err
 }
@@ -310,7 +311,6 @@ func (c *Client) UploadArtifact(artifact *Artifact) error {
 		},
 	}
 	if err := stream.Send(args); err != nil {
-		stream.CloseSend()
 		return fmt.Errorf("Failed to start upload of \"%s\": %s",
 			filepath.Base(artifact.Source), err)
 	}
@@ -322,23 +322,24 @@ func (c *Client) UploadArtifact(artifact *Artifact) error {
 		chunk := make([]byte, 1024*1024)
 		size, err := file.Read(chunk)
 		if err == nil {
+			// Update hash with this chunk
+			hasher.Sum(chunk[:size])
+
+			// Send chunk
 			args := &pb.UploadMessage{
 				Payload: &pb.UploadMessage_Chunk{
 					Chunk: &pb.UploadChunk{
-						Data: chunk,
-						Hash: hasher.Sum(chunk[:size]),
+						Data: chunk[:size],
 					},
 				},
 			}
 			if err := stream.Send(args); err != nil {
-				stream.CloseSend()
 				return fmt.Errorf("Unable to upload a chunk of \"%s\": %s",
 					filepath.Base(artifact.Source), err)
 			}
 		} else if err == io.EOF {
 			break
 		} else {
-			stream.CloseSend()
 			return fmt.Errorf("Failed to read \"%s\": %s",
 				filepath.Base(artifact.Source), err)
 		}
@@ -357,7 +358,6 @@ func (c *Client) UploadArtifact(artifact *Artifact) error {
 		},
 	}
 	if err := stream.Send(args); err != nil {
-		stream.CloseSend()
 		return fmt.Errorf("Failed to end upload of \"%s\": %s",
 			filepath.Base(artifact.Source), err)
 	}
@@ -398,7 +398,7 @@ func (c *Client) UploadArtifacts(artifacts []*Artifact) error {
 	wg.Wait()
 
 	if len(errors) > 0 {
-		return fmt.Errorf("Failed to upload artifacts:\n%s\n", strings.Join(errors, "\n"))
+		return fmt.Errorf("Failed to upload artifacts:\n%s", strings.Join(errors, "\n"))
 	}
 
 	return nil

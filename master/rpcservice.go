@@ -94,224 +94,179 @@ func NewRpcService(master *Master) *RpcService {
 	}
 }
 
+// Subscribe to the master.
+func (m *RpcService) Subscribe(ctx context.Context, args *pb.SubscribeRequest) (*pb.SubscribeResponse, error) {
+	// The same slave cannot subscribe twice
+	m.sMutex.Lock()
+	defer m.sMutex.Unlock()
+	for _, slave := range m.Slaves {
+		if slave == nil {
+			continue
+		}
+		if slave.Name == args.Name && slave.Subscribed {
+			return nil, ErrAlreadySubscribed
+		}
+	}
+
+	// Create and append slave
+	slave := NewSlave(m.master.db.NewSlaveId(), args.Name, args.Types, args.Architectures)
+	m.Slaves = append(m.Slaves, slave)
+	logging.Infof("Subscribed slave \"%s\" with id %d\n", slave.Name, slave.Id)
+
+	// Reply
+	response := &pb.SubscribeResponse{
+		Id:             slave.Id,
+		MainRepoDir:    Config.Storage.MainRepoDir,
+		StagingRepoDir: Config.Storage.StagingRepoDir,
+		ImagesDir:      Config.Storage.ImagesDir,
+	}
+	return response, nil
+}
+
 // Slave call this to initiate a dialog.
-func (m *RpcService) Subscribe(stream pb.Builder_SubscribeServer) error {
-	// Function to send back the slave identifier
-	var sendSlaveId = func(s *Slave) {
-		reply := &pb.OutputMessage{
-			Payload: &pb.OutputMessage_Subscription{
-				Subscription: &pb.SubscribeResponse{
-					Id:             s.Id,
-					MainRepoDir:    Config.Storage.MainRepoDir,
-					StagingRepoDir: Config.Storage.StagingRepoDir,
-					ImagesDir:      Config.Storage.ImagesDir,
-				},
-			},
-		}
-		stream.Send(reply)
-	}
+func (m *RpcService) PickJob(stream pb.Builder_PickJobServer) error {
+	var slave *Slave = nil
 
-	// Function to send a job to a slave
-	var sendJob = func(s *Slave, j *Job) {
-		// Helper function that actually sends the dispatch request
-		var sendEnvelope = func(response *pb.JobDispatchRequest) {
-			reply := &pb.OutputMessage{
-				Payload: &pb.OutputMessage_JobDispatch{
-					JobDispatch: response,
-				},
-			}
-			stream.Send(reply)
-			logging.Infof("Job #%d scheduled on \"%s\"\n", j.Id, s.Name)
-		}
-
-		// Retrieve target information and send
-		switch j.Type {
-		case builder.JOB_TARGET_TYPE_PACKAGE:
-			pkg := m.master.db.GetPackage(j.Target)
-			if pkg == nil {
-				return
-			}
-			pkgmsg := &pb.PackageInfo{
-				Name:          pkg.Name,
-				Architectures: []string{j.Architecture},
-				Ci:            pkg.Ci,
-				Vcs: &pb.VcsInfo{
-					Url:    pkg.Vcs.Url,
-					Branch: pkg.Vcs.Branch,
-				},
-				UpstreamVcs: &pb.VcsInfo{
-					Url:    pkg.UpstreamVcs.Url,
-					Branch: pkg.UpstreamVcs.Branch,
-				},
-			}
-			response := &pb.JobDispatchRequest{
-				Id: j.Id,
-				Payload: &pb.JobDispatchRequest_Package{
-					Package: pkgmsg,
-				},
-			}
-			sendEnvelope(response)
-			break
-		case builder.JOB_TARGET_TYPE_IMAGE:
-			img := m.master.db.GetImage(j.Target)
-			if img == nil {
-				return
-			}
-			imgmsg := &pb.ImageInfo{
-				Name:          img.Name,
-				Description:   img.Description,
-				Architectures: img.Architectures,
-				Vcs: &pb.VcsInfo{
-					Url:    img.Vcs.Url,
-					Branch: img.Vcs.Branch,
-				},
-			}
-			response := &pb.JobDispatchRequest{
-				Id: j.Id,
-				Payload: &pb.JobDispatchRequest_Image{
-					Image: imgmsg,
-				},
-			}
-			sendEnvelope(response)
-			break
-		}
-	}
-
-	// Slave loop
-	var slaveLoop = func(s *Slave) {
-		for _, topic := range s.Topics() {
-			go func(topic string) {
-				for {
-					// Do not queue a slave that suddenly unregisters itself
-					if !s.Subscribed || !s.Active {
-						return
-					}
-
-					// Add to the queue
-					m.master.slaveQueues[topic] <- s.jobChannels[topic]
-
-					select {
-					case j := <-s.jobChannels[topic]:
-						// Send the job to the slave
-						sendJob(s, j)
-
-						// Wait for processing on the other side
-						<-j.Channel
-					case <-s.quitChannels[topic]:
-						// Slave has been asked to stop
-						return
-					}
-				}
-			}(topic)
-		}
-	}
+	// Messages that will be streamed to the slave are sent here
+	outChannel := make(chan *pb.JobRequest)
+	defer func() {
+		// Quit the goroutines that are picking up from this channel
+		outChannel <- nil
+	}()
 
 	for {
 		// Read request from the stream
 		in, err := stream.Recv()
 		if err == io.EOF {
-			return nil
+			break
 		}
 		if err != nil {
 			return err
 		}
 
-		subscription := in.GetSubscription()
-		if subscription != nil {
-			// Register a new slave
-			s, err := m.createSlave(subscription)
-			if err != nil {
-				return err
-			}
-
-			// Send back the identifier
-			sendSlaveId(s)
-
-			// Start dispatching to this slave
-			go slaveLoop(s)
-		}
-
-		jobUpdate := in.GetJobUpdate()
-		if jobUpdate != nil {
-			var slave *Slave = nil
+		// Slave start
+		slaveStart := in.GetSlaveStart()
+		if slaveStart != nil {
+			// Find the slave
 			m.sMutex.Lock()
 			for _, s := range m.Slaves {
-				if s.Id == jobUpdate.SlaveId {
+				if s.Id == slaveStart.Id {
 					slave = s
 					break
 				}
 			}
 			m.sMutex.Unlock()
 
-			var j *Job = nil
+			// Can't continue if the slave was not found
+			if slave == nil {
+				return ErrSlaveNotFound
+			}
+
+			// Stream job requests to the slave when the dispatch
+			// function send them to the channel we created above
+			go func() {
+				for {
+					select {
+					case r := <-outChannel:
+						// Quit this go routine when a nil request has been received
+						if r == nil {
+							return
+						}
+
+						// Otherwise stream the request to the slave
+						stream.Send(r)
+						logging.Infof("Job #%d scheduled on \"%s\"\n", r.Id, slave.Name)
+					}
+				}
+			}()
+
+			// Dispatch jobs to this slave
+			m.master.dispatchSlave(slave, outChannel)
+		}
+
+		// Job update
+		jobUpdate := in.GetJobUpdate()
+		if jobUpdate != nil {
+			// We need the slave
+			if slave == nil {
+				return ErrSlaveNotFound
+			}
+
+			var job *Job = nil
 			m.master.forEachJob(func(curJob *Job) {
 				// Skip other jobs
 				if curJob.Id == jobUpdate.Id {
-					j = curJob
+					job = curJob
 				}
 			})
-			if j == nil {
+			if job == nil {
 				logging.Errorf("Cannot find job #%d\n", jobUpdate.Id)
 				return ErrJobNotFound
 			}
 
 			// Update the status
-			j.Status = jobStatusMap[jobUpdate.Status]
+			job.Status = jobStatusMap[jobUpdate.Status]
 
 			// Handle status change
-			if j.Status >= builder.JOB_STATUS_SUCCESSFUL && j.Status <= builder.JOB_STATUS_CRASHED {
+			if job.Status >= builder.JOB_STATUS_SUCCESSFUL && job.Status <= builder.JOB_STATUS_CRASHED {
 				// Update finished time and notify
-				j.Finished = time.Now()
+				job.Finished = time.Now()
 
 				// Log the status
-				if j.Status == builder.JOB_STATUS_SUCCESSFUL {
+				if job.Status == builder.JOB_STATUS_SUCCESSFUL {
 					logging.Infof("Job #%d completed successfully on \"%s\"\n",
-						j.Id, slave.Name)
+						job.Id, slave.Name)
 				} else {
 					logging.Errorf("Job #%d failed on \"%s\"\n",
-						j.Id, slave.Name)
+						job.Id, slave.Name)
 				}
 
 				// Send status notification(s)
-				m.master.sendStatusNotifications(j)
+				m.master.sendStatusNotifications(job)
 
 				// Remove from the list
-				m.master.removeJob(j)
+				m.master.removeJob(job)
 
 				// Proceed to the next job
-				j.Channel <- true
+				job.Channel <- true
 			} else {
 				logging.Tracef("Change job #%d status to \"%s\"\n",
-					jobUpdate.Id, builder.JobStatusDescriptionMap[j.Status])
+					jobUpdate.Id, builder.JobStatusDescriptionMap[job.Status])
 			}
 
 			// Save on the database
-			m.master.saveDatabaseJob(j)
+			m.master.saveDatabaseJob(job)
 
 			// Update Web socket clients
 			m.master.updateStatistics()
 			m.master.updateAllJobs()
 		}
 
+		// Build step update
 		stepUpdate := in.GetStepUpdate()
 		if stepUpdate != nil {
+			// We need the slave
+			if slave == nil {
+				return ErrSlaveNotFound
+			}
+
 			// Do we have a valid job here?
-			var j *Job = nil
+			var job *Job = nil
 			m.master.forEachJob(func(curJob *Job) {
 				// Skip other jobs
 				if curJob.Id == stepUpdate.JobId {
-					j = curJob
+					job = curJob
 				}
 			})
-			if j == nil {
+			if job == nil {
 				logging.Errorf("Cannot find job #%d\n", stepUpdate.JobId)
 				return ErrJobNotFound
 			}
 
 			// Append or replace the build step
-			j.Mutex.Lock()
+			job.Mutex.Lock()
 			found := false
-			for _, step := range j.Steps {
+			for _, step := range job.Steps {
 				if step.Name == stepUpdate.Name {
 					step.Started = time.Unix(0, stepUpdate.Started)
 					step.Finished = time.Unix(0, stepUpdate.Finished)
@@ -329,18 +284,20 @@ func (m *RpcService) Subscribe(stream pb.Builder_SubscribeServer) error {
 					Summary:  utils.MapSliceString(stepUpdate.Summary),
 					Logs:     stepUpdate.Logs,
 				}
-				j.Steps = append(j.Steps, step)
+				job.Steps = append(job.Steps, step)
 			}
-			j.Mutex.Unlock()
+			job.Mutex.Unlock()
 
 			// Save on the database
-			m.master.saveDatabaseJob(j)
+			m.master.saveDatabaseJob(job)
 
 			// Update Web socket clients
 			m.master.updateStatistics()
 			m.master.updateAllJobs()
 		}
 	}
+
+	return nil
 }
 
 // Unregister a slave and stop it immediately.
@@ -393,11 +350,6 @@ func (m *RpcService) CollectJob(ctx context.Context, args *pb.CollectJobRequest)
 // Upload a file from slave to master.
 func (m *RpcService) Upload(stream pb.Builder_UploadServer) error {
 	var file *os.File = nil
-	defer func() {
-		if file != nil {
-			file.Close()
-		}
-	}()
 
 	// Count how many bytes we write
 	total := int64(0)
@@ -421,12 +373,12 @@ func (m *RpcService) Upload(stream pb.Builder_UploadServer) error {
 			logging.Infof("Receiving upload of \"%s\"...\n", request.FileName)
 			err = os.MkdirAll(filepath.Dir(request.FileName), 0755)
 			if err != nil {
-				return err
+				return stream.SendAndClose(&pb.UploadResponse{total, err.Error()})
 			}
 
 			file, err = os.Create(request.FileName)
 			if err != nil {
-				return err
+				return stream.SendAndClose(&pb.UploadResponse{total, err.Error()})
 			}
 		}
 
@@ -436,18 +388,14 @@ func (m *RpcService) Upload(stream pb.Builder_UploadServer) error {
 			// Write chunk
 			size, err := file.Write(chunk.Data)
 			if err != nil {
-				return err
+				file.Sync()
+				file.Close()
+				return stream.SendAndClose(&pb.UploadResponse{total, err.Error()})
 			}
 			total += int64(size)
 
 			// Update hash with this chunk
-			hash := hasher.Sum(chunk.Data)
-
-			// Verify chunk hash
-			if !bytes.Equal(hash, chunk.Hash) {
-				return fmt.Errorf("wrong SHA256 hash \"%s\" for the chunk, expected \"%s\"",
-					hex.EncodeToString(hash), hex.EncodeToString(chunk.Hash))
-			}
+			hasher.Sum(chunk.Data)
 		}
 		file.Sync()
 
@@ -457,21 +405,22 @@ func (m *RpcService) Upload(stream pb.Builder_UploadServer) error {
 			// Close file
 			file.Close()
 
+			// Change permission
+			file.Chmod(os.FileMode(end.Permission))
+
 			// Verify hash
 			hash := hasher.Sum(nil)
 			if !bytes.Equal(hash, end.Hash) {
-				return fmt.Errorf("wrong SHA256 hash \"%s\", expected \"%s\"",
+				errMsg := fmt.Errorf("wrong SHA256 hash \"%s\", expected \"%s\"",
 					hex.EncodeToString(hash), hex.EncodeToString(end.Hash))
+				return stream.SendAndClose(&pb.UploadResponse{total, errMsg.Error()})
 			}
-
-			// Change permission
-			file.Chmod(os.FileMode(end.Permission))
 
 			break
 		}
 	}
 
-	return stream.SendAndClose(&pb.UploadResponse{total})
+	return stream.SendAndClose(&pb.UploadResponse{total, ""})
 }
 
 // Download a file from master to slave.
@@ -650,27 +599,6 @@ func (m *RpcService) ListImages(args *pb.StringMessage, stream pb.Builder_ListIm
 	}
 
 	return nil
-}
-
-// Create a slave from the subscription request.
-func (m *RpcService) createSlave(args *pb.SubscribeRequest) (*Slave, error) {
-	// The same slave cannot subscribe twice
-	m.sMutex.Lock()
-	defer m.sMutex.Unlock()
-	for _, slave := range m.Slaves {
-		if slave == nil {
-			continue
-		}
-		if slave.Name == args.Name && slave.Subscribed {
-			return nil, ErrAlreadySubscribed
-		}
-	}
-
-	// Create and append slave
-	slave := NewSlave(m.master.db.NewSlaveId(), args.Name, args.Types, args.Architectures)
-	m.Slaves = append(m.Slaves, slave)
-	logging.Infof("Subscribed slave \"%s\" with id %d\n", slave.Name, slave.Id)
-	return slave, nil
 }
 
 // Enqueue a job.

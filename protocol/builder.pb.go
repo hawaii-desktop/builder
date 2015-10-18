@@ -16,13 +16,13 @@ It has these top-level messages:
 	SubscribeResponse
 	UnsubscribeRequest
 	UnsubscribeResponse
-	JobDispatchRequest
-	JobUpdateRequest
-	StepResponse
-	InputMessage
-	OutputMessage
 	CollectJobRequest
 	CollectJobResponse
+	JobRequest
+	SlaveStartRequest
+	JobUpdateRequest
+	StepUpdateRequest
+	PickJobRequest
 	UploadRequest
 	UploadChunk
 	UploadEnd
@@ -184,387 +184,6 @@ func (m *UnsubscribeResponse) Reset()         { *m = UnsubscribeResponse{} }
 func (m *UnsubscribeResponse) String() string { return proto.CompactTextString(m) }
 func (*UnsubscribeResponse) ProtoMessage()    {}
 
-// Contains information on the job that has to be processed by
-// the slave receiving this.
-type JobDispatchRequest struct {
-	// Identifier.
-	Id uint64 `protobuf:"varint,1,opt,name=id" json:"id,omitempty"`
-	// Payload.
-	//
-	// Types that are valid to be assigned to Payload:
-	//	*JobDispatchRequest_Package
-	//	*JobDispatchRequest_Image
-	Payload isJobDispatchRequest_Payload `protobuf_oneof:"payload"`
-}
-
-func (m *JobDispatchRequest) Reset()         { *m = JobDispatchRequest{} }
-func (m *JobDispatchRequest) String() string { return proto.CompactTextString(m) }
-func (*JobDispatchRequest) ProtoMessage()    {}
-
-type isJobDispatchRequest_Payload interface {
-	isJobDispatchRequest_Payload()
-}
-
-type JobDispatchRequest_Package struct {
-	Package *PackageInfo `protobuf:"bytes,2,opt,name=package,oneof"`
-}
-type JobDispatchRequest_Image struct {
-	Image *ImageInfo `protobuf:"bytes,3,opt,name=image,oneof"`
-}
-
-func (*JobDispatchRequest_Package) isJobDispatchRequest_Payload() {}
-func (*JobDispatchRequest_Image) isJobDispatchRequest_Payload()   {}
-
-func (m *JobDispatchRequest) GetPayload() isJobDispatchRequest_Payload {
-	if m != nil {
-		return m.Payload
-	}
-	return nil
-}
-
-func (m *JobDispatchRequest) GetPackage() *PackageInfo {
-	if x, ok := m.GetPayload().(*JobDispatchRequest_Package); ok {
-		return x.Package
-	}
-	return nil
-}
-
-func (m *JobDispatchRequest) GetImage() *ImageInfo {
-	if x, ok := m.GetPayload().(*JobDispatchRequest_Image); ok {
-		return x.Image
-	}
-	return nil
-}
-
-// XXX_OneofFuncs is for the internal use of the proto package.
-func (*JobDispatchRequest) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), []interface{}) {
-	return _JobDispatchRequest_OneofMarshaler, _JobDispatchRequest_OneofUnmarshaler, []interface{}{
-		(*JobDispatchRequest_Package)(nil),
-		(*JobDispatchRequest_Image)(nil),
-	}
-}
-
-func _JobDispatchRequest_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
-	m := msg.(*JobDispatchRequest)
-	// payload
-	switch x := m.Payload.(type) {
-	case *JobDispatchRequest_Package:
-		b.EncodeVarint(2<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Package); err != nil {
-			return err
-		}
-	case *JobDispatchRequest_Image:
-		b.EncodeVarint(3<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Image); err != nil {
-			return err
-		}
-	case nil:
-	default:
-		return fmt.Errorf("JobDispatchRequest.Payload has unexpected type %T", x)
-	}
-	return nil
-}
-
-func _JobDispatchRequest_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
-	m := msg.(*JobDispatchRequest)
-	switch tag {
-	case 2: // payload.package
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(PackageInfo)
-		err := b.DecodeMessage(msg)
-		m.Payload = &JobDispatchRequest_Package{msg}
-		return true, err
-	case 3: // payload.image
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(ImageInfo)
-		err := b.DecodeMessage(msg)
-		m.Payload = &JobDispatchRequest_Image{msg}
-		return true, err
-	default:
-		return false, nil
-	}
-}
-
-// Contains updated information on a job being processed.
-type JobUpdateRequest struct {
-	// Slave identifier.
-	SlaveId uint64 `protobuf:"varint,1,opt,name=slave_id" json:"slave_id,omitempty"`
-	// Identifier.
-	Id uint64 `protobuf:"varint,2,opt,name=id" json:"id,omitempty"`
-	// Current status of the job.
-	Status EnumJobStatus `protobuf:"varint,3,opt,name=status,enum=protocol.EnumJobStatus" json:"status,omitempty"`
-}
-
-func (m *JobUpdateRequest) Reset()         { *m = JobUpdateRequest{} }
-func (m *JobUpdateRequest) String() string { return proto.CompactTextString(m) }
-func (*JobUpdateRequest) ProtoMessage()    {}
-
-// Contains updated information on a build step being executed.
-type StepResponse struct {
-	// Job identifier.
-	JobId uint64 `protobuf:"varint,1,opt,name=job_id" json:"job_id,omitempty"`
-	// Name.
-	Name string `protobuf:"bytes,2,opt,name=name" json:"name,omitempty"`
-	// Whether it's still running.
-	Running bool `protobuf:"varint,3,opt,name=running" json:"running,omitempty"`
-	// When it has started (nanoseconds since Epoch).
-	Started int64 `protobuf:"varint,4,opt,name=started" json:"started,omitempty"`
-	// When it has finished (nanoseconds since Epoch).
-	Finished int64 `protobuf:"varint,5,opt,name=finished" json:"finished,omitempty"`
-	// Optional summary of this step.
-	Summary map[string]string `protobuf:"bytes,6,rep,name=summary" json:"summary,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	// Other optional logs.
-	Logs map[string][]byte `protobuf:"bytes,7,rep,name=logs" json:"logs,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value,proto3"`
-}
-
-func (m *StepResponse) Reset()         { *m = StepResponse{} }
-func (m *StepResponse) String() string { return proto.CompactTextString(m) }
-func (*StepResponse) ProtoMessage()    {}
-
-func (m *StepResponse) GetSummary() map[string]string {
-	if m != nil {
-		return m.Summary
-	}
-	return nil
-}
-
-func (m *StepResponse) GetLogs() map[string][]byte {
-	if m != nil {
-		return m.Logs
-	}
-	return nil
-}
-
-// Communication from slave to master.
-type InputMessage struct {
-	// Types that are valid to be assigned to Payload:
-	//	*InputMessage_Subscription
-	//	*InputMessage_JobUpdate
-	//	*InputMessage_StepUpdate
-	Payload isInputMessage_Payload `protobuf_oneof:"payload"`
-}
-
-func (m *InputMessage) Reset()         { *m = InputMessage{} }
-func (m *InputMessage) String() string { return proto.CompactTextString(m) }
-func (*InputMessage) ProtoMessage()    {}
-
-type isInputMessage_Payload interface {
-	isInputMessage_Payload()
-}
-
-type InputMessage_Subscription struct {
-	Subscription *SubscribeRequest `protobuf:"bytes,1,opt,name=subscription,oneof"`
-}
-type InputMessage_JobUpdate struct {
-	JobUpdate *JobUpdateRequest `protobuf:"bytes,2,opt,name=job_update,oneof"`
-}
-type InputMessage_StepUpdate struct {
-	StepUpdate *StepResponse `protobuf:"bytes,3,opt,name=step_update,oneof"`
-}
-
-func (*InputMessage_Subscription) isInputMessage_Payload() {}
-func (*InputMessage_JobUpdate) isInputMessage_Payload()    {}
-func (*InputMessage_StepUpdate) isInputMessage_Payload()   {}
-
-func (m *InputMessage) GetPayload() isInputMessage_Payload {
-	if m != nil {
-		return m.Payload
-	}
-	return nil
-}
-
-func (m *InputMessage) GetSubscription() *SubscribeRequest {
-	if x, ok := m.GetPayload().(*InputMessage_Subscription); ok {
-		return x.Subscription
-	}
-	return nil
-}
-
-func (m *InputMessage) GetJobUpdate() *JobUpdateRequest {
-	if x, ok := m.GetPayload().(*InputMessage_JobUpdate); ok {
-		return x.JobUpdate
-	}
-	return nil
-}
-
-func (m *InputMessage) GetStepUpdate() *StepResponse {
-	if x, ok := m.GetPayload().(*InputMessage_StepUpdate); ok {
-		return x.StepUpdate
-	}
-	return nil
-}
-
-// XXX_OneofFuncs is for the internal use of the proto package.
-func (*InputMessage) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), []interface{}) {
-	return _InputMessage_OneofMarshaler, _InputMessage_OneofUnmarshaler, []interface{}{
-		(*InputMessage_Subscription)(nil),
-		(*InputMessage_JobUpdate)(nil),
-		(*InputMessage_StepUpdate)(nil),
-	}
-}
-
-func _InputMessage_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
-	m := msg.(*InputMessage)
-	// payload
-	switch x := m.Payload.(type) {
-	case *InputMessage_Subscription:
-		b.EncodeVarint(1<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Subscription); err != nil {
-			return err
-		}
-	case *InputMessage_JobUpdate:
-		b.EncodeVarint(2<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.JobUpdate); err != nil {
-			return err
-		}
-	case *InputMessage_StepUpdate:
-		b.EncodeVarint(3<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.StepUpdate); err != nil {
-			return err
-		}
-	case nil:
-	default:
-		return fmt.Errorf("InputMessage.Payload has unexpected type %T", x)
-	}
-	return nil
-}
-
-func _InputMessage_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
-	m := msg.(*InputMessage)
-	switch tag {
-	case 1: // payload.subscription
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(SubscribeRequest)
-		err := b.DecodeMessage(msg)
-		m.Payload = &InputMessage_Subscription{msg}
-		return true, err
-	case 2: // payload.job_update
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(JobUpdateRequest)
-		err := b.DecodeMessage(msg)
-		m.Payload = &InputMessage_JobUpdate{msg}
-		return true, err
-	case 3: // payload.step_update
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(StepResponse)
-		err := b.DecodeMessage(msg)
-		m.Payload = &InputMessage_StepUpdate{msg}
-		return true, err
-	default:
-		return false, nil
-	}
-}
-
-// Communication from master to slave.
-type OutputMessage struct {
-	// Types that are valid to be assigned to Payload:
-	//	*OutputMessage_Subscription
-	//	*OutputMessage_JobDispatch
-	Payload isOutputMessage_Payload `protobuf_oneof:"payload"`
-}
-
-func (m *OutputMessage) Reset()         { *m = OutputMessage{} }
-func (m *OutputMessage) String() string { return proto.CompactTextString(m) }
-func (*OutputMessage) ProtoMessage()    {}
-
-type isOutputMessage_Payload interface {
-	isOutputMessage_Payload()
-}
-
-type OutputMessage_Subscription struct {
-	Subscription *SubscribeResponse `protobuf:"bytes,1,opt,name=subscription,oneof"`
-}
-type OutputMessage_JobDispatch struct {
-	JobDispatch *JobDispatchRequest `protobuf:"bytes,2,opt,name=job_dispatch,oneof"`
-}
-
-func (*OutputMessage_Subscription) isOutputMessage_Payload() {}
-func (*OutputMessage_JobDispatch) isOutputMessage_Payload()  {}
-
-func (m *OutputMessage) GetPayload() isOutputMessage_Payload {
-	if m != nil {
-		return m.Payload
-	}
-	return nil
-}
-
-func (m *OutputMessage) GetSubscription() *SubscribeResponse {
-	if x, ok := m.GetPayload().(*OutputMessage_Subscription); ok {
-		return x.Subscription
-	}
-	return nil
-}
-
-func (m *OutputMessage) GetJobDispatch() *JobDispatchRequest {
-	if x, ok := m.GetPayload().(*OutputMessage_JobDispatch); ok {
-		return x.JobDispatch
-	}
-	return nil
-}
-
-// XXX_OneofFuncs is for the internal use of the proto package.
-func (*OutputMessage) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), []interface{}) {
-	return _OutputMessage_OneofMarshaler, _OutputMessage_OneofUnmarshaler, []interface{}{
-		(*OutputMessage_Subscription)(nil),
-		(*OutputMessage_JobDispatch)(nil),
-	}
-}
-
-func _OutputMessage_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
-	m := msg.(*OutputMessage)
-	// payload
-	switch x := m.Payload.(type) {
-	case *OutputMessage_Subscription:
-		b.EncodeVarint(1<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Subscription); err != nil {
-			return err
-		}
-	case *OutputMessage_JobDispatch:
-		b.EncodeVarint(2<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.JobDispatch); err != nil {
-			return err
-		}
-	case nil:
-	default:
-		return fmt.Errorf("OutputMessage.Payload has unexpected type %T", x)
-	}
-	return nil
-}
-
-func _OutputMessage_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
-	m := msg.(*OutputMessage)
-	switch tag {
-	case 1: // payload.subscription
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(SubscribeResponse)
-		err := b.DecodeMessage(msg)
-		m.Payload = &OutputMessage_Subscription{msg}
-		return true, err
-	case 2: // payload.job_dispatch
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(JobDispatchRequest)
-		err := b.DecodeMessage(msg)
-		m.Payload = &OutputMessage_JobDispatch{msg}
-		return true, err
-	default:
-		return false, nil
-	}
-}
-
 // CollectJob request.
 type CollectJobRequest struct {
 	// Target name
@@ -591,6 +210,295 @@ func (m *CollectJobResponse) Reset()         { *m = CollectJobResponse{} }
 func (m *CollectJobResponse) String() string { return proto.CompactTextString(m) }
 func (*CollectJobResponse) ProtoMessage()    {}
 
+// Contains information on the job that has to be processed by
+// the slave receiving this.
+type JobRequest struct {
+	// Identifier.
+	Id uint64 `protobuf:"varint,1,opt,name=id" json:"id,omitempty"`
+	// Payload.
+	//
+	// Types that are valid to be assigned to Payload:
+	//	*JobRequest_Package
+	//	*JobRequest_Image
+	Payload isJobRequest_Payload `protobuf_oneof:"payload"`
+}
+
+func (m *JobRequest) Reset()         { *m = JobRequest{} }
+func (m *JobRequest) String() string { return proto.CompactTextString(m) }
+func (*JobRequest) ProtoMessage()    {}
+
+type isJobRequest_Payload interface {
+	isJobRequest_Payload()
+}
+
+type JobRequest_Package struct {
+	Package *PackageInfo `protobuf:"bytes,2,opt,name=package,oneof"`
+}
+type JobRequest_Image struct {
+	Image *ImageInfo `protobuf:"bytes,3,opt,name=image,oneof"`
+}
+
+func (*JobRequest_Package) isJobRequest_Payload() {}
+func (*JobRequest_Image) isJobRequest_Payload()   {}
+
+func (m *JobRequest) GetPayload() isJobRequest_Payload {
+	if m != nil {
+		return m.Payload
+	}
+	return nil
+}
+
+func (m *JobRequest) GetPackage() *PackageInfo {
+	if x, ok := m.GetPayload().(*JobRequest_Package); ok {
+		return x.Package
+	}
+	return nil
+}
+
+func (m *JobRequest) GetImage() *ImageInfo {
+	if x, ok := m.GetPayload().(*JobRequest_Image); ok {
+		return x.Image
+	}
+	return nil
+}
+
+// XXX_OneofFuncs is for the internal use of the proto package.
+func (*JobRequest) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), []interface{}) {
+	return _JobRequest_OneofMarshaler, _JobRequest_OneofUnmarshaler, []interface{}{
+		(*JobRequest_Package)(nil),
+		(*JobRequest_Image)(nil),
+	}
+}
+
+func _JobRequest_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
+	m := msg.(*JobRequest)
+	// payload
+	switch x := m.Payload.(type) {
+	case *JobRequest_Package:
+		b.EncodeVarint(2<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.Package); err != nil {
+			return err
+		}
+	case *JobRequest_Image:
+		b.EncodeVarint(3<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.Image); err != nil {
+			return err
+		}
+	case nil:
+	default:
+		return fmt.Errorf("JobRequest.Payload has unexpected type %T", x)
+	}
+	return nil
+}
+
+func _JobRequest_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
+	m := msg.(*JobRequest)
+	switch tag {
+	case 2: // payload.package
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(PackageInfo)
+		err := b.DecodeMessage(msg)
+		m.Payload = &JobRequest_Package{msg}
+		return true, err
+	case 3: // payload.image
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(ImageInfo)
+		err := b.DecodeMessage(msg)
+		m.Payload = &JobRequest_Image{msg}
+		return true, err
+	default:
+		return false, nil
+	}
+}
+
+// Ask the master to start the slave loop.
+type SlaveStartRequest struct {
+	// Slave identifier.
+	Id uint64 `protobuf:"varint,1,opt,name=id" json:"id,omitempty"`
+}
+
+func (m *SlaveStartRequest) Reset()         { *m = SlaveStartRequest{} }
+func (m *SlaveStartRequest) String() string { return proto.CompactTextString(m) }
+func (*SlaveStartRequest) ProtoMessage()    {}
+
+// Contains updated information on a job being processed.
+type JobUpdateRequest struct {
+	// Identifier.
+	Id uint64 `protobuf:"varint,1,opt,name=id" json:"id,omitempty"`
+	// Current status of the job.
+	Status EnumJobStatus `protobuf:"varint,2,opt,name=status,enum=protocol.EnumJobStatus" json:"status,omitempty"`
+}
+
+func (m *JobUpdateRequest) Reset()         { *m = JobUpdateRequest{} }
+func (m *JobUpdateRequest) String() string { return proto.CompactTextString(m) }
+func (*JobUpdateRequest) ProtoMessage()    {}
+
+// Contains updated information on a build step being executed.
+type StepUpdateRequest struct {
+	// Job identifier.
+	JobId uint64 `protobuf:"varint,1,opt,name=job_id" json:"job_id,omitempty"`
+	// Name.
+	Name string `protobuf:"bytes,2,opt,name=name" json:"name,omitempty"`
+	// Whether it's still running.
+	Running bool `protobuf:"varint,3,opt,name=running" json:"running,omitempty"`
+	// When it has started (nanoseconds since Epoch).
+	Started int64 `protobuf:"varint,4,opt,name=started" json:"started,omitempty"`
+	// When it has finished (nanoseconds since Epoch).
+	Finished int64 `protobuf:"varint,5,opt,name=finished" json:"finished,omitempty"`
+	// Optional summary of this step.
+	Summary map[string]string `protobuf:"bytes,6,rep,name=summary" json:"summary,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// Other optional logs.
+	Logs map[string][]byte `protobuf:"bytes,7,rep,name=logs" json:"logs,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value,proto3"`
+}
+
+func (m *StepUpdateRequest) Reset()         { *m = StepUpdateRequest{} }
+func (m *StepUpdateRequest) String() string { return proto.CompactTextString(m) }
+func (*StepUpdateRequest) ProtoMessage()    {}
+
+func (m *StepUpdateRequest) GetSummary() map[string]string {
+	if m != nil {
+		return m.Summary
+	}
+	return nil
+}
+
+func (m *StepUpdateRequest) GetLogs() map[string][]byte {
+	if m != nil {
+		return m.Logs
+	}
+	return nil
+}
+
+// Communication from slave to master.
+type PickJobRequest struct {
+	// Types that are valid to be assigned to Payload:
+	//	*PickJobRequest_SlaveStart
+	//	*PickJobRequest_JobUpdate
+	//	*PickJobRequest_StepUpdate
+	Payload isPickJobRequest_Payload `protobuf_oneof:"payload"`
+}
+
+func (m *PickJobRequest) Reset()         { *m = PickJobRequest{} }
+func (m *PickJobRequest) String() string { return proto.CompactTextString(m) }
+func (*PickJobRequest) ProtoMessage()    {}
+
+type isPickJobRequest_Payload interface {
+	isPickJobRequest_Payload()
+}
+
+type PickJobRequest_SlaveStart struct {
+	SlaveStart *SlaveStartRequest `protobuf:"bytes,1,opt,name=slave_start,oneof"`
+}
+type PickJobRequest_JobUpdate struct {
+	JobUpdate *JobUpdateRequest `protobuf:"bytes,2,opt,name=job_update,oneof"`
+}
+type PickJobRequest_StepUpdate struct {
+	StepUpdate *StepUpdateRequest `protobuf:"bytes,3,opt,name=step_update,oneof"`
+}
+
+func (*PickJobRequest_SlaveStart) isPickJobRequest_Payload() {}
+func (*PickJobRequest_JobUpdate) isPickJobRequest_Payload()  {}
+func (*PickJobRequest_StepUpdate) isPickJobRequest_Payload() {}
+
+func (m *PickJobRequest) GetPayload() isPickJobRequest_Payload {
+	if m != nil {
+		return m.Payload
+	}
+	return nil
+}
+
+func (m *PickJobRequest) GetSlaveStart() *SlaveStartRequest {
+	if x, ok := m.GetPayload().(*PickJobRequest_SlaveStart); ok {
+		return x.SlaveStart
+	}
+	return nil
+}
+
+func (m *PickJobRequest) GetJobUpdate() *JobUpdateRequest {
+	if x, ok := m.GetPayload().(*PickJobRequest_JobUpdate); ok {
+		return x.JobUpdate
+	}
+	return nil
+}
+
+func (m *PickJobRequest) GetStepUpdate() *StepUpdateRequest {
+	if x, ok := m.GetPayload().(*PickJobRequest_StepUpdate); ok {
+		return x.StepUpdate
+	}
+	return nil
+}
+
+// XXX_OneofFuncs is for the internal use of the proto package.
+func (*PickJobRequest) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), []interface{}) {
+	return _PickJobRequest_OneofMarshaler, _PickJobRequest_OneofUnmarshaler, []interface{}{
+		(*PickJobRequest_SlaveStart)(nil),
+		(*PickJobRequest_JobUpdate)(nil),
+		(*PickJobRequest_StepUpdate)(nil),
+	}
+}
+
+func _PickJobRequest_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
+	m := msg.(*PickJobRequest)
+	// payload
+	switch x := m.Payload.(type) {
+	case *PickJobRequest_SlaveStart:
+		b.EncodeVarint(1<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.SlaveStart); err != nil {
+			return err
+		}
+	case *PickJobRequest_JobUpdate:
+		b.EncodeVarint(2<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.JobUpdate); err != nil {
+			return err
+		}
+	case *PickJobRequest_StepUpdate:
+		b.EncodeVarint(3<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.StepUpdate); err != nil {
+			return err
+		}
+	case nil:
+	default:
+		return fmt.Errorf("PickJobRequest.Payload has unexpected type %T", x)
+	}
+	return nil
+}
+
+func _PickJobRequest_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
+	m := msg.(*PickJobRequest)
+	switch tag {
+	case 1: // payload.slave_start
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(SlaveStartRequest)
+		err := b.DecodeMessage(msg)
+		m.Payload = &PickJobRequest_SlaveStart{msg}
+		return true, err
+	case 2: // payload.job_update
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(JobUpdateRequest)
+		err := b.DecodeMessage(msg)
+		m.Payload = &PickJobRequest_JobUpdate{msg}
+		return true, err
+	case 3: // payload.step_update
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(StepUpdateRequest)
+		err := b.DecodeMessage(msg)
+		m.Payload = &PickJobRequest_StepUpdate{msg}
+		return true, err
+	default:
+		return false, nil
+	}
+}
+
 // An upload request.
 type UploadRequest struct {
 	// Desired file name.
@@ -605,8 +513,6 @@ func (*UploadRequest) ProtoMessage()    {}
 type UploadChunk struct {
 	// A chunk of data.
 	Data []byte `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
-	// SHA256 hash of this chunk.
-	Hash []byte `protobuf:"bytes,2,opt,name=hash,proto3" json:"hash,omitempty"`
 }
 
 func (m *UploadChunk) Reset()         { *m = UploadChunk{} }
@@ -753,8 +659,10 @@ func _UploadMessage_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.
 
 // Upload response.
 type UploadResponse struct {
-	// How many bytes were written.
+	// How many bytes were written so far.
 	TotalSize int64 `protobuf:"varint,1,opt,name=total_size" json:"total_size,omitempty"`
+	// Error message (empty if no error).
+	Error string `protobuf:"bytes,2,opt,name=error" json:"error,omitempty"`
 }
 
 func (m *UploadResponse) Reset()         { *m = UploadResponse{} }
@@ -974,19 +882,12 @@ var _ grpc.ClientConn
 type BuilderClient interface {
 	// Subscribe to the master.
 	//
-	// A slave calls this procedure to register itself on the master, which will
-	// assign an identifier and reply with a Registration message.
+	// A slave calls this method to register itself on the master, which will
+	// assign an identifier returned with the reply, along with some information
+	// such as the repositories paths.
+	//
 	// Keep in mind that identifiers are valid until master is restarted.
-	//
-	// Once a slave has subscribed a full duplex communication is established
-	// until the slave unsubscribe or the master quits, in that case the slave
-	// detects that the connection is no longer valid and will resubscribe if
-	// and when master comes up again.
-	//
-	// Master sends jobs to be processed through the stream as they are collected
-	// and dispatched.  Jobs are dispatched to slaves whose capacity has not been
-	// reached yet and whose architecture and channels match.
-	Subscribe(ctx context.Context, opts ...grpc.CallOption) (Builder_SubscribeClient, error)
+	Subscribe(ctx context.Context, in *SubscribeRequest, opts ...grpc.CallOption) (*SubscribeResponse, error)
 	// Unregister a slave.
 	//
 	// Slave class this procedure to unregister itself.
@@ -997,6 +898,17 @@ type BuilderClient interface {
 	// Master will enqueue a new job and the dispatcher will find a suitable
 	// slave and dispatch to it.
 	CollectJob(ctx context.Context, in *CollectJobRequest, opts ...grpc.CallOption) (*CollectJobResponse, error)
+	// Pick up a job from the master.
+	//
+	// Once a slave has subscribed a full duplex communication is established
+	// until the slave unsubscribe or the master quits, in that case the slave
+	// detects that the connection is no longer valid and will resubscribe if
+	// and when master comes up again.
+	//
+	// Master sends jobs to be processed through the stream as they are collected
+	// and dispatched.  Jobs are dispatched to slaves whose capacity has not been
+	// reached yet and whose topic matches.
+	PickJob(ctx context.Context, opts ...grpc.CallOption) (Builder_PickJobClient, error)
 	// Upload a file to the master.
 	//
 	// Send a file from slave to master, a chunk at a time via streaming.
@@ -1045,35 +957,13 @@ func NewBuilderClient(cc *grpc.ClientConn) BuilderClient {
 	return &builderClient{cc}
 }
 
-func (c *builderClient) Subscribe(ctx context.Context, opts ...grpc.CallOption) (Builder_SubscribeClient, error) {
-	stream, err := grpc.NewClientStream(ctx, &_Builder_serviceDesc.Streams[0], c.cc, "/protocol.Builder/Subscribe", opts...)
+func (c *builderClient) Subscribe(ctx context.Context, in *SubscribeRequest, opts ...grpc.CallOption) (*SubscribeResponse, error) {
+	out := new(SubscribeResponse)
+	err := grpc.Invoke(ctx, "/protocol.Builder/Subscribe", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &builderSubscribeClient{stream}
-	return x, nil
-}
-
-type Builder_SubscribeClient interface {
-	Send(*InputMessage) error
-	Recv() (*OutputMessage, error)
-	grpc.ClientStream
-}
-
-type builderSubscribeClient struct {
-	grpc.ClientStream
-}
-
-func (x *builderSubscribeClient) Send(m *InputMessage) error {
-	return x.ClientStream.SendMsg(m)
-}
-
-func (x *builderSubscribeClient) Recv() (*OutputMessage, error) {
-	m := new(OutputMessage)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
+	return out, nil
 }
 
 func (c *builderClient) Unsubscribe(ctx context.Context, in *UnsubscribeRequest, opts ...grpc.CallOption) (*UnsubscribeResponse, error) {
@@ -1092,6 +982,37 @@ func (c *builderClient) CollectJob(ctx context.Context, in *CollectJobRequest, o
 		return nil, err
 	}
 	return out, nil
+}
+
+func (c *builderClient) PickJob(ctx context.Context, opts ...grpc.CallOption) (Builder_PickJobClient, error) {
+	stream, err := grpc.NewClientStream(ctx, &_Builder_serviceDesc.Streams[0], c.cc, "/protocol.Builder/PickJob", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &builderPickJobClient{stream}
+	return x, nil
+}
+
+type Builder_PickJobClient interface {
+	Send(*PickJobRequest) error
+	Recv() (*JobRequest, error)
+	grpc.ClientStream
+}
+
+type builderPickJobClient struct {
+	grpc.ClientStream
+}
+
+func (x *builderPickJobClient) Send(m *PickJobRequest) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *builderPickJobClient) Recv() (*JobRequest, error) {
+	m := new(JobRequest)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 func (c *builderClient) Upload(ctx context.Context, opts ...grpc.CallOption) (Builder_UploadClient, error) {
@@ -1265,19 +1186,12 @@ func (x *builderListImagesClient) Recv() (*ImageInfo, error) {
 type BuilderServer interface {
 	// Subscribe to the master.
 	//
-	// A slave calls this procedure to register itself on the master, which will
-	// assign an identifier and reply with a Registration message.
+	// A slave calls this method to register itself on the master, which will
+	// assign an identifier returned with the reply, along with some information
+	// such as the repositories paths.
+	//
 	// Keep in mind that identifiers are valid until master is restarted.
-	//
-	// Once a slave has subscribed a full duplex communication is established
-	// until the slave unsubscribe or the master quits, in that case the slave
-	// detects that the connection is no longer valid and will resubscribe if
-	// and when master comes up again.
-	//
-	// Master sends jobs to be processed through the stream as they are collected
-	// and dispatched.  Jobs are dispatched to slaves whose capacity has not been
-	// reached yet and whose architecture and channels match.
-	Subscribe(Builder_SubscribeServer) error
+	Subscribe(context.Context, *SubscribeRequest) (*SubscribeResponse, error)
 	// Unregister a slave.
 	//
 	// Slave class this procedure to unregister itself.
@@ -1288,6 +1202,17 @@ type BuilderServer interface {
 	// Master will enqueue a new job and the dispatcher will find a suitable
 	// slave and dispatch to it.
 	CollectJob(context.Context, *CollectJobRequest) (*CollectJobResponse, error)
+	// Pick up a job from the master.
+	//
+	// Once a slave has subscribed a full duplex communication is established
+	// until the slave unsubscribe or the master quits, in that case the slave
+	// detects that the connection is no longer valid and will resubscribe if
+	// and when master comes up again.
+	//
+	// Master sends jobs to be processed through the stream as they are collected
+	// and dispatched.  Jobs are dispatched to slaves whose capacity has not been
+	// reached yet and whose topic matches.
+	PickJob(Builder_PickJobServer) error
 	// Upload a file to the master.
 	//
 	// Send a file from slave to master, a chunk at a time via streaming.
@@ -1332,30 +1257,16 @@ func RegisterBuilderServer(s *grpc.Server, srv BuilderServer) {
 	s.RegisterService(&_Builder_serviceDesc, srv)
 }
 
-func _Builder_Subscribe_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(BuilderServer).Subscribe(&builderSubscribeServer{stream})
-}
-
-type Builder_SubscribeServer interface {
-	Send(*OutputMessage) error
-	Recv() (*InputMessage, error)
-	grpc.ServerStream
-}
-
-type builderSubscribeServer struct {
-	grpc.ServerStream
-}
-
-func (x *builderSubscribeServer) Send(m *OutputMessage) error {
-	return x.ServerStream.SendMsg(m)
-}
-
-func (x *builderSubscribeServer) Recv() (*InputMessage, error) {
-	m := new(InputMessage)
-	if err := x.ServerStream.RecvMsg(m); err != nil {
+func _Builder_Subscribe_Handler(srv interface{}, ctx context.Context, codec grpc.Codec, buf []byte) (interface{}, error) {
+	in := new(SubscribeRequest)
+	if err := codec.Unmarshal(buf, in); err != nil {
 		return nil, err
 	}
-	return m, nil
+	out, err := srv.(BuilderServer).Subscribe(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func _Builder_Unsubscribe_Handler(srv interface{}, ctx context.Context, codec grpc.Codec, buf []byte) (interface{}, error) {
@@ -1380,6 +1291,32 @@ func _Builder_CollectJob_Handler(srv interface{}, ctx context.Context, codec grp
 		return nil, err
 	}
 	return out, nil
+}
+
+func _Builder_PickJob_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(BuilderServer).PickJob(&builderPickJobServer{stream})
+}
+
+type Builder_PickJobServer interface {
+	Send(*JobRequest) error
+	Recv() (*PickJobRequest, error)
+	grpc.ServerStream
+}
+
+type builderPickJobServer struct {
+	grpc.ServerStream
+}
+
+func (x *builderPickJobServer) Send(m *JobRequest) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *builderPickJobServer) Recv() (*PickJobRequest, error) {
+	m := new(PickJobRequest)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 func _Builder_Upload_Handler(srv interface{}, stream grpc.ServerStream) error {
@@ -1524,6 +1461,10 @@ var _Builder_serviceDesc = grpc.ServiceDesc{
 	HandlerType: (*BuilderServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
+			MethodName: "Subscribe",
+			Handler:    _Builder_Subscribe_Handler,
+		},
+		{
 			MethodName: "Unsubscribe",
 			Handler:    _Builder_Unsubscribe_Handler,
 		},
@@ -1550,8 +1491,8 @@ var _Builder_serviceDesc = grpc.ServiceDesc{
 	},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "Subscribe",
-			Handler:       _Builder_Subscribe_Handler,
+			StreamName:    "PickJob",
+			Handler:       _Builder_PickJob_Handler,
 			ServerStreams: true,
 			ClientStreams: true,
 		},

@@ -34,19 +34,12 @@ package protocol;
 service Builder {
   // Subscribe to the master.
   //
-  // A slave calls this procedure to register itself on the master, which will
-  // assign an identifier and reply with a Registration message.
+  // A slave calls this method to register itself on the master, which will
+  // assign an identifier returned with the reply, along with some information
+  // such as the repositories paths.
+  //
   // Keep in mind that identifiers are valid until master is restarted.
-  //
-  // Once a slave has subscribed a full duplex communication is established
-  // until the slave unsubscribe or the master quits, in that case the slave
-  // detects that the connection is no longer valid and will resubscribe if
-  // and when master comes up again.
-  //
-  // Master sends jobs to be processed through the stream as they are collected
-  // and dispatched.  Jobs are dispatched to slaves whose capacity has not been
-  // reached yet and whose architecture and channels match.
-  rpc Subscribe(stream InputMessage) returns (stream OutputMessage);
+  rpc Subscribe(SubscribeRequest) returns (SubscribeResponse);
 
   // Unregister a slave.
   //
@@ -59,6 +52,18 @@ service Builder {
   // Master will enqueue a new job and the dispatcher will find a suitable
   // slave and dispatch to it.
   rpc CollectJob(CollectJobRequest) returns (CollectJobResponse);
+
+  // Pick up a job from the master.
+  //
+  // Once a slave has subscribed a full duplex communication is established
+  // until the slave unsubscribe or the master quits, in that case the slave
+  // detects that the connection is no longer valid and will resubscribe if
+  // and when master comes up again.
+  //
+  // Master sends jobs to be processed through the stream as they are collected
+  // and dispatched.  Jobs are dispatched to slaves whose capacity has not been
+  // reached yet and whose topic matches.
+  rpc PickJob(stream PickJobRequest) returns (stream JobRequest);
 
   ////////////////////////////////////////////////////////////////////////////
 
@@ -160,6 +165,8 @@ message SubscribeResponse {
   string images_dir = 4;
 }
 
+/****************************************************************************/
+
 // Unsubscription request.
 message UnsubscribeRequest {
   // Slave identifier.
@@ -172,71 +179,7 @@ message UnsubscribeResponse {
   bool result = 1;
 }
 
-// Contains information on the job that has to be processed by
-// the slave receiving this.
-message JobDispatchRequest {
-  // Identifier.
-  uint64 id = 1;
-
-  // Payload.
-  oneof payload {
-    PackageInfo package = 2;
-    ImageInfo image = 3;
-  }
-}
-
-// Contains updated information on a job being processed.
-message JobUpdateRequest {
-  // Slave identifier.
-  uint64 slave_id = 1;
-
-  // Identifier.
-  uint64 id = 2;
-
-  // Current status of the job.
-  EnumJobStatus status = 3;
-}
-
-// Contains updated information on a build step being executed.
-message StepResponse {
-  // Job identifier.
-  uint64 job_id = 1;
-
-  // Name.
-  string name = 2;
-
-  // Whether it's still running.
-  bool running = 3;
-
-  // When it has started (nanoseconds since Epoch).
-  int64 started = 4;
-
-  // When it has finished (nanoseconds since Epoch).
-  int64 finished = 5;
-
-  // Optional summary of this step.
-  map<string, string> summary = 6;
-
-  // Other optional logs.
-  map<string, bytes> logs = 7;
-}
-
-// Communication from slave to master.
-message InputMessage {
-  oneof payload {
-    SubscribeRequest subscription = 1;
-    JobUpdateRequest job_update = 2;
-    StepResponse step_update = 3;
-  }
-}
-
-// Communication from master to slave.
-message OutputMessage {
-  oneof payload {
-    SubscribeResponse subscription = 1;
-    JobDispatchRequest job_dispatch = 2;
-  }
-}
+/****************************************************************************/
 
 // CollectJob request.
 message CollectJobRequest {
@@ -261,6 +204,69 @@ message CollectJobResponse {
 
 /****************************************************************************/
 
+// Contains information on the job that has to be processed by
+// the slave receiving this.
+message JobRequest {
+  // Identifier.
+  uint64 id = 1;
+
+  // Payload.
+  oneof payload {
+    PackageInfo package = 2;
+    ImageInfo image = 3;
+  }
+}
+
+// Ask the master to start the slave loop.
+message SlaveStartRequest {
+  // Slave identifier.
+  uint64 id = 1;
+}
+
+// Contains updated information on a job being processed.
+message JobUpdateRequest {
+  // Identifier.
+  uint64 id = 1;
+
+  // Current status of the job.
+  EnumJobStatus status = 2;
+}
+
+// Contains updated information on a build step being executed.
+message StepUpdateRequest {
+  // Job identifier.
+  uint64 job_id = 1;
+
+  // Name.
+  string name = 2;
+
+  // Whether it's still running.
+  bool running = 3;
+
+  // When it has started (nanoseconds since Epoch).
+  int64 started = 4;
+
+  // When it has finished (nanoseconds since Epoch).
+  int64 finished = 5;
+
+  // Optional summary of this step.
+  map<string, string> summary = 6;
+
+  // Other optional logs.
+  map<string, bytes> logs = 7;
+}
+
+// Communication from slave to master.
+message PickJobRequest {
+  oneof payload {
+    SlaveStartRequest slave_start = 1;
+    JobUpdateRequest job_update = 2;
+    StepUpdateRequest step_update = 3;
+  }
+}
+
+/****************************************************************************/
+
 // Upload transfer.
 // When the transfer starts an UploadRequest message is sent to
 // the master, then one UploadChunk message for each chunk and finally
@@ -277,9 +283,6 @@ message UploadRequest {
 message UploadChunk {
   // A chunk of data.
   bytes data = 1;
-
-  // SHA256 hash of this chunk.
-  bytes hash = 2;
 }
 
 // Signal the end of upload.
@@ -302,8 +305,11 @@ message UploadMessage {
 
 // Upload response.
 message UploadResponse {
-  // How many bytes were written.
+  // How many bytes were written so far.
   int64 total_size = 1;
+
+  // Error message (empty if no error).
+  string error = 2;
 }
 
 /****************************************************************************/
