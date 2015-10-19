@@ -295,6 +295,12 @@ func rpmFactorySrpmBuild(bs *BuildStep) error {
 }
 
 func rpmFactoryMockRebuild(bs *BuildStep) error {
+	// Get the context data
+	d, ok := FromContext(bs.parent.job.ctx)
+	if !ok {
+		logging.Fatalln("Internal error: no data from context")
+	}
+
 	// Change directory
 	cwd := path.Join(bs.parent.workdir, "packaging")
 	os.Chdir(cwd)
@@ -318,6 +324,7 @@ func rpmFactoryMockRebuild(bs *BuildStep) error {
 	args = append(args, "-m", `--define="vendor Hawaii"`)
 	args = append(args, "-m", `--define="packager Hawaii"`)
 	args = append(args, "-m", `--define="distribution Hawaii"`)
+	args = append(args, "-a", d.RepoBaseUrl+"/staging")
 	srpm := bs.parent.properties.GetString("Srpm", "")
 	if srpm == "" {
 		return ErrNoSrpm
@@ -348,12 +355,6 @@ func rpmFactoryMockRebuild(bs *BuildStep) error {
 		}
 	} else {
 		logging.Warningf("Unable to collect mock logs: %s\n", err)
-	}
-
-	// Get the context data
-	d, ok := FromContext(bs.parent.job.ctx)
-	if !ok {
-		logging.Fatalln("Internal error: no data from context")
 	}
 
 	// Regular expressions for RPMs
