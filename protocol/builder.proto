@@ -163,6 +163,9 @@ message SubscribeResponse {
 
   // Images repository path.
   string images_dir = 4;
+
+  // Repository base URL.
+  string repo_base_url = 5;
 }
 
 /****************************************************************************/

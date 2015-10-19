@@ -119,6 +119,7 @@ func (m *RpcService) Subscribe(ctx context.Context, args *pb.SubscribeRequest) (
 		MainRepoDir:    Config.Storage.MainRepoDir,
 		StagingRepoDir: Config.Storage.StagingRepoDir,
 		ImagesDir:      Config.Storage.ImagesDir,
+		RepoBaseUrl:    m.master.repoBaseUrl,
 	}
 	return response, nil
 }

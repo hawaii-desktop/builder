@@ -41,6 +41,8 @@ type SlaveData struct {
 	StagingRepoDir string
 	// Images repository path on master
 	ImagesDir string
+	// Repository base URL.
+	RepoBaseUrl string
 }
 
 // key is an unexported type for keys defined in this package.

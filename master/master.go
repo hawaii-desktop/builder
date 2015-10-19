@@ -32,6 +32,7 @@ import (
 	"github.com/hawaii-desktop/builder/database"
 	"github.com/hawaii-desktop/builder/logging"
 	"github.com/hawaii-desktop/builder/webserver"
+	"net"
 	"os"
 	"sync"
 	"time"
@@ -62,6 +63,8 @@ type Master struct {
 	stats statistics
 	// Mutext that protects statistics.
 	sMutex sync.Mutex
+	// Repository base URL.
+	repoBaseUrl string
 }
 
 // Statistics to show on the Web user interface.
@@ -85,6 +88,11 @@ func NewMaster(hub *webserver.WebSocketHub) (*Master, error) {
 		return nil, err
 	}
 
+	tcpAddr, err := net.ResolveTCPAddr("tcp", Config.Server.HttpAddress)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Master{
 		db:             db,
 		hub:            hub,
@@ -94,6 +102,7 @@ func NewMaster(hub *webserver.WebSocketHub) (*Master, error) {
 		webSocketQueue: make(chan interface{}),
 		jobs:           make([]*Job, 0, Config.Build.MaxJobs),
 		stats:          statistics{0, 0, 0, 0, 0, 0},
+		repoBaseUrl:    "http://" + tcpAddr.String() + "/repo",
 	}, nil
 }
 

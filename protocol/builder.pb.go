@@ -158,6 +158,8 @@ type SubscribeResponse struct {
 	StagingRepoDir string `protobuf:"bytes,3,opt,name=staging_repo_dir" json:"staging_repo_dir,omitempty"`
 	// Images repository path.
 	ImagesDir string `protobuf:"bytes,4,opt,name=images_dir" json:"images_dir,omitempty"`
+	// Repository base URL.
+	RepoBaseUrl string `protobuf:"bytes,5,opt,name=repo_base_url" json:"repo_base_url,omitempty"`
 }
 
 func (m *SubscribeResponse) Reset()         { *m = SubscribeResponse{} }
