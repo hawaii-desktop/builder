@@ -1259,9 +1259,9 @@ func RegisterBuilderServer(s *grpc.Server, srv BuilderServer) {
 	s.RegisterService(&_Builder_serviceDesc, srv)
 }
 
-func _Builder_Subscribe_Handler(srv interface{}, ctx context.Context, codec grpc.Codec, buf []byte) (interface{}, error) {
+func _Builder_Subscribe_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error) (interface{}, error) {
 	in := new(SubscribeRequest)
-	if err := codec.Unmarshal(buf, in); err != nil {
+	if err := dec(in); err != nil {
 		return nil, err
 	}
 	out, err := srv.(BuilderServer).Subscribe(ctx, in)
@@ -1271,9 +1271,9 @@ func _Builder_Subscribe_Handler(srv interface{}, ctx context.Context, codec grpc
 	return out, nil
 }
 
-func _Builder_Unsubscribe_Handler(srv interface{}, ctx context.Context, codec grpc.Codec, buf []byte) (interface{}, error) {
+func _Builder_Unsubscribe_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error) (interface{}, error) {
 	in := new(UnsubscribeRequest)
-	if err := codec.Unmarshal(buf, in); err != nil {
+	if err := dec(in); err != nil {
 		return nil, err
 	}
 	out, err := srv.(BuilderServer).Unsubscribe(ctx, in)
@@ -1283,9 +1283,9 @@ func _Builder_Unsubscribe_Handler(srv interface{}, ctx context.Context, codec gr
 	return out, nil
 }
 
-func _Builder_CollectJob_Handler(srv interface{}, ctx context.Context, codec grpc.Codec, buf []byte) (interface{}, error) {
+func _Builder_CollectJob_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error) (interface{}, error) {
 	in := new(CollectJobRequest)
-	if err := codec.Unmarshal(buf, in); err != nil {
+	if err := dec(in); err != nil {
 		return nil, err
 	}
 	out, err := srv.(BuilderServer).CollectJob(ctx, in)
@@ -1368,9 +1368,9 @@ func (x *builderDownloadServer) Send(m *DownloadResponse) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func _Builder_AddPackage_Handler(srv interface{}, ctx context.Context, codec grpc.Codec, buf []byte) (interface{}, error) {
+func _Builder_AddPackage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error) (interface{}, error) {
 	in := new(PackageInfo)
-	if err := codec.Unmarshal(buf, in); err != nil {
+	if err := dec(in); err != nil {
 		return nil, err
 	}
 	out, err := srv.(BuilderServer).AddPackage(ctx, in)
@@ -1380,9 +1380,9 @@ func _Builder_AddPackage_Handler(srv interface{}, ctx context.Context, codec grp
 	return out, nil
 }
 
-func _Builder_RemovePackage_Handler(srv interface{}, ctx context.Context, codec grpc.Codec, buf []byte) (interface{}, error) {
+func _Builder_RemovePackage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error) (interface{}, error) {
 	in := new(StringMessage)
-	if err := codec.Unmarshal(buf, in); err != nil {
+	if err := dec(in); err != nil {
 		return nil, err
 	}
 	out, err := srv.(BuilderServer).RemovePackage(ctx, in)
@@ -1413,9 +1413,9 @@ func (x *builderListPackagesServer) Send(m *PackageInfo) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func _Builder_AddImage_Handler(srv interface{}, ctx context.Context, codec grpc.Codec, buf []byte) (interface{}, error) {
+func _Builder_AddImage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error) (interface{}, error) {
 	in := new(ImageInfo)
-	if err := codec.Unmarshal(buf, in); err != nil {
+	if err := dec(in); err != nil {
 		return nil, err
 	}
 	out, err := srv.(BuilderServer).AddImage(ctx, in)
@@ -1425,9 +1425,9 @@ func _Builder_AddImage_Handler(srv interface{}, ctx context.Context, codec grpc.
 	return out, nil
 }
 
-func _Builder_RemoveImage_Handler(srv interface{}, ctx context.Context, codec grpc.Codec, buf []byte) (interface{}, error) {
+func _Builder_RemoveImage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error) (interface{}, error) {
 	in := new(StringMessage)
-	if err := codec.Unmarshal(buf, in); err != nil {
+	if err := dec(in); err != nil {
 		return nil, err
 	}
 	out, err := srv.(BuilderServer).RemoveImage(ctx, in)
