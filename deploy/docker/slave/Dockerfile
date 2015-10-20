@@ -45,6 +45,10 @@ copy . $BUILDER_DIR
 copy deploy/docker/slave/builder-slave.ini /etc/builder/builder-slave.ini
 run make PREFIX=/go clean binaries
 
+# Expose ports
+expose 9989:9989
+expose 8020:8020
+
 # Run
 volume ["/var/cache/builder/slave"]
 cmd ["builder-slave"]
