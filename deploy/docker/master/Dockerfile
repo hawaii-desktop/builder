@@ -32,11 +32,8 @@ maintainer Pier Luigi Fiorini <pierluigi.fiorini@gmail.com>
 run dnf update -y
 
 # Install packages
-run dnf update -y && \
-    dnf install -y \
-        golang git \
-        mock rpm-build rpmdevtools repoview rpmlint \
-        livecd-tools appliance-tools fedora-kickstarts spin-kickstarts
+run dnf install -y golang git make
+run dnf install -y repoview createrepo
 
 # Build binaries
 env BUILDER_DIR /go/src/github.com/hawaii-desktop/builder

@@ -32,10 +32,9 @@ maintainer Pier Luigi Fiorini <pierluigi.fiorini@gmail.com>
 run dnf update -y
 
 # Install packages
-run dnf update -y && \
-    dnf install -y \
-        golang git \
-        mock rpm-build rpmdevtools repoview rpmlint \
+run dnf install -y golang git make
+run dnf install -y \
+        mock rpm-build rpmdevtools rpmlint \
         livecd-tools appliance-tools fedora-kickstarts spin-kickstarts
 
 # Build binaries
