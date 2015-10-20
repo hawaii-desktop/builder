@@ -40,6 +40,7 @@ run dnf install -y \
 # Build binaries
 env BUILDER_DIR /go/src/github.com/hawaii-desktop/builder
 env GOPATH $BUILDER_DIR/Godeps/_workspace:/go
+env PATH $BUILDER_DIR/bin:$PATH
 workdir $BUILDER_DIR
 copy . $BUILDER_DIR
 copy deploy/docker/slave/builder-slave.ini /etc/builder/builder-slave.ini

@@ -38,6 +38,7 @@ run dnf install -y repoview createrepo
 # Build binaries
 env BUILDER_DIR /go/src/github.com/hawaii-desktop/builder
 env GOPATH $BUILDER_DIR/Godeps/_workspace:/go
+env PATH $BUILDER_DIR/bin:$PATH
 workdir $BUILDER_DIR
 copy . $BUILDER_DIR
 copy deploy/docker/master/builder-master.ini /etc/builder/builder-master.ini
