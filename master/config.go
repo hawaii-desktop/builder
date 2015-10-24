@@ -34,9 +34,8 @@ type Settings struct {
 		Database    string
 	}
 	Storage struct {
-		MainRepoDir    string
-		StagingRepoDir string
-		ImagesDir      string
+		RepositoryDir string
+		ImagesDir     string
 	}
 	Notifications struct {
 		Slack bool

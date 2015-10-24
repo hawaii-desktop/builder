@@ -116,7 +116,7 @@ func (m *RpcService) Subscribe(ctx context.Context, args *pb.SubscribeRequest) (
 	// Repository URLs
 	urls := make(map[string]string)
 	for _, arch := range args.Architectures {
-		urls[arch] = m.master.repoBaseUrl + "/main/fedora/releases/%s/" + arch + "/os"
+		urls[arch] = m.master.repoBaseUrl + "/packages/fedora/releases/%s/" + arch + "/os"
 	}
 
 	// Reply
@@ -384,7 +384,7 @@ func (m *RpcService) Upload(stream pb.Builder_UploadServer) error {
 			if len(m) == 3 {
 				letter := m[1][:1]
 				destpath = fmt.Sprintf("%s/fedora/releases/%s/%s/os/Packages/%s/%s",
-					Config.Storage.StagingRepoDir, request.ReleaseVer, request.BaseArch,
+					Config.Storage.RepositoryDir, request.ReleaseVer, request.BaseArch,
 					letter, request.FileName)
 			} else {
 				return stream.SendAndClose(&pb.UploadResponse{total, "invalid file name"})

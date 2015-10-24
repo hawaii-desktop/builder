@@ -73,8 +73,7 @@ type statistics struct {
 	Dispatched int `json:"dispatched"`
 	Completed  int `json:"completed"`
 	Failed     int `json:"failed"`
-	Staging    int `json:"staging"`
-	Main       int `json:"main"`
+	Packages   int `json:"packages"`
 }
 
 // Update function.
@@ -106,7 +105,7 @@ func NewMaster(hub *webserver.WebSocketHub) (*Master, error) {
 		slaveQueues:    make(map[string]chan chan *Job),
 		webSocketQueue: make(chan interface{}),
 		jobs:           make([]*Job, 0, Config.Build.MaxJobs),
-		stats:          statistics{0, 0, 0, 0, 0, 0},
+		stats:          statistics{0, 0, 0, 0, 0},
 		repoBaseUrl:    "http://" + addr + "/repo",
 	}, nil
 }
@@ -133,11 +132,8 @@ func (m *Master) PrepareTopics() {
 
 // Create storage directories.
 func (m *Master) CreateStorage() error {
-	if err := os.MkdirAll(Config.Storage.MainRepoDir, 0755); err != nil {
-		fmt.Errorf("Failed to create main repository directory \"%s\": %s\n", Config.Storage.MainRepoDir, err)
-	}
-	if err := os.MkdirAll(Config.Storage.StagingRepoDir, 0755); err != nil {
-		fmt.Errorf("Failed to create staging repository directory \"%s\": %s\n", Config.Storage.StagingRepoDir, err)
+	if err := os.MkdirAll(Config.Storage.RepositoryDir, 0755); err != nil {
+		fmt.Errorf("Failed to create main repository directory \"%s\": %s\n", Config.Storage.RepositoryDir, err)
 	}
 	if err := os.MkdirAll(Config.Storage.ImagesDir, 0755); err != nil {
 		fmt.Errorf("Failed to create images storage \"%s\": %s\n", Config.Storage.ImagesDir, err)

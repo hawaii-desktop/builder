@@ -81,7 +81,7 @@ func (m *Master) processRepoDataUpdates(repoc <-chan bool) {
 		select {
 		case result := <-repoc:
 			if result {
-				m.updateRepoData(Config.Storage.MainRepoDir)
+				m.updateRepoData(Config.Storage.RepositoryDir)
 			} else {
 				return
 			}
