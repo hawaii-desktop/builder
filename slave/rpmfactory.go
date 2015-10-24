@@ -311,7 +311,10 @@ func rpmFactoryMockRebuild(bs *BuildStep) error {
 	// Determine mock root
 	root := fmt.Sprintf("fedora-%s-%s", releasever, bs.parent.job.Architecture)
 
-	args := []string{"--root", root, "-m", "--resultdir=../results"}
+	// Determine the results directory
+	resultdir := fmt.Sprintf("../results/%s", root)
+
+	args := []string{"--root", root, "-m", "--resultdir=" + resultdir}
 	if bs.parent.job.Info.Package.Ci {
 		date := bs.parent.properties.GetString("VcsDate", "")
 		revision := bs.parent.properties.GetString("VcsShortRev", "")
@@ -343,7 +346,7 @@ func rpmFactoryMockRebuild(bs *BuildStep) error {
 	}
 
 	// Collect the result logs
-	files, err := filepath.Glob("../results/*.log")
+	files, err := filepath.Glob(resultdir + "/*.log")
 	if err == nil {
 		for _, file := range files {
 			contents, err := ioutil.ReadFile(file)
@@ -361,7 +364,7 @@ func rpmFactoryMockRebuild(bs *BuildStep) error {
 	re := regexp.MustCompile(`^(.+)\.([a-z0-9\-_]+)\.rpm$`)
 
 	// Collect the artifacts
-	files, err = filepath.Glob("../results/*.rpm")
+	files, err = filepath.Glob(resultdir + "/*.rpm")
 	if err == nil {
 		for _, file := range files {
 			fullpath, err := filepath.Abs(file)
