@@ -69,7 +69,8 @@ service Builder {
 
   // Upload a file to the master.
   //
-  // Send a file from slave to master, a chunk at a time via streaming.
+  // Upload an artifact to the staging repository, a chunk at a time
+  // via streaming.
   rpc Upload(stream UploadMessage) returns (UploadResponse);
 
   // Download a file from the master.
@@ -280,6 +281,12 @@ message PickJobRequest {
 message UploadRequest {
   // Desired file name.
   string file_name = 1;
+
+  // Fedora release version.
+  string release_ver = 2;
+
+  // Package architecture.
+  string base_arch = 3;
 }
 
 // Chunk of a file being uploaded.

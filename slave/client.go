@@ -280,16 +280,16 @@ func (c *Client) Unsubscribe(ctx context.Context) error {
 func (c *Client) UploadArtifact(artifact *Artifact) error {
 	// Logging
 	logging.Infof("Uploading \"%s\" to the staging repository...\n",
-		filepath.Base(artifact.Source))
+		filepath.Base(artifact.FileName))
 
 	// Determine how many bytes are left to send
-	stat, err := os.Stat(artifact.Source)
+	stat, err := os.Stat(artifact.FileName)
 	if err != nil {
 		return fmt.Errorf("Failed to stat \"%s\": %s", err)
 	}
 
 	// Open the file
-	file, err := os.Open(artifact.Source)
+	file, err := os.Open(artifact.FileName)
 	if err != nil {
 		return fmt.Errorf("Failed to open \"%s\": %s", err)
 	}
@@ -307,13 +307,15 @@ func (c *Client) UploadArtifact(artifact *Artifact) error {
 	args := &pb.UploadMessage{
 		Payload: &pb.UploadMessage_Request{
 			Request: &pb.UploadRequest{
-				FileName: artifact.Destination,
+				FileName:   filepath.Base(artifact.FileName),
+				ReleaseVer: artifact.ReleaseVer,
+				BaseArch:   artifact.BaseArch,
 			},
 		},
 	}
 	if err := stream.Send(args); err != nil {
 		return fmt.Errorf("Failed to start upload of \"%s\": %s",
-			filepath.Base(artifact.Source), err)
+			filepath.Base(artifact.FileName), err)
 	}
 
 	// Read a chunk and transfer
@@ -336,13 +338,13 @@ func (c *Client) UploadArtifact(artifact *Artifact) error {
 			}
 			if err := stream.Send(args); err != nil {
 				return fmt.Errorf("Unable to upload a chunk of \"%s\": %s",
-					filepath.Base(artifact.Source), err)
+					filepath.Base(artifact.FileName), err)
 			}
 		} else if err == io.EOF {
 			break
 		} else {
 			return fmt.Errorf("Failed to read \"%s\": %s",
-				filepath.Base(artifact.Source), err)
+				filepath.Base(artifact.FileName), err)
 		}
 	}
 
@@ -360,7 +362,7 @@ func (c *Client) UploadArtifact(artifact *Artifact) error {
 	}
 	if err := stream.Send(args); err != nil {
 		return fmt.Errorf("Failed to end upload of \"%s\": %s",
-			filepath.Base(artifact.Source), err)
+			filepath.Base(artifact.FileName), err)
 	}
 
 	// Close stream and receive reply
@@ -368,11 +370,11 @@ func (c *Client) UploadArtifact(artifact *Artifact) error {
 	if err == nil {
 		if reply.TotalSize != stat.Size() {
 			return fmt.Errorf("Upload of \"%s\" failed: uploaded %d bytes but file is %d bytes",
-				filepath.Base(artifact.Source), reply.TotalSize, stat.Size())
+				filepath.Base(artifact.FileName), reply.TotalSize, stat.Size())
 		}
 	} else {
 		return fmt.Errorf("Error uploading \"%s\": %s",
-			filepath.Base(artifact.Source), err)
+			filepath.Base(artifact.FileName), err)
 	}
 
 	return nil

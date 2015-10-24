@@ -77,9 +77,11 @@ type Job struct {
 // Artifact.
 type Artifact struct {
 	// Artifact full path on slave.
-	Source string
-	// Artifact full path on master.
-	Destination string
+	FileName string
+	// Fedora release version.
+	ReleaseVer string
+	// Package architecture.
+	BaseArch string
 	// File permission on master.
 	Permission uint32
 }

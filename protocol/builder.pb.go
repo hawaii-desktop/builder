@@ -505,6 +505,10 @@ func _PickJobRequest_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto
 type UploadRequest struct {
 	// Desired file name.
 	FileName string `protobuf:"bytes,1,opt,name=file_name" json:"file_name,omitempty"`
+	// Fedora release version.
+	ReleaseVer string `protobuf:"bytes,2,opt,name=release_ver" json:"release_ver,omitempty"`
+	// Package architecture.
+	BaseArch string `protobuf:"bytes,3,opt,name=base_arch" json:"base_arch,omitempty"`
 }
 
 func (m *UploadRequest) Reset()         { *m = UploadRequest{} }
@@ -913,7 +917,8 @@ type BuilderClient interface {
 	PickJob(ctx context.Context, opts ...grpc.CallOption) (Builder_PickJobClient, error)
 	// Upload a file to the master.
 	//
-	// Send a file from slave to master, a chunk at a time via streaming.
+	// Upload an artifact to the staging repository, a chunk at a time
+	// via streaming.
 	Upload(ctx context.Context, opts ...grpc.CallOption) (Builder_UploadClient, error)
 	// Download a file from the master.
 	//
@@ -1217,7 +1222,8 @@ type BuilderServer interface {
 	PickJob(Builder_PickJobServer) error
 	// Upload a file to the master.
 	//
-	// Send a file from slave to master, a chunk at a time via streaming.
+	// Upload an artifact to the staging repository, a chunk at a time
+	// via streaming.
 	Upload(Builder_UploadServer) error
 	// Download a file from the master.
 	//

@@ -358,6 +358,9 @@ func (m *RpcService) Upload(stream pb.Builder_UploadServer) error {
 	// SHA256 hash
 	hasher := sha256.New()
 
+	// Regular expressions for RPMs
+	re := regexp.MustCompile(`^(.+)\.([a-z0-9\-_]+)\.rpm$`)
+
 	for {
 		// Read request from the stream
 		in, err := stream.Recv()
@@ -371,13 +374,27 @@ func (m *RpcService) Upload(stream pb.Builder_UploadServer) error {
 		// Create the file if needed
 		request := in.GetRequest()
 		if request != nil {
+			// Determine the final location
+			destpath := ""
+			m := re.FindStringSubmatch(request.FileName)
+			if len(m) == 3 {
+				letter := m[1][:1]
+				destpath = fmt.Sprintf("%s/fedora/releases/%s/Everything/%s/os/Packages/%s/%s",
+					Config.Storage.StagingRepoDir, request.ReleaseVer, request.BaseArch,
+					letter, request.FileName)
+			} else {
+				return stream.SendAndClose(&pb.UploadResponse{total, "invalid file name"})
+			}
+
+			// Create all directories
 			logging.Infof("Receiving upload of \"%s\"...\n", request.FileName)
-			err = os.MkdirAll(filepath.Dir(request.FileName), 0755)
+			err = os.MkdirAll(filepath.Dir(destpath), 0755)
 			if err != nil {
 				return stream.SendAndClose(&pb.UploadResponse{total, err.Error()})
 			}
 
-			file, err = os.Create(request.FileName)
+			// Create the file
+			file, err = os.Create(destpath)
 			if err != nil {
 				return stream.SendAndClose(&pb.UploadResponse{total, err.Error()})
 			}

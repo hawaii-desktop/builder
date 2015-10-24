@@ -376,14 +376,12 @@ func rpmFactoryMockRebuild(bs *BuildStep) error {
 				if m[2] == "src" {
 					basearch = "source"
 				}
-				letter := m[1][:1]
 
-				destpath := fmt.Sprintf("%s/fedora/releases/%s/Everything/%s/os/Packages/%s/%s",
-					d.StagingRepoDir, releasever, basearch, letter, m[0])
 				bs.parent.job.artifacts = append(bs.parent.job.artifacts, &Artifact{
-					Source:      fullpath,
-					Destination: destpath,
-					Permission:  0644,
+					FileName:   fullpath,
+					ReleaseVer: releasever,
+					BaseArch:   basearch,
+					Permission: 0644,
 				})
 			}
 		}
