@@ -125,7 +125,7 @@ func runMaster(ctx *cli.Context) {
 	webServer.Router.Static("/js", http.Dir(master.Config.Web.StaticDir+"/js"))
 	webServer.Router.Static("/img", http.Dir(master.Config.Web.StaticDir+"/img"))
 	webServer.Router.Static("/repo/main", http.Dir(master.Config.Storage.MainRepoDir))
-	webServer.Router.Static("/repo/staging", http.Dir(master.Config.Storage.MainRepoDir))
+	webServer.Router.Static("/repo/staging", http.Dir(master.Config.Storage.StagingRepoDir))
 	webServer.Router.Static("/repo/images", http.Dir(master.Config.Storage.ImagesDir))
 	go func() {
 		err = webServer.ListenAndServe()
