@@ -379,7 +379,7 @@ func (m *RpcService) Upload(stream pb.Builder_UploadServer) error {
 			m := re.FindStringSubmatch(request.FileName)
 			if len(m) == 3 {
 				letter := m[1][:1]
-				destpath = fmt.Sprintf("%s/fedora/releases/%s/Everything/%s/os/Packages/%s/%s",
+				destpath = fmt.Sprintf("%s/fedora/releases/%s/%s/os/Packages/%s/%s",
 					Config.Storage.StagingRepoDir, request.ReleaseVer, request.BaseArch,
 					letter, request.FileName)
 			} else {

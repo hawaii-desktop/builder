@@ -43,7 +43,7 @@ func (m *Master) updateRepoData(rootrepodir string) {
 	for _, release := range releases {
 		if release.IsDir() {
 			// Iterate over the architectures for this release
-			archrootdir := filepath.Join(releaserootdir, release.Name(), "Everything")
+			archrootdir := filepath.Join(releaserootdir, release.Name())
 			archs, _ := ioutil.ReadDir(archrootdir)
 			for _, arch := range archs {
 				if arch.IsDir() && arch.Name() != "source" {
