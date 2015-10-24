@@ -214,6 +214,12 @@ add-packages:
       url: https://bitbucket.org/hawaii-fedora-ci/greenisland-git.git
     uvcs:
       url: git://github.com/greenisland/greenisland.git
+  - name: libhawaii-git
+    ci: true
+    vcs:
+      url: https://bitbucket.org/hawaii-fedora-ci/libhawaii-git.git
+    uvcs:
+      url: git://github.com/hawaii-desktop/libhawaii.git
   - name: hawaii-shell-git
     ci: true
     vcs:
