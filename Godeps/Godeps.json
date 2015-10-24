@@ -88,7 +88,7 @@
 		},
 		{
 			"ImportPath": "google.golang.org/grpc",
-			"Rev": "9210c87f856a18cd611c8a590d0ad9d1aa2a6a51"
+			"Rev": "1f1a4999ca75ba4fd6d5c91233383a170034a1a5"
 		},
 		{
 			"ImportPath": "gopkg.in/gcfg.v1",
