@@ -314,6 +314,14 @@ func rpmFactoryMockRebuild(bs *BuildStep) error {
 	// Determine the results directory
 	resultdir := fmt.Sprintf("../results/%s", root)
 
+	// Remove previous mock logs
+	files, err := filepath.Glob(resultdir + "/*.log")
+	if err == nil {
+		for _, file := range files {
+			os.Remove(file)
+		}
+	}
+
 	args := []string{"--root", root, "-m", "--resultdir=" + resultdir}
 	if bs.parent.job.Info.Package.Ci {
 		date := bs.parent.properties.GetString("VcsDate", "")
@@ -346,7 +354,7 @@ func rpmFactoryMockRebuild(bs *BuildStep) error {
 	}
 
 	// Collect the result logs
-	files, err := filepath.Glob(resultdir + "/*.log")
+	files, err = filepath.Glob(resultdir + "/*.log")
 	if err == nil {
 		for _, file := range files {
 			contents, err := ioutil.ReadFile(file)
