@@ -324,7 +324,8 @@ func rpmFactoryMockRebuild(bs *BuildStep) error {
 	args = append(args, "-m", `--define="vendor Hawaii"`)
 	args = append(args, "-m", `--define="packager Hawaii"`)
 	args = append(args, "-m", `--define="distribution Hawaii"`)
-	args = append(args, "-a", d.RepoBaseUrl+"/staging")
+	args = append(args, "-a", fmt.Sprintf("%s/staging/fedora/releases/%s/Everything/%s",
+		d.RepoBaseUrl, releasever, bs.parent.job.Architecture))
 	srpm := bs.parent.properties.GetString("Srpm", "")
 	if srpm == "" {
 		return ErrNoSrpm

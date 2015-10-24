@@ -93,6 +93,11 @@ func NewMaster(hub *webserver.WebSocketHub) (*Master, error) {
 		return nil, err
 	}
 
+	addr := tcpAddr.String()
+	if tcpAddr.IP == nil {
+		addr = "localhost" + addr
+	}
+
 	return &Master{
 		db:             db,
 		hub:            hub,
@@ -102,7 +107,7 @@ func NewMaster(hub *webserver.WebSocketHub) (*Master, error) {
 		webSocketQueue: make(chan interface{}),
 		jobs:           make([]*Job, 0, Config.Build.MaxJobs),
 		stats:          statistics{0, 0, 0, 0, 0, 0},
-		repoBaseUrl:    "http://" + tcpAddr.String() + "/repo",
+		repoBaseUrl:    "http://" + addr + "/repo",
 	}, nil
 }
 
