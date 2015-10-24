@@ -47,6 +47,8 @@ service Builder {
   // Master replies indicating whether the operation succeded or not.
   rpc Unsubscribe(UnsubscribeRequest) returns (UnsubscribeResponse);
 
+  ////////////////////////////////////////////////////////////////////////////
+
   // Send a job to the collector.
   //
   // Master will enqueue a new job and the dispatcher will find a suitable
