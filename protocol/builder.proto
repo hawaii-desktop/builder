@@ -158,17 +158,14 @@ message SubscribeResponse {
   // Slave identifier.
   uint64 id = 1;
 
-  // Main repository path.
-  string main_repo_dir = 2;
-
-  // Staging repository path.
-  string staging_repo_dir = 3;
-
   // Images repository path.
-  string images_dir = 4;
+  string images_dir = 2;
 
-  // Repository base URL.
-  string repo_base_url = 5;
+  // Map architectures supported by slave with repository URLs.
+  // Repository URLs are format strings like:
+  //   http://localhost:8020/repo/main/fedora/releases/%s/x86_64/os
+  // so the string must be expanded with the release version (like 22).
+  map<string, string> repo_urls = 3;
 }
 
 /****************************************************************************/

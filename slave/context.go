@@ -35,14 +35,10 @@ type SlaveData struct {
 	// Identifier for this slave, attributed after subscription.
 	// Its value is 0 when unsubscribed.
 	Id uint64
-	// Main repository path on master.
-	MainRepoDir string
-	// Staging repository path on master.
-	StagingRepoDir string
 	// Images repository path on master
 	ImagesDir string
-	// Repository base URL.
-	RepoBaseUrl string
+	// Repository URL for every architecture.
+	RepoUrls map[string]string
 }
 
 // key is an unexported type for keys defined in this package.

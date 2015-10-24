@@ -152,19 +152,25 @@ func (*SubscribeRequest) ProtoMessage()    {}
 type SubscribeResponse struct {
 	// Slave identifier.
 	Id uint64 `protobuf:"varint,1,opt,name=id" json:"id,omitempty"`
-	// Main repository path.
-	MainRepoDir string `protobuf:"bytes,2,opt,name=main_repo_dir" json:"main_repo_dir,omitempty"`
-	// Staging repository path.
-	StagingRepoDir string `protobuf:"bytes,3,opt,name=staging_repo_dir" json:"staging_repo_dir,omitempty"`
 	// Images repository path.
-	ImagesDir string `protobuf:"bytes,4,opt,name=images_dir" json:"images_dir,omitempty"`
-	// Repository base URL.
-	RepoBaseUrl string `protobuf:"bytes,5,opt,name=repo_base_url" json:"repo_base_url,omitempty"`
+	ImagesDir string `protobuf:"bytes,2,opt,name=images_dir" json:"images_dir,omitempty"`
+	// Map architectures supported by slave with repository URLs.
+	// Repository URLs are format strings like:
+	//   http://localhost:8020/repo/main/fedora/releases/%s/x86_64/os
+	// so the string must be expanded with the release version (like 22).
+	RepoUrls map[string]string `protobuf:"bytes,3,rep,name=repo_urls" json:"repo_urls,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 }
 
 func (m *SubscribeResponse) Reset()         { *m = SubscribeResponse{} }
 func (m *SubscribeResponse) String() string { return proto.CompactTextString(m) }
 func (*SubscribeResponse) ProtoMessage()    {}
+
+func (m *SubscribeResponse) GetRepoUrls() map[string]string {
+	if m != nil {
+		return m.RepoUrls
+	}
+	return nil
+}
 
 // Unsubscription request.
 type UnsubscribeRequest struct {
