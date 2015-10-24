@@ -126,7 +126,7 @@
                     <div class="panel-heading">
                         <div class="row">
                             <div class="col-xs-3">
-                                <i class="fa fa-check-circle fa-5x"></i>
+                                <i class="fa fa-archive fa-5x"></i>
                             </div>
                             <div class="col-xs-9 text-right">
                                 <div id="packagesIndicator" class="huge">0</div>
@@ -144,6 +144,31 @@
                 </div>
             </div>
             <!-- /Packages Repository -->
+
+            <!-- Images Repository -->
+            <div class="col-lg-3 col-md-6">
+                <div class="panel panel-green">
+                    <div class="panel-heading">
+                        <div class="row">
+                            <div class="col-xs-3">
+                                <i class="fa fa-floppy-o fa-5x"></i>
+                            </div>
+                            <div class="col-xs-9 text-right">
+                                <div id="imagesIndicator" class="huge">0</div>
+                                <div>Images</div>
+                            </div>
+                        </div>
+                    </div>
+                    <a href="/main">
+                        <div class="panel-footer">
+                            <span class="pull-left">View Details</span>
+                            <span class="pull-right"><i class="fa fa-arrow-circle-right"></i></span>
+                            <div class="clearfix"></div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+            <!-- /Images Repository -->
         </div>
         <!-- /.row -->
     </div>
@@ -160,6 +185,7 @@
             $("#completedIndicator").html(obj.data.completed);
             $("#failedIndicator").html(obj.data.failed);
             $("#packagesIndicator").html(obj.data.packages);
+            $("#imagesIndicator").html(obj.data.images);
         }
 
         function wsRequestData() {

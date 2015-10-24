@@ -74,6 +74,7 @@ type statistics struct {
 	Completed  int `json:"completed"`
 	Failed     int `json:"failed"`
 	Packages   int `json:"packages"`
+	Images     int `json:"images"`
 }
 
 // Update function.
@@ -105,7 +106,7 @@ func NewMaster(hub *webserver.WebSocketHub) (*Master, error) {
 		slaveQueues:    make(map[string]chan chan *Job),
 		webSocketQueue: make(chan interface{}),
 		jobs:           make([]*Job, 0, Config.Build.MaxJobs),
-		stats:          statistics{0, 0, 0, 0, 0},
+		stats:          statistics{0, 0, 0, 0, 0, 0},
 		repoBaseUrl:    "http://" + addr + "/repo",
 	}, nil
 }
