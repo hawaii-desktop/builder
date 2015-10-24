@@ -35,6 +35,24 @@ import (
 	"path/filepath"
 )
 
+// Update repodata for the main repository every time another
+// goroutine ask to do it. Eventually return when false is queued
+// to the channel.
+func (m *Master) ProcessRepoDataUpdates() {
+	go func() {
+		for {
+			select {
+			case result := <-m.repoDataQueue:
+				if result {
+					m.updateRepoData(Config.Storage.RepositoryDir)
+				} else {
+					return
+				}
+			}
+		}
+	}()
+}
+
 // Create or update repodata and repoview from the rootrepodir directory.
 func (m *Master) updateRepoData(rootrepodir string) {
 	// Iterate over the releases
@@ -68,22 +86,6 @@ func (m *Master) updateRepoData(rootrepodir string) {
 						logging.Errorf("Failed to create repoview for %s: %s\n%s", osdir, err, string(output))
 					}
 				}
-			}
-		}
-	}
-}
-
-// Update repodata for the main repository every time another
-// goroutine ask to do it. Eventually return when false is queued
-// to the channel.
-func (m *Master) processRepoDataUpdates(repoc <-chan bool) {
-	for {
-		select {
-		case result := <-repoc:
-			if result {
-				m.updateRepoData(Config.Storage.RepositoryDir)
-			} else {
-				return
 			}
 		}
 	}

@@ -65,6 +65,8 @@ type Master struct {
 	sMutex sync.Mutex
 	// Repository base URL.
 	repoBaseUrl string
+	// Channel where repodata updates are serialized to.
+	repoDataQueue chan bool
 }
 
 // Statistics to show on the Web user interface.
@@ -108,11 +110,15 @@ func NewMaster(hub *webserver.WebSocketHub) (*Master, error) {
 		jobs:           make([]*Job, 0, Config.Build.MaxJobs),
 		stats:          statistics{0, 0, 0, 0, 0, 0},
 		repoBaseUrl:    "http://" + addr + "/repo",
+		repoDataQueue:  make(chan bool),
 	}, nil
 }
 
 // Close the database.
 func (m *Master) Close() {
+	m.repoDataQueue <- false
+	close(m.repoDataQueue)
+
 	m.db.Close()
 	m.db = nil
 }

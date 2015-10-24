@@ -148,6 +148,9 @@ func runMaster(ctx *cli.Context) {
 		return
 	}
 
+	// Process repodata updates
+	m.ProcessRepoDataUpdates()
+
 	// Handle web socket registration and unregistration
 	webServer.Hub.HandleRegister(m.WebSocketConnectionRegistration)
 	webServer.Hub.HandleUnregister(m.WebSocketConnectionUnregistration)

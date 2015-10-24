@@ -221,6 +221,9 @@ func (m *RpcService) PickJob(stream pb.Builder_PickJobServer) error {
 				if job.Status == builder.JOB_STATUS_SUCCESSFUL {
 					logging.Infof("Job #%d completed successfully on \"%s\"\n",
 						job.Id, slave.Name)
+
+					// Update repodata and repoview
+					m.master.repoDataQueue <- true
 				} else {
 					logging.Errorf("Job #%d failed on \"%s\"\n",
 						job.Id, slave.Name)
