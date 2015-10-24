@@ -40,6 +40,7 @@ import (
 	"os/signal"
 	"os/user"
 	"runtime"
+	"time"
 )
 
 func init() {
@@ -116,30 +117,32 @@ func runSlave(ctx *cli.Context) {
 	}
 
 	// Connect to the master
-	conn, err := grpc.Dial(slave.Config.Master.Address, grpc.WithInsecure())
+	conn, err := grpc.Dial(slave.Config.Master.Address, grpc.WithInsecure(), grpc.WithTimeout(5*time.Second))
 	defer conn.Close()
 
 	// We are finally connected
 	logging.Infoln("Connected to master")
+
+	// Channel used to close all goroutines for job processing
+	waitc := make(chan struct{})
 
 	// Client object
 	client := slave.NewClient(conn)
 
 	// Subscribe
 	clientCtx, err := client.Subscribe()
-	if err == nil {
-		// Unsubscribe and close the connection when quitting
-		defer func(ctx context.Context) {
-			client.Unsubscribe(ctx)
-			client.Close()
-		}(clientCtx)
-	} else {
+	if err != nil {
 		logging.Errorf("Unable to register slave: %s\n", err)
 		return
 	}
 
-	// Channel used to close all goroutines
-	waitc := make(chan struct{})
+	// Unsubscribe and close the connection when quitting
+	defer func(ctx context.Context) {
+		if conn.State() == grpc.Ready {
+			client.Unsubscribe(ctx)
+		}
+		client.Close()
+	}(clientCtx)
 
 	// Pick up jobs from the master
 	go func() {
@@ -149,13 +152,31 @@ func runSlave(ctx *cli.Context) {
 		}
 	}()
 
+	// Channel used to quit the program
+	quitc := make(chan bool)
+
+	// Quit when the connection is stopped
 	// TODO: We need to register the slave again if the master is restarted
+	go func() {
+		for {
+			if conn.State() != grpc.Ready {
+				quitc <- true
+				return
+			}
+		}
+	}()
 
 	// Gracefully exit with SIGINT and SIGTERM
-	sigchan := make(chan os.Signal, 2)
-	signal.Notify(sigchan, os.Interrupt)
-	signal.Notify(sigchan, os.Kill)
-	<-sigchan
+	go func() {
+		sigchan := make(chan os.Signal, 2)
+		signal.Notify(sigchan, os.Interrupt)
+		signal.Notify(sigchan, os.Kill)
+		<-sigchan
+		quitc <- true
+	}()
+
+	// Wait for the conditions to quit
+	<-quitc
 
 	// Now quit
 	logging.Traceln("Quitting...")
