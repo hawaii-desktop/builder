@@ -161,11 +161,12 @@ message SubscribeResponse {
   // Images repository path.
   string images_dir = 2;
 
-  // Map architectures supported by slave with repository URLs.
-  // Repository URLs are format strings like:
-  //   http://localhost:8020/repo/main/fedora/releases/%s/x86_64/os
-  // so the string must be expanded with the release version (like 22).
-  map<string, string> repo_urls = 3;
+  // Generic repository URL with replaceble strings such as $releasever
+  // and $basearch (respectively with the Fedora version we are based on
+  // and the job architecture).
+  // A repository URL is something like:
+  //   http://localhost:8020/repo/main/fedora/releases/$releasever/$basearch/os
+  string repo_url = 3;
 }
 
 /****************************************************************************/

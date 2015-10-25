@@ -154,23 +154,17 @@ type SubscribeResponse struct {
 	Id uint64 `protobuf:"varint,1,opt,name=id" json:"id,omitempty"`
 	// Images repository path.
 	ImagesDir string `protobuf:"bytes,2,opt,name=images_dir" json:"images_dir,omitempty"`
-	// Map architectures supported by slave with repository URLs.
-	// Repository URLs are format strings like:
-	//   http://localhost:8020/repo/main/fedora/releases/%s/x86_64/os
-	// so the string must be expanded with the release version (like 22).
-	RepoUrls map[string]string `protobuf:"bytes,3,rep,name=repo_urls" json:"repo_urls,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// Generic repository URL with replaceble strings such as $releasever
+	// and $basearch (respectively with the Fedora version we are based on
+	// and the job architecture).
+	// A repository URL is something like:
+	//   http://localhost:8020/repo/main/fedora/releases/$releasever/$basearch/os
+	RepoUrl string `protobuf:"bytes,3,opt,name=repo_url" json:"repo_url,omitempty"`
 }
 
 func (m *SubscribeResponse) Reset()         { *m = SubscribeResponse{} }
 func (m *SubscribeResponse) String() string { return proto.CompactTextString(m) }
 func (*SubscribeResponse) ProtoMessage()    {}
-
-func (m *SubscribeResponse) GetRepoUrls() map[string]string {
-	if m != nil {
-		return m.RepoUrls
-	}
-	return nil
-}
 
 // Unsubscription request.
 type UnsubscribeRequest struct {

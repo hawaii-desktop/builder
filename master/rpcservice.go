@@ -113,17 +113,11 @@ func (m *RpcService) Subscribe(ctx context.Context, args *pb.SubscribeRequest) (
 	m.Slaves = append(m.Slaves, slave)
 	logging.Infof("Subscribed slave \"%s\" with id %d\n", slave.Name, slave.Id)
 
-	// Repository URLs
-	urls := make(map[string]string)
-	for _, arch := range args.Architectures {
-		urls[arch] = m.master.repoBaseUrl + "/packages/fedora/releases/%s/" + arch + "/os"
-	}
-
 	// Reply
 	response := &pb.SubscribeResponse{
 		Id:        slave.Id,
 		ImagesDir: Config.Storage.ImagesDir,
-		RepoUrls:  urls,
+		RepoUrl:   fmt.Sprintf("%s/packages/fedora/releases/$releasever/$basearch/os", m.master.repoBaseUrl),
 	}
 	return response, nil
 }

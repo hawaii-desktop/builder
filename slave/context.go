@@ -37,8 +37,10 @@ type SlaveData struct {
 	Id uint64
 	// Images repository path on master
 	ImagesDir string
-	// Repository URL for every architecture.
-	RepoUrls map[string]string
+	// Repository URL with replaceable strings such as
+	// $releasever and $basearch, respectively for the Fedora
+	// version we are based on and the job architecture.
+	RepoUrl string
 }
 
 // key is an unexported type for keys defined in this package.

@@ -322,6 +322,10 @@ func rpmFactoryMockRebuild(bs *BuildStep) error {
 		}
 	}
 
+	// Repository URL
+	url := strings.Replace(d.RepoUrl, "$releasever", releasever, -1)
+	url = strings.Replace(url, "$basearch", bs.parent.job.Architecture, -1)
+
 	args := []string{"--root", root, "-m", "--resultdir=" + resultdir}
 	if bs.parent.job.Info.Package.Ci {
 		date := bs.parent.properties.GetString("VcsDate", "")
@@ -335,7 +339,7 @@ func rpmFactoryMockRebuild(bs *BuildStep) error {
 	args = append(args, "-m", `--define="vendor Hawaii"`)
 	args = append(args, "-m", `--define="packager Hawaii"`)
 	args = append(args, "-m", `--define="distribution Hawaii"`)
-	args = append(args, "-a", fmt.Sprintf(d.RepoUrls[bs.parent.job.Architecture], releasever))
+	args = append(args, "-a", url)
 	srpm := bs.parent.properties.GetString("Srpm", "")
 	if srpm == "" {
 		return ErrNoSrpm

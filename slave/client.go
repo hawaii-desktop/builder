@@ -115,7 +115,7 @@ func (c *Client) Subscribe() (context.Context, error) {
 	data := &SlaveData{
 		Id:        response.Id,
 		ImagesDir: response.ImagesDir,
-		RepoUrls:  response.RepoUrls,
+		RepoUrl:   response.RepoUrl,
 	}
 	logging.Infof("Slave subscribed with id %d\n", data.Id)
 	ctx = NewContext(context.Background(), data)
