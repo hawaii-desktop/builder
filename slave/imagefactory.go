@@ -27,7 +27,10 @@
 package slave
 
 import (
+	"bytes"
 	"fmt"
+	"github.com/hawaii-desktop/builder/logging"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
@@ -97,9 +100,34 @@ func imgFactoryFlatten(bs *BuildStep) error {
 }
 
 func imgFactoryBuild(bs *BuildStep) error {
+	// Get the context data
+	d, ok := FromContext(bs.parent.job.ctx)
+	if !ok {
+		logging.Fatalln("Internal error: no data from context")
+	}
+
 	today := time.Now().Format("%Y%m%d")
 	fsname := fmt.Sprintf("hawaii-%s-%s", today, bs.parent.job.Architecture)
 	filename := fsname
+
+	// Fedora release
+	releasever := "22"
+
+	// Replace @REPO_URL@
+	input, err := ioutil.ReadFile("flattened.ks")
+	if err != nil {
+		return err
+	}
+	lines := bytes.Split(input, []byte("\n"))
+	for i, line := range lines {
+		if bytes.Contains(line, []byte("@REPO_URL@")) {
+			lines[i] = bytes.Replace(line, []byte("@REPO_URL@"), []byte(d.RepoUrl), -1)
+		}
+	}
+	output := bytes.Join(lines, []byte("\n"))
+	if err = ioutil.WriteFile("flattened.ks", output, 0644); err != nil {
+		return err
+	}
 
 	// Build
 	var cmd *exec.Cmd
@@ -107,11 +135,11 @@ func imgFactoryBuild(bs *BuildStep) error {
 		cmd = exec.Command("sudo", "appliance-creator",
 			"--logfile", "results/appliance.log", "--cache", "cache",
 			"-d", "-v", "-o", "results", "--format=raw", "--checksum",
-			"--name", filename, "--version", "22", "--release", today,
+			"--name", filename, "--version", releasever, "--release", today,
 			"-c", "flattened.ks")
 		filename += ".raw"
 	} else {
-		cmd = exec.Command("sudo", "livecd-creator", "--releasever=22",
+		cmd = exec.Command("sudo", "livecd-creator", "--releasever="+releasever,
 			"--title=Hawaii", "--product=Hawaii", "-c", "flattened.ks",
 			"-f", fsname, "-d", "-v", "--cache", "cache", "--tmpdir", "tmp")
 		filename += ".iso"
@@ -119,7 +147,7 @@ func imgFactoryBuild(bs *BuildStep) error {
 	if err := bs.parent.RunWithTimeout(cmd, cloneTimeout); err != nil {
 		return err
 	}
-	_, err := os.Stat(filename)
+	_, err = os.Stat(filename)
 	if err != nil {
 		return err
 	}
