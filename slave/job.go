@@ -88,8 +88,17 @@ type Artifact struct {
 
 // Create a new job object.
 func NewJob(ctx context.Context, id uint64, target, arch string, info *TargetInfo) *Job {
+	var ttype builder.JobTargetType
+	switch {
+	case info.Package != nil:
+		ttype = builder.JOB_TARGET_TYPE_PACKAGE
+	case info.Image != nil:
+		ttype = builder.JOB_TARGET_TYPE_IMAGE
+	}
+
 	j := &Job{
 		&builder.Job{Id: id,
+			Type:         ttype,
 			Target:       target,
 			Architecture: arch,
 			Started:      time.Time{},
