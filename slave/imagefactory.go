@@ -106,7 +106,7 @@ func imgFactoryBuild(bs *BuildStep) error {
 		logging.Fatalln("Internal error: no data from context")
 	}
 
-	today := time.Now().Format("%Y%m%d")
+	today := time.Now().Format("20060102-150405")
 	fsname := fmt.Sprintf("hawaii-%s-%s", today, bs.parent.job.Architecture)
 	filename := fsname
 
