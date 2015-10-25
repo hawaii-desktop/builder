@@ -106,6 +106,46 @@ func NewFactory(j *Job) *Factory {
 	}
 }
 
+// Run a command without timeout.
+func (f *Factory) RunCommand(cmd *exec.Cmd) error {
+	cwd, _ := os.Getwd()
+
+	if len(cmd.Env) > 0 {
+		fmt.Fprintf(f.buffer, "Environment:\n")
+		for _, e := range cmd.Env {
+			fmt.Fprintf(f.buffer, "\t%s\n", e)
+		}
+	}
+	fmt.Fprintf(f.buffer, "Running: %s\n", strings.Join(cmd.Args, " "))
+	fmt.Fprintf(f.buffer, "Argv: %q\n", cmd.Args)
+	fmt.Fprintf(f.buffer, "From: %s\n", cwd)
+
+	output, err := cmd.CombinedOutput()
+	fmt.Fprintf(f.buffer, string(output))
+
+	return err
+}
+
+// Run a command without timeout and return the combined output.
+func (f *Factory) RunCommandCombined(cmd *exec.Cmd) ([]byte, error) {
+	cwd, _ := os.Getwd()
+
+	if len(cmd.Env) > 0 {
+		fmt.Fprintf(f.buffer, "Environment:\n")
+		for _, e := range cmd.Env {
+			fmt.Fprintf(f.buffer, "\t%s\n", e)
+		}
+	}
+	fmt.Fprintf(f.buffer, "Running: %s\n", strings.Join(cmd.Args, " "))
+	fmt.Fprintf(f.buffer, "Argv: %q\n", cmd.Args)
+	fmt.Fprintf(f.buffer, "From: %s\n", cwd)
+
+	output, err := cmd.CombinedOutput()
+	fmt.Fprintf(f.buffer, string(output))
+
+	return output, err
+}
+
 // Run a command with timeout.
 func (f *Factory) RunWithTimeout(cmd *exec.Cmd, timeout time.Duration) error {
 	cwd, _ := os.Getwd()
@@ -129,6 +169,7 @@ func (f *Factory) RunWithTimeout(cmd *exec.Cmd, timeout time.Duration) error {
 	return err
 }
 
+// Run a command with timeout and return the combined output.
 func (f *Factory) RunCombinedWithTimeout(cmd *exec.Cmd, timeout time.Duration) ([]byte, error) {
 	cwd, _ := os.Getwd()
 
