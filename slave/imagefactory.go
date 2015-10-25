@@ -144,7 +144,7 @@ func imgFactoryBuild(bs *BuildStep) error {
 			"-f", fsname, "-d", "-v", "--cache", "cache", "--tmpdir", "tmp")
 		filename += ".iso"
 	}
-	if err := bs.parent.RunWithTimeout(cmd, cloneTimeout); err != nil {
+	if err := bs.parent.RunCommand(cmd); err != nil {
 		return err
 	}
 	_, err = os.Stat(filename)
