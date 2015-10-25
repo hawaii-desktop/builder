@@ -75,6 +75,17 @@ const (
 	JOB_TARGET_TYPE_IMAGE
 )
 
+// String returns a string representation of the target type.
+func (t JobTargetType) String() string {
+	switch t {
+	case JOB_TARGET_TYPE_PACKAGE:
+		return "package"
+	case JOB_TARGET_TYPE_IMAGE:
+		return "image"
+	}
+	return ""
+}
+
 // Job status enumeration.
 type JobStatus uint32
 
