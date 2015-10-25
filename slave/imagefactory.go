@@ -139,7 +139,12 @@ func imgFactoryBuild(bs *BuildStep) error {
 			"-c", "flattened.ks")
 		filename += ".raw"
 	} else {
-		cmd = exec.Command("sudo", "livecd-creator", "--releasever="+releasever,
+		linuxcmd := "linux64"
+		if bs.parent.job.Architecture == "i386" {
+			linuxcmd = "linux32"
+		}
+
+		cmd = exec.Command("sudo", linuxcmd, "livecd-creator", "--releasever="+releasever,
 			"--title=Hawaii", "--product=Hawaii", "-c", "flattened.ks",
 			"-f", fsname, "-d", "-v", "--cache", "cache", "--tmpdir", "tmp")
 		filename += ".iso"
