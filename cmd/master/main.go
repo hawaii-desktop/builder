@@ -43,6 +43,7 @@ import (
 	"os/signal"
 	"os/user"
 	"runtime"
+	"runtime/pprof"
 )
 
 func init() {
@@ -57,11 +58,22 @@ func main() {
 	app.Action = runMaster
 	app.Flags = []cli.Flag{
 		cli.StringFlag{"config, c", "", "Custom configuration file path", ""},
+		cli.StringFlag{"cpuprofile", "", "Write CPU profile to file", ""},
 	}
 	app.Run(os.Args)
 }
 
 func runMaster(ctx *cli.Context) {
+	// CPU profile
+	if ctx.IsSet("cpuprofile") {
+		file, err := os.Create(ctx.String("cpuprofile"))
+		if err != nil {
+			logging.Fatalf("Unable to create \"%s\": %s\n", ctx.String("cpuprofile"), err)
+		}
+		pprof.StartCPUProfile(file)
+		defer pprof.StopCPUProfile()
+	}
+
 	// Load the configuration
 	var configArg string
 	if ctx.IsSet("config") {
