@@ -306,7 +306,7 @@ func rpmFactoryMockRebuild(bs *BuildStep) error {
 	os.Chdir(cwd)
 
 	// Fedora release
-	releasever := "22"
+	releasever := "23"
 
 	// Determine mock root
 	root := fmt.Sprintf("fedora-%s-%s", releasever, bs.parent.job.Architecture)

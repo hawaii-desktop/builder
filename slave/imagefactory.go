@@ -111,7 +111,7 @@ func imgFactoryBuild(bs *BuildStep) error {
 	filename := fsname
 
 	// Fedora release
-	releasever := "22"
+	releasever := "23"
 
 	// Replace @REPO_URL@
 	input, err := ioutil.ReadFile("flattened.ks")
