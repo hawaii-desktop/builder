@@ -1,0 +1,28 @@
+{{ define "title" }}Login Failed - Builder{{ end }}
+
+{{ define "content" }}
+    <div class="container-fluid">
+        <!-- Page heading -->
+        <div class="row">
+            <div class="col-lg-12">
+                <h1 class="page-header">
+                    Builder <small>Login</small>
+                </h1>
+
+                <ol class="breadcrumb">
+                    <li class="active">
+                        <i class="fa fa-dashboard"></i> Dashboard
+                    </li>
+                </ol>
+            </div>
+        </div>
+        <!-- /.row -->
+
+        <div class="alert alert-danger">
+            <h4>Failed to authenticate with GitHub</h4>
+            <p>{{.ErrorMessage}}</p>
+        </div>
+    </div>
+{{ end }}
+
+<!-- vim: set noai ts=4 sw=4 expandtab: -->

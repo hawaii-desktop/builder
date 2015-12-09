@@ -1,0 +1,152 @@
+{{ define "title" }}Job - Builder{{ end }}
+
+{{ define "content" }}
+    <div class="container-fluid">
+        <!-- Page heading -->
+        <div class="row">
+            <div class="col-lg-12">
+                <h1 class="page-header">
+                    Builder <small>Job {{.Id}}</small>
+                </h1>
+
+                <ol class="breadcrumb">
+                    <li>
+                        <i class="fa fa-dashboard"></i> <a href="/">Dashboard</a>
+                    </li>
+                    <li>
+                        <i class="fa fa-table"></i> <a href="/jobs">Jobs</a>
+                    </li>
+                    <li class="active">
+                        <i class="fa fa-table"></i> Job {{.Id}}
+                    </li>
+                </ol>
+            </div>
+        </div>
+        <!-- /.row -->
+
+        <table class="table no-border hover">
+            <tbody id="table">
+            </tbody>
+        </table>
+
+        <div id="steps">
+            <div class="panel-group" id="accordion" role="tablist" aria-multiselectable="true"></div>
+        </div>
+    </div>
+{{ end }}
+
+{{ define "scripts" }}
+    <script type="text/javascript">
+        function decodeJobType(type) {
+            switch (type) {
+            case 0:
+                return "package";
+            case 1:
+                return "image";
+            default:
+                break;
+            }
+
+            return "unknown";
+        }
+
+        function wsHandler(obj) {
+            if (obj.type != WEB_SOCKET_JOB || !obj.data)
+                return;
+
+            var contents = "";
+            contents += '<tr>';
+            contents += '<td align="right"><strong>Type:</strong></td>';
+            contents += '<td>' + decodeJobType(obj.data.type) + '</td>';
+            contents += '</tr>';
+            contents += '<tr>';
+            contents += '<td align="right"><strong>Name:</strong></td>';
+            contents += '<td>' + obj.data.target + '</td>';
+            contents += '</tr>';
+            contents += '<tr>';
+            contents += '<td align="right"><strong>Architecture:</strong></td>';
+            contents += '<td>' + obj.data.arch + '</td>';
+            contents += '</tr>';
+            contents += '<tr>';
+            contents += '<td align="right"><strong>Started:</strong></td>';
+            contents += '<td>' + (obj.data.started ? moment(obj.data.started).format("LLL") : "n.a.") + '</td>';
+            contents += '</tr>';
+            contents += '<tr>';
+            contents += '<td align="right"><strong>Finished:</strong></td>';
+            contents += '<td>' + (obj.data.finished ? moment(obj.data.finished).format("LLL") : "n.a.") + '</td>';
+            contents += '</tr>';
+            document.getElementById("table").innerHTML = contents;
+
+            if (obj.data.steps) {
+                var steps = "";
+                
+                var i;
+                for (i = 0; i < obj.data.steps.length; i++) {
+                    var bs = obj.data.steps[i];
+
+                    steps += '<div class="panel panel-default">';
+                    steps += '<div class="panel-heading" role="tab" id="heading' + i + '">';
+                    steps += '<h4 class="panel-title">';
+                    steps += '<a role="button" data-toggle="collapse" data-parent="#accordion" href="#collapse' + i + '" aria-expanded="true" aria-controls="collapse' + i + '">';
+                    steps += bs.name + '</a></h4></div>';
+                    steps += '<div id="collapse' + i + '" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="heading' + i + '">';
+                    steps += '<div class="panel-body">';
+                    steps += '<table class="table no-border hover">';
+                    steps += '<tr>';
+                    steps += '<td align="right"><strong>Started:</strong></td>';
+                    steps += '<td>' + (bs.started ? moment(bs.started).format("LLL") : "n.a.") + '</td>';
+                    steps += '</tr>';
+                    steps += '<tr>';
+                    steps += '<td align="right"><strong>Finished:</strong></td>';
+                    steps += '<td>' + (bs.finished ? moment(bs.finished).format("LLL") : "n.a.") + '</td>';
+                    steps += '</tr>';
+                    steps += '<tr>';
+                    if (bs.summary) {
+                        steps += '<td align="right"><strong>Summary:</strong></td>';
+                        steps += '<td><ul>';
+                        for (var key in bs.summary) {
+                            if (bs.summary.hasOwnProperty(key)) {
+                                steps += '<li><strong>' + key + '</strong><ol>';
+                                for (var j = 0; j < bs.summary[key].length; j++)
+                                    steps += '<li>' + bs.summary[key][j] + '</li>'
+                                steps += '</ol></li>';
+                            }
+                        }
+                        steps += '</ul></td>';
+                        steps += '</tr>';
+                    }
+                    if (bs.logs) {
+                        steps += '<tr>';
+                        steps += '<td colspan="2">';
+                        for (var key in bs.logs) {
+                            if (bs.logs.hasOwnProperty(key)) {
+                                steps += '<h4>' + key + '</h4>';
+                                steps += '<pre class="log"><code>' + window.atob(bs.logs[key]) + '</code></pre>';
+                            }
+                        }
+                        steps += '</td>';
+                        steps += '</tr>';
+                    }
+                    steps += '</table>';
+                    steps += '</div></div></div>';
+                }
+
+                document.getElementById("accordion").innerHTML = steps;
+            }
+        }
+
+        function wsRequestData() {
+            // Ask job information
+            var jobId = {{.Id}};
+            var request = {type: WEB_SOCKET_JOB, id: jobId};
+            wsConn.send(JSON.stringify(request, null, 2));
+        }
+
+        function init() {
+            $("#sideBarJobsSection").addClass("active");
+            $("#sideBarJobs").addClass("in").attr("aria-expanded", "true");
+        }
+    </script>
+{{ end }}
+
+<!-- vim: set noai ts=4 sw=4 expandtab: -->

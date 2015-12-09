@@ -1,0 +1,13 @@
+[Unit]
+Description=Hawaii Builder (Master)
+Wants=network.target
+After=network.target
+
+[Service]
+Type=forking
+PIDFile=/run/builder/master.pid
+ExecStart=/sbin/daemonize /usr/bin/builder-master
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

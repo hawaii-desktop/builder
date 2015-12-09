@@ -1,0 +1,419 @@
+/****************************************************************************
+ * This file is part of Builder.
+ *
+ * Copyright (C) 2015 Pier Luigi Fiorini
+ *
+ * Author(s):
+ *    Pier Luigi Fiorini <pierluigi.fiorini@gmail.com>
+ *
+ * $BEGIN_LICENSE:AGPL3+$
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * $END_LICENSE$
+ ***************************************************************************/
+
+// For more information, please read proto3 documentation at:
+// https://developers.google.com/protocol-buffers/docs/proto3
+
+syntax = "proto3";
+
+package protocol;
+
+service Builder {
+  // Subscribe to the master.
+  //
+  // A slave calls this method to register itself on the master, which will
+  // assign an identifier returned with the reply, along with some information
+  // such as the repositories paths.
+  //
+  // Keep in mind that identifiers are valid until master is restarted.
+  rpc Subscribe(SubscribeRequest) returns (SubscribeResponse);
+
+  // Unregister a slave.
+  //
+  // Slave class this procedure to unregister itself.
+  // Master replies indicating whether the operation succeded or not.
+  rpc Unsubscribe(UnsubscribeRequest) returns (UnsubscribeResponse);
+
+  ////////////////////////////////////////////////////////////////////////////
+
+  // Send a job to the collector.
+  //
+  // Master will enqueue a new job and the dispatcher will find a suitable
+  // slave and dispatch to it.
+  rpc CollectJob(CollectJobRequest) returns (CollectJobResponse);
+
+  // Pick up a job from the master.
+  //
+  // Once a slave has subscribed a full duplex communication is established
+  // until the slave unsubscribe or the master quits, in that case the slave
+  // detects that the connection is no longer valid and will resubscribe if
+  // and when master comes up again.
+  //
+  // Master sends jobs to be processed through the stream as they are collected
+  // and dispatched.  Jobs are dispatched to slaves whose capacity has not been
+  // reached yet and whose topic matches.
+  rpc PickJob(stream PickJobRequest) returns (stream JobRequest);
+
+  ////////////////////////////////////////////////////////////////////////////
+
+  // Upload a file to the master.
+  //
+  // Upload an artifact to the staging repository, a chunk at a time
+  // via streaming.
+  rpc Upload(stream UploadMessage) returns (UploadResponse);
+
+  // Download a file from the master.
+  //
+  // Send a file from master to slave, a chunk at a time via streaming.
+  rpc Download(DownloadRequest) returns (stream DownloadResponse);
+
+  ////////////////////////////////////////////////////////////////////////////
+
+  // Add or update a package.
+  //
+  // Store package information so that it can be referenced later when
+  // scheduling a job.
+  rpc AddPackage(PackageInfo) returns (BooleanMessage);
+
+  // Remove a package.
+  //
+  // Remove package information.
+  rpc RemovePackage(StringMessage) returns (BooleanMessage);
+
+  // List packages.
+  //
+  // Return the list of packages and their information, matching the
+  // regular expression passed as argument.
+  // With an empty string the full list of packages will be retrieved.
+  rpc ListPackages(StringMessage) returns (stream PackageInfo);
+
+  ////////////////////////////////////////////////////////////////////////////
+
+  // Add or update an image.
+  //
+  // Store image information so that it can be referenced later when
+  // scheduling a job.
+  rpc AddImage(ImageInfo) returns (BooleanMessage);
+
+  // Remove an image.
+  //
+  // Remove image information.
+  rpc RemoveImage(StringMessage) returns (BooleanMessage);
+
+  // List images.
+  //
+  // Return the list of images and their information, matching the
+  // regular expression passed as argument.
+  // With an empty string the full list of images will be retrieved.
+  rpc ListImages(StringMessage) returns (stream ImageInfo);
+}
+
+/****************************************************************************/
+
+// Generic boolean message.
+message BooleanMessage {
+  // Result.
+  bool result = 1;
+}
+
+// Generic string message.
+message StringMessage {
+  string name = 1;
+}
+
+// Generic string list message.
+message StringListMessage {
+  repeated string list = 1;
+}
+
+/****************************************************************************/
+
+// Subscription request.
+message SubscribeRequest {
+  // Name.
+  string name = 1;
+
+  // Topics.
+  repeated string types = 2;
+
+  // Architectures.
+  repeated string architectures = 3;
+}
+
+// Subscription response.
+message SubscribeResponse {
+  // Slave identifier.
+  uint64 id = 1;
+
+  // Images repository path.
+  string images_dir = 2;
+
+  // Generic repository URL with replaceble strings such as $releasever
+  // and $basearch (respectively with the Fedora version we are based on
+  // and the job architecture).
+  // A repository URL is something like:
+  //   http://localhost:8020/repo/main/fedora/releases/$releasever/$basearch/os
+  string repo_url = 3;
+}
+
+/****************************************************************************/
+
+// Unsubscription request.
+message UnsubscribeRequest {
+  // Slave identifier.
+  uint64 id = 1;
+}
+
+// Unsubscription response.
+message UnsubscribeResponse {
+  // Result.
+  bool result = 1;
+}
+
+/****************************************************************************/
+
+// CollectJob request.
+message CollectJobRequest {
+  // Target name
+  string target = 1;
+
+  // Target architecture.
+  string architecture = 2;
+
+  // Target type.
+  EnumTargetType type = 3;
+}
+
+// CollectJob response.
+message CollectJobResponse {
+  // Result.
+  bool result = 1;
+
+  // Identifier.
+  uint64 id = 2;
+}
+
+/****************************************************************************/
+
+// Contains information on the job that has to be processed by
+// the slave receiving this.
+message JobRequest {
+  // Identifier.
+  uint64 id = 1;
+
+  // Payload.
+  oneof payload {
+    PackageInfo package = 2;
+    ImageInfo image = 3;
+  }
+}
+
+// Ask the master to start the slave loop.
+message SlaveStartRequest {
+  // Slave identifier.
+  uint64 id = 1;
+}
+
+// Contains updated information on a job being processed.
+message JobUpdateRequest {
+  // Identifier.
+  uint64 id = 1;
+
+  // Current status of the job.
+  EnumJobStatus status = 2;
+}
+
+// Contains updated information on a build step being executed.
+message StepUpdateRequest {
+  // Job identifier.
+  uint64 job_id = 1;
+
+  // Name.
+  string name = 2;
+
+  // Whether it's still running.
+  bool running = 3;
+
+  // When it has started (nanoseconds since Epoch).
+  int64 started = 4;
+
+  // When it has finished (nanoseconds since Epoch).
+  int64 finished = 5;
+
+  // Optional summary of this step.
+  map<string, string> summary = 6;
+
+  // Other optional logs.
+  map<string, bytes> logs = 7;
+}
+
+// Communication from slave to master.
+message PickJobRequest {
+  oneof payload {
+    SlaveStartRequest slave_start = 1;
+    JobUpdateRequest job_update = 2;
+    StepUpdateRequest step_update = 3;
+  }
+}
+
+/****************************************************************************/
+
+// Upload transfer.
+// When the transfer starts an UploadRequest message is sent to
+// the master, then one UploadChunk message for each chunk and finally
+// an UploadEnd messages to signal the end of transmission.
+// Master replies with UploadResponse when all is done successfully.
+
+// An upload request.
+message UploadRequest {
+  // Desired file name.
+  string file_name = 1;
+
+  // Fedora release version.
+  string release_ver = 2;
+
+  // Package architecture.
+  string base_arch = 3;
+}
+
+// Chunk of a file being uploaded.
+message UploadChunk {
+  // A chunk of data.
+  bytes data = 1;
+}
+
+// Signal the end of upload.
+message UploadEnd {
+  // SHA256 hash of the whole file.
+  bytes hash = 1;
+
+  // Desired permission.
+  uint32 permission = 2;
+}
+
+// Upload message.
+message UploadMessage {
+  oneof payload {
+    UploadRequest request = 1;
+    UploadChunk chunk = 2;
+    UploadEnd end = 3;
+  }
+}
+
+// Upload response.
+message UploadResponse {
+  // How many bytes were written so far.
+  int64 total_size = 1;
+
+  // Error message (empty if no error).
+  string error = 2;
+}
+
+/****************************************************************************/
+
+// Download transfer.
+// When the transfer starts a DownloadRequest message is sent to the master.
+// Master streams several DownloadResponse messages, one of each chunk of
+// data and finally one to signal the end of transmission.
+
+// A download request.
+message DownloadRequest {
+  // Desired file name.
+  string file_name = 1;
+}
+
+// Chunk of a file being downloaded.
+message DownloadChunk {
+  // A chunk of data.
+  bytes data = 1;
+
+  // SHA256 hash of this chunk.
+  bytes hash = 2;
+}
+
+// Signal the end of download.
+message DownloadEnd {
+  // SHA256 hash of the whole file.
+  bytes hash = 1;
+
+  // Total file size
+  int64 size = 2;
+}
+
+// Download response.
+message DownloadResponse {
+  oneof payload {
+    DownloadChunk chunk = 1;
+    DownloadEnd end = 2;
+  }
+}
+
+/****************************************************************************/
+
+// Job status.
+enum EnumJobStatus {
+  JOB_STATUS_JUST_CREATED = 0;
+  JOB_STATUS_WAITING = 1;
+  JOB_STATUS_PROCESSING = 2;
+  JOB_STATUS_SUCCESSFUL = 3;
+  JOB_STATUS_FAILED = 4;
+  JOB_STATUS_CRASHED = 5;
+}
+
+// Build target.
+enum EnumTargetType {
+  PACKAGE = 0;
+  IMAGE = 1;
+}
+
+// VCS information.
+message VcsInfo {
+  string url = 1;
+  string branch = 2;
+}
+
+// Package information.
+message PackageInfo {
+  // Name.
+  string name = 1;
+
+  // Architectures supported.
+  repeated string architectures = 2;
+
+  // Is it a CI package?
+  bool ci = 3;
+
+  // VCS for packaging.
+  VcsInfo vcs = 4;
+
+  // VCS for upstream (only for CI).
+  VcsInfo upstream_vcs = 5;
+}
+
+// Image information.
+message ImageInfo{
+  // Name.
+  string name = 1;
+
+  // Description.
+  string description = 2;
+
+  // Architectures supported.
+  repeated string architectures = 3;
+
+  // VCS with build scripts.
+  VcsInfo vcs = 4;
+}

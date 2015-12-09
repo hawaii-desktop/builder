@@ -1,0 +1,271 @@
+add-packages:
+  - name: hawaii-release
+    vcs:
+      url: https://bitbucket.org/hawaii-fedora/hawaii-release.git
+  - name: hawaii-settings
+    vcs:
+      url: https://bitbucket.org/hawaii-fedora/hawaii-settings.git
+  - name: plymouth-theme-hawaii
+    vcs:
+      url: https://bitbucket.org/hawaii-fedora/plymouth-theme-hawaii.git
+  - name: qt5-qtbase-git
+    ci: true
+    disabled: false
+    vcs:
+      url: https://bitbucket.org/hawaii-fedora-ci/qt5-qtbase-git.git
+    uvcs:
+      branch: dev
+      url: git://code.qt.io/qt/qtbase.git
+  - name: qt5-qtdoc-git
+    ci: true
+    disabled: false
+    vcs:
+      url: https://bitbucket.org/hawaii-fedora-ci/qt5-qtdoc-git.git
+    uvcs:
+      branch: dev
+      url: git://code.qt.io/qt/qtdoc.git
+  - name: qt5-qtxmlpatterns-git
+    ci: true
+    disabled: false
+    vcs:
+      url: https://bitbucket.org/hawaii-fedora-ci/qt5-qtxmlpatterns-git.git
+    uvcs:
+      branch: dev
+      url: git://code.qt.io/qt/qtxmlpatterns.git
+  - name: qt5-qtdeclarative-git
+    ci: true
+    disabled: false
+    vcs:
+      url: https://bitbucket.org/hawaii-fedora-ci/qt5-qtdeclarative-git.git
+    uvcs:
+      branch: dev
+      url: git://code.qt.io/qt/qtdeclarative.git
+  - name: qt5-qtwayland-git
+    ci: true
+    disabled: false
+    vcs:
+      url: https://bitbucket.org/hawaii-fedora-ci/qt5-qtwayland-git.git
+    uvcs:
+      branch: dev
+      url: git://code.qt.io/qt/qtwayland.git
+  - name: qt5-qtimageformats-git
+    ci: true
+    disabled: false
+    vcs:
+      url: https://bitbucket.org/hawaii-fedora-ci/qt5-qtimageformats-git.git
+    uvcs:
+      branch: dev
+      url: git://code.qt.io/qt/qtimageformats.git
+  - name: qt5-qtsvg-git
+    ci: true
+    disabled: false
+    vcs:
+      url: https://bitbucket.org/hawaii-fedora-ci/qt5-qtsvg-git.git
+    uvcs:
+      branch: dev
+      url: git://code.qt.io/qt/qtsvg.git
+  - name: qt5-qtquickcontrols-git
+    ci: true
+    disabled: false
+    vcs:
+      url: https://bitbucket.org/hawaii-fedora-ci/qt5-qtquickcontrols-git.git
+    uvcs:
+      branch: dev
+      url: git://code.qt.io/qt/qtquickcontrols.git
+  - name: qt5-qtgraphicaleffects-git
+    ci: true
+    disabled: false
+    vcs:
+      url: https://bitbucket.org/hawaii-fedora-ci/qt5-qtgraphicaleffects-git.git
+    uvcs:
+      branch: dev
+      url: git://code.qt.io/qt/qtgraphicaleffects.git
+  - name: qt5-qtx11extras-git
+    ci: true
+    disabled: false
+    vcs:
+      url: https://bitbucket.org/hawaii-fedora-ci/qt5-qtx11extras-git.git
+    uvcs:
+      branch: dev
+      url: git://code.qt.io/qt/qtx11extras.git
+  - name: qt5-qtmultimedia-git
+    ci: true
+    disabled: false
+    vcs:
+      url: https://bitbucket.org/hawaii-fedora-ci/qt5-qtmultimedia-git.git
+    uvcs:
+      branch: dev
+      url: git://code.qt.io/qt/qtmultimedia.git
+  - name: qt5-qtconnectivity-git
+    ci: true
+    disabled: false
+    vcs:
+      url: https://bitbucket.org/hawaii-fedora-ci/qt5-qtconnectivity-git.git
+    uvcs:
+      branch: dev
+      url: git://code.qt.io/qt/qtconnectivity.git
+  - name: qt5-qtlocation-git
+    ci: true
+    disabled: false
+    vcs:
+      url: https://bitbucket.org/hawaii-fedora-ci/qt5-qtlocation-git.git
+    uvcs:
+      branch: dev
+      url: git://code.qt.io/qt/qtlocation.git
+  - name: qt5-qtsensors-git
+    ci: true
+    disabled: false
+    vcs:
+      url: https://bitbucket.org/hawaii-fedora-ci/qt5-qtsensors-git.git
+    uvcs:
+      branch: dev
+      url: git://code.qt.io/qt/qtsensors.git
+  - name: qt5-qtserialport-git
+    ci: true
+    disabled: false
+    vcs:
+      url: https://bitbucket.org/hawaii-fedora-ci/qt5-qtserialport-git.git
+    uvcs:
+      branch: dev
+      url: git://code.qt.io/qt/qtserialport.git
+  - name: qt5-qtscript-git
+    ci: true
+    disabled: false
+    vcs:
+      url: https://bitbucket.org/hawaii-fedora-ci/qt5-qtscript-git.git
+    uvcs:
+      branch: dev
+      url: git://code.qt.io/qt/qtscript.git
+  - name: qt5-qtwebchannel-git
+    ci: true
+    disabled: false
+    vcs:
+      url: https://bitbucket.org/hawaii-fedora-ci/qt5-qtwebchannel-git.git
+    uvcs:
+      branch: dev
+      url: git://code.qt.io/qt/qtwebchannel.git
+  - name: qt5-qtwebsockets-git
+    ci: true
+    disabled: false
+    vcs:
+      url: https://bitbucket.org/hawaii-fedora-ci/qt5-qtwebsockets-git.git
+    uvcs:
+      branch: dev
+      url: git://code.qt.io/qt/qtwebsockets.git
+  - name: qt5-qtwebkit-git
+    ci: true
+    disabled: false
+    vcs:
+      url: https://bitbucket.org/hawaii-fedora-ci/qt5-qtwebkit-git.git
+    uvcs:
+      branch: dev
+      url: git://code.qt.io/qt/qtwebkit.git
+  - name: qt5-qttools-git
+    ci: true
+    disabled: false
+    vcs:
+      url: https://bitbucket.org/hawaii-fedora-ci/qt5-qttools-git.git
+    uvcs:
+      branch: dev
+      url: git://code.qt.io/qt/qttools.git
+  - name: qt5-qtquick1-git
+    ci: true
+    disabled: false
+    vcs:
+      url: https://bitbucket.org/hawaii-fedora-ci/qt5-qtquick1-git.git
+    uvcs:
+      branch: dev
+      url: git://code.qt.io/qt/qtquick1.git
+  - name: qt5-qttranslations-git
+    ci: true
+    disabled: false
+    vcs:
+      url: https://bitbucket.org/hawaii-fedora-ci/qt5-qttranslations-git.git
+    uvcs:
+      branch: dev
+      url: git://code.qt.io/qt/qttranslations.git
+  - name: captiva-icon-theme-git
+    ci: true
+    vcs:
+      url: https://bitbucket.org/hawaii-fedora-ci/captiva-icon-theme-git.git
+    uvcs:
+      url: git://github.com/captiva-project/captiva-icon-theme.git
+  - name: faba-icon-theme-git
+    ci: true
+    vcs:
+      url: https://bitbucket.org/hawaii-fedora-ci/faba-icon-theme-git.git
+    uvcs:
+      url: git://github.com/moka-project/faba-icon-theme.git
+  - name: hawaii-icon-theme-git
+    ci: true
+    vcs:
+      url: https://bitbucket.org/hawaii-fedora-ci/hawaii-icon-theme-git.git
+    uvcs:
+      url: git://github.com/hawaii-desktop/hawaii-icon-themes.git
+  - name: hawaii-wallpapers-git
+    ci: true
+    vcs:
+      url: https://bitbucket.org/hawaii-fedora-ci/hawaii-wallpapers-git.git
+    uvcs:
+      url: git://github.com/hawaii-desktop/hawaii-wallpapers.git
+  - name: greenisland-git
+    ci: true
+    vcs:
+      url: https://bitbucket.org/hawaii-fedora-ci/greenisland-git.git
+    uvcs:
+      url: git://github.com/greenisland/greenisland.git
+  - name: libhawaii-git
+    ci: true
+    vcs:
+      url: https://bitbucket.org/hawaii-fedora-ci/libhawaii-git.git
+    uvcs:
+      url: git://github.com/hawaii-desktop/libhawaii.git
+  - name: hawaii-shell-git
+    ci: true
+    vcs:
+      url: https://bitbucket.org/hawaii-fedora-ci/hawaii-shell-git.git
+    uvcs:
+      url: git://github.com/hawaii-desktop/hawaii-shell.git
+  - name: hawaii-system-preferences-git
+    ci: true
+    vcs:
+      url: https://bitbucket.org/hawaii-fedora-ci/hawaii-system-preferences-git.git
+    uvcs:
+      url: git://github.com/hawaii-desktop/hawaii-system-preferences.git
+  - name: hawaii-baseapps-git
+    ci: true
+    vcs:
+      url: https://bitbucket.org/hawaii-fedora-ci/hawaii-baseapps-git.git
+    uvcs:
+      url: git://github.com/hawaii-desktop/hawaii-baseapps.git
+  - name: hawaii-widget-styles-git
+    ci: true
+    vcs:
+      url: https://bitbucket.org/hawaii-fedora-ci/hawaii-widget-styles-git.git
+    uvcs:
+      url: git://github.com/hawaii-desktop/hawaii-widget-styles.git
+  - name: sddm-git
+    ci: true
+    vcs:
+      url: https://bitbucket.org/hawaii-fedora-ci/sddm-git.git
+    uvcs:
+      url: git://github.com/sddm/sddm.git
+add-images:
+  - name: live
+    description: PC
+    archs:
+     - x86_64
+    vcs:
+      url: https://bitbucket.org/hawaii-fedora-ci/hawaii-kickstart.git
+  - name: raspberrypi2
+    descr: Raspberry Pi 2
+    archs:
+    - armhfp
+    vcs:
+      url: https://bitbucket.org/hawaii-fedora-ci/hawaii-kickstart.git
+  - name: wandboard
+    descr: Wandboard Solo/Dual/Quad
+    archs:
+    - armhfp
+    vcs:
+      url: https://bitbucket.org/hawaii-fedora-ci/hawaii-kickstart.git

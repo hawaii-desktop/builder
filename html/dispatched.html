@@ -1,0 +1,101 @@
+{{ define "title" }}Dispatched Jobs - Builder{{ end }}
+
+{{ define "content" }}
+    <div class="container-fluid">
+        <!-- Page heading -->
+        <div class="row">
+            <div class="col-lg-12">
+                <h1 class="page-header">
+                    Builder <small>Dispatched Jobs</small>
+                </h1>
+
+                <ol class="breadcrumb">
+                    <li>
+                        <i class="fa fa-dashboard"></i> <a href="/">Dashboard</a>
+                    </li>
+                    <li>
+                        <i class="fa fa-table"></i> <a href="/jobs">Jobs</a>
+                    </li>
+                    <li class="active">
+                        <i class="fa fa-clock-o"></i> Dispatched
+                    </li>
+                </ol>
+            </div>
+        </div>
+        <!-- /.row -->
+
+        <!-- Table -->
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover table-striped"></table>
+        </div>
+        <!-- /Table -->
+    </div>
+{{ end }}
+
+{{ define "scripts" }}
+    <script type="text/javascript">
+        function wsHandler(obj) {
+            if (obj.type != WEB_SOCKET_DISPATCHED_JOBS)
+                return;
+
+            var data = [];
+
+            if (obj.data) {
+                var i;
+                for (i = 0; i < obj.data.length; i++) {
+                    data.push(obj.data[i]);
+                }
+            }
+
+            $("table").bootstrapTable({
+                sortName: "id",
+                sortOrder: "desc",
+                pagination: true,
+                columns: [{
+                    field: "id",
+                    title: "Build",
+                    sortable: true,
+                    formatter: function(value) {
+                        return '<a href="/job/' + value + '/">' + value + '</a>';
+                    },
+                }, {
+                    field: "target",
+                    title: "Name",
+                    sortable: true,
+                }, {
+                    field: "arch",
+                    title: "Architecture",
+                    sortable: true,
+                }, {
+                    field: "started",
+                    title: "Started",
+                    sortable: true,
+                    formatter: function(value) {
+                        return moment(value).format("LLL");
+                    },
+                }, {
+                    field: "finished",
+                    title: "Finished",
+                    sortable: true,
+                    formatter: function(value) {
+                        return moment(value).format("LLL");
+                    },
+                }],
+                data: data
+            });
+        }
+
+        function wsRequestData() {
+            // Ask jobs list
+            var request = {"type": WEB_SOCKET_DISPATCHED_JOBS};
+            wsConn.send(JSON.stringify(request, null, 2));
+        }
+
+        function init() {
+            $("#sideBarJobsSection").addClass("active");
+            $("#sideBarJobs").addClass("in").attr("aria-expanded", "true");
+        }
+    </script>
+{{ end }}
+
+<!-- vim: set noai ts=4 sw=4 expandtab: -->

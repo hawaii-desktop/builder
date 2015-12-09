@@ -22,26 +22,3 @@ _testmain.go
 *.exe
 *.test
 *.prof
-
-# never checkin from the bin file (for now)
-bin/*
-
-# Test key files
-*.pem
-
-# Cover profiles
-*.out
-
-# Database
-*.db
-
-# Logs
-*.log
-
-# Temporary files
-*~
-.*.swp
-
-# Editor/IDE specific files.
-*.sublime-project
-*.sublime-workspace
