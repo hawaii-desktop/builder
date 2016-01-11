@@ -136,14 +136,6 @@ func (db *Database) AddImage(img *Image) error {
 		return nil
 	})
 
-	if err == nil {
-		// Add the architectures as supported
-		err = db.SaveArchitectures(img.Architectures...)
-		if err != nil {
-			return err
-		}
-	}
-
 	return err
 }
 
@@ -167,12 +159,6 @@ func (db *Database) RemoveImage(name string) error {
 		// Delete the bucket
 		err := bucket.Delete([]byte(name))
 		if err != nil {
-			return err
-		}
-
-		// Remove these architectures if they are not referenced
-		// by any other package or image
-		if err := db.RemoveArchitectures(img.Architectures...); err != nil {
 			return err
 		}
 

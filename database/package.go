@@ -137,14 +137,6 @@ func (db *Database) AddPackage(pkg *Package) error {
 		return nil
 	})
 
-	if err == nil {
-		// Add the architectures as supported
-		err = db.SaveArchitectures(pkg.Architectures...)
-		if err != nil {
-			return err
-		}
-	}
-
 	return err
 }
 
@@ -167,12 +159,6 @@ func (db *Database) RemovePackage(name string) error {
 
 		// Delete the bucket
 		if err := bucket.Delete([]byte(name)); err != nil {
-			return err
-		}
-
-		// Remove these architectures if they are not referenced
-		// by any other package or image
-		if err := db.RemoveArchitectures(pkg.Architectures...); err != nil {
 			return err
 		}
 

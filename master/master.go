@@ -125,10 +125,10 @@ func (m *Master) Close() {
 
 // Prepare the topics.
 func (m *Master) PrepareTopics() {
-	// Create a bufferer channel of jobs for the topic, unless
+	// Create a buffered channel of jobs for the topic, unless
 	// it has already been created
 	for _, ttype := range []string{"package", "image"} {
-		for _, arch := range m.db.ListArchitectures() {
+		for _, arch := range []string{"i386", "x86_64", "armhfp"} {
 			topic := ttype + "/" + arch
 			if _, ok := m.slaveQueues[topic]; !ok {
 				m.slaveQueues[topic] = make(chan chan *Job, Config.Build.MaxSlaves)
