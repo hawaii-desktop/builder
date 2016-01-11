@@ -1,0 +1,17 @@
+- add-project:
+  - name: "qt5-git"
+    description: "This repository contains unstable builds of Qt 5. The aim of this repository is to allow users to test and experiment with new features and changes before it is released and provide feedback to upstream. The software provided here may be unstable and not ready for day-to-day use."
+    chroots: ["fedora-23-i386", "fedora-23-x86_64", "fedora-23-armhfp"]
+    auto_createrepo: true
+    build_enable_net: true
+  - name: "hawaii-release"
+    description: "This repository contains stable builds of Hawaii. The aim of this repository is to allow users to test the latest version of Hawaii before it hits official Fedora repositories."
+    chroots: ["fedora-23-i386", "fedora-23-x86_64", "fedora-23-armhfp"]
+    auto_createrepo: true
+    build_enable_net: true
+  - name: "hawaii-git"
+    description: "This repository contains unstable builds of Hawaii. The aim of this repository is to allow users to test and experiment with new features and changes before is is released and provide feedback during the Hawaii development cycle. The software provided here may be unstable and not ready for day-to-day use."
+    repos: ["qt5-git"]
+    chroots: ["fedora-23-i386", "fedora-23-x86_64", "fedora-23-armhfp"]
+    auto_createrepo: true
+    build_enable_net: true
