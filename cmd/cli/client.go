@@ -55,6 +55,55 @@ func NewClient(conn *grpc.ClientConn) *Client {
 	return &Client{conn: conn, client: pb.NewBuilderClient(conn)}
 }
 
+// Add a chroot.
+func (c *Client) AddChroot(release, version, arch string) error {
+	// Send message
+	args := &pb.ChrootInfo{release, version, arch}
+	reply, err := c.client.AddChroot(context.Background(), args)
+	if err != nil {
+		return err
+	}
+	if !reply.Result {
+		return ErrFailed
+	}
+	return nil
+}
+
+// Remove chroot.
+func (c *Client) RemoveChroot(release, version, arch string) error {
+	args := &pb.ChrootInfo{release, version, arch}
+	reply, err := c.client.RemoveChroot(context.Background(), args)
+	if err != nil {
+		return err
+	}
+	if !reply.Result {
+		return ErrFailed
+	}
+	return nil
+}
+
+// List chroots.
+func (c *Client) ListChroots() error {
+	stream, err := c.client.ListChroots(context.Background(), &pb.StringMessage{".+"})
+	if err != nil {
+		return err
+	}
+
+	for {
+		chroot, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("Chroot \"%s-%s-%s\"\n", chroot.Release, chroot.Version, chroot.Architecture)
+	}
+
+	return nil
+}
+
 // Add a package.
 func (c *Client) AddPackage(name string, archs string, ci bool, vcs string, uvcs string) error {
 	// Split architectures

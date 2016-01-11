@@ -51,11 +51,13 @@ func main() {
 	app.Usage = "Command line client for Builder"
 	app.Version = version.Version
 	app.Commands = []cli.Command{
+		CmdAddChroot,
 		CmdAddPackage,
 		CmdRemovePackage,
 		CmdListPackages,
 		CmdAddImage,
 		CmdRemoveImage,
+		CmdListChroots,
 		CmdListImages,
 		CmdImport,
 		CmdBuild,

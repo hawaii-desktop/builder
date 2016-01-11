@@ -36,6 +36,12 @@ import (
 	"strings"
 )
 
+type ChrootEntry struct {
+	Release      string `yaml:"release"`
+	Version      string `yaml:"version"`
+	Architecture string `yaml:"arch"`
+}
+
 type VcsInfo struct {
 	Url    string `yaml:"url"`
 	Branch string `yaml:"branch"`
@@ -59,6 +65,8 @@ type ImageEntry struct {
 }
 
 type Data struct {
+	AddChroots     []ChrootEntry  `yaml:"add-chroots"`
+	RemoveChroots  []ChrootEntry  `yaml:"remove-chroots"`
 	AddPackages    []PackageEntry `yaml:"add-packages"`
 	RemovePackages []string       `yaml:"remove-packages"`
 	AddImages      []ImageEntry   `yaml:"add-images"`
@@ -110,6 +118,20 @@ func runImport(ctx *cli.Context) {
 	// Create client proxy
 	client := NewClient(conn)
 	defer client.Close()
+
+	// Process all the chroots to add
+	for _, chroot := range data.AddChroots {
+		if err = client.AddChroot(chroot.Release, chroot.Version, chroot.Architecture); err != nil {
+			logging.Errorf("Failed to add chroot \"%s-%s-%s\": %s\n", chroot.Release, chroot.Version, chroot.Architecture, err)
+		}
+	}
+
+	// Process all the chroots to remove
+	for _, chroot := range data.RemoveChroots {
+		if err = client.RemoveChroot(chroot.Release, chroot.Version, chroot.Architecture); err != nil {
+			logging.Errorf("Failed to remove chroot \"%s-%s-%s\": %s\n", chroot.Release, chroot.Version, chroot.Architecture, err)
+		}
+	}
 
 	// Process all the packages to add
 	for _, pkg := range data.AddPackages {
