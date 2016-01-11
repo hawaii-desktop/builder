@@ -33,6 +33,7 @@ It has these top-level messages:
 	DownloadEnd
 	DownloadResponse
 	VcsInfo
+	ChrootInfo
 	PackageInfo
 	ImageInfo
 */
@@ -819,6 +820,20 @@ func (m *VcsInfo) Reset()         { *m = VcsInfo{} }
 func (m *VcsInfo) String() string { return proto.CompactTextString(m) }
 func (*VcsInfo) ProtoMessage()    {}
 
+// Chroot information.
+type ChrootInfo struct {
+	// Release (fedora, epel, ...)
+	Release string `protobuf:"bytes,1,opt,name=release" json:"release,omitempty"`
+	// Version (22, 23, rawhide, ...)
+	Version string `protobuf:"bytes,2,opt,name=version" json:"version,omitempty"`
+	// Architecture (i386, x86_64, armhfp, ...)
+	Architecture string `protobuf:"bytes,3,opt,name=architecture" json:"architecture,omitempty"`
+}
+
+func (m *ChrootInfo) Reset()         { *m = ChrootInfo{} }
+func (m *ChrootInfo) String() string { return proto.CompactTextString(m) }
+func (*ChrootInfo) ProtoMessage()    {}
+
 // Package information.
 type PackageInfo struct {
 	// Name.
@@ -924,6 +939,18 @@ type BuilderClient interface {
 	//
 	// Send a file from master to slave, a chunk at a time via streaming.
 	Download(ctx context.Context, in *DownloadRequest, opts ...grpc.CallOption) (Builder_DownloadClient, error)
+	// Add or update a chroot.
+	//
+	// Store chroot information so that it can be referenced later from projects.
+	AddChroot(ctx context.Context, in *ChrootInfo, opts ...grpc.CallOption) (*BooleanMessage, error)
+	// Remove a chroot.
+	//
+	// Remove chroot information.
+	RemoveChroot(ctx context.Context, in *ChrootInfo, opts ...grpc.CallOption) (*BooleanMessage, error)
+	// List chroots.
+	//
+	// Return the list of chroots.
+	ListChroots(ctx context.Context, in *StringMessage, opts ...grpc.CallOption) (Builder_ListChrootsClient, error)
 	// Add or update a package.
 	//
 	// Store package information so that it can be referenced later when
@@ -1088,6 +1115,56 @@ func (x *builderDownloadClient) Recv() (*DownloadResponse, error) {
 	return m, nil
 }
 
+func (c *builderClient) AddChroot(ctx context.Context, in *ChrootInfo, opts ...grpc.CallOption) (*BooleanMessage, error) {
+	out := new(BooleanMessage)
+	err := grpc.Invoke(ctx, "/protocol.Builder/AddChroot", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *builderClient) RemoveChroot(ctx context.Context, in *ChrootInfo, opts ...grpc.CallOption) (*BooleanMessage, error) {
+	out := new(BooleanMessage)
+	err := grpc.Invoke(ctx, "/protocol.Builder/RemoveChroot", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *builderClient) ListChroots(ctx context.Context, in *StringMessage, opts ...grpc.CallOption) (Builder_ListChrootsClient, error) {
+	stream, err := grpc.NewClientStream(ctx, &_Builder_serviceDesc.Streams[3], c.cc, "/protocol.Builder/ListChroots", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &builderListChrootsClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Builder_ListChrootsClient interface {
+	Recv() (*ChrootInfo, error)
+	grpc.ClientStream
+}
+
+type builderListChrootsClient struct {
+	grpc.ClientStream
+}
+
+func (x *builderListChrootsClient) Recv() (*ChrootInfo, error) {
+	m := new(ChrootInfo)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 func (c *builderClient) AddPackage(ctx context.Context, in *PackageInfo, opts ...grpc.CallOption) (*BooleanMessage, error) {
 	out := new(BooleanMessage)
 	err := grpc.Invoke(ctx, "/protocol.Builder/AddPackage", in, out, c.cc, opts...)
@@ -1107,7 +1184,7 @@ func (c *builderClient) RemovePackage(ctx context.Context, in *StringMessage, op
 }
 
 func (c *builderClient) ListPackages(ctx context.Context, in *StringMessage, opts ...grpc.CallOption) (Builder_ListPackagesClient, error) {
-	stream, err := grpc.NewClientStream(ctx, &_Builder_serviceDesc.Streams[3], c.cc, "/protocol.Builder/ListPackages", opts...)
+	stream, err := grpc.NewClientStream(ctx, &_Builder_serviceDesc.Streams[4], c.cc, "/protocol.Builder/ListPackages", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1157,7 +1234,7 @@ func (c *builderClient) RemoveImage(ctx context.Context, in *StringMessage, opts
 }
 
 func (c *builderClient) ListImages(ctx context.Context, in *StringMessage, opts ...grpc.CallOption) (Builder_ListImagesClient, error) {
-	stream, err := grpc.NewClientStream(ctx, &_Builder_serviceDesc.Streams[4], c.cc, "/protocol.Builder/ListImages", opts...)
+	stream, err := grpc.NewClientStream(ctx, &_Builder_serviceDesc.Streams[5], c.cc, "/protocol.Builder/ListImages", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1229,6 +1306,18 @@ type BuilderServer interface {
 	//
 	// Send a file from master to slave, a chunk at a time via streaming.
 	Download(*DownloadRequest, Builder_DownloadServer) error
+	// Add or update a chroot.
+	//
+	// Store chroot information so that it can be referenced later from projects.
+	AddChroot(context.Context, *ChrootInfo) (*BooleanMessage, error)
+	// Remove a chroot.
+	//
+	// Remove chroot information.
+	RemoveChroot(context.Context, *ChrootInfo) (*BooleanMessage, error)
+	// List chroots.
+	//
+	// Return the list of chroots.
+	ListChroots(*StringMessage, Builder_ListChrootsServer) error
 	// Add or update a package.
 	//
 	// Store package information so that it can be referenced later when
@@ -1374,6 +1463,51 @@ func (x *builderDownloadServer) Send(m *DownloadResponse) error {
 	return x.ServerStream.SendMsg(m)
 }
 
+func _Builder_AddChroot_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error) (interface{}, error) {
+	in := new(ChrootInfo)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	out, err := srv.(BuilderServer).AddChroot(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func _Builder_RemoveChroot_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error) (interface{}, error) {
+	in := new(ChrootInfo)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	out, err := srv.(BuilderServer).RemoveChroot(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func _Builder_ListChroots_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(StringMessage)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(BuilderServer).ListChroots(m, &builderListChrootsServer{stream})
+}
+
+type Builder_ListChrootsServer interface {
+	Send(*ChrootInfo) error
+	grpc.ServerStream
+}
+
+type builderListChrootsServer struct {
+	grpc.ServerStream
+}
+
+func (x *builderListChrootsServer) Send(m *ChrootInfo) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 func _Builder_AddPackage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error) (interface{}, error) {
 	in := new(PackageInfo)
 	if err := dec(in); err != nil {
@@ -1481,6 +1615,14 @@ var _Builder_serviceDesc = grpc.ServiceDesc{
 			Handler:    _Builder_CollectJob_Handler,
 		},
 		{
+			MethodName: "AddChroot",
+			Handler:    _Builder_AddChroot_Handler,
+		},
+		{
+			MethodName: "RemoveChroot",
+			Handler:    _Builder_RemoveChroot_Handler,
+		},
+		{
 			MethodName: "AddPackage",
 			Handler:    _Builder_AddPackage_Handler,
 		},
@@ -1512,6 +1654,11 @@ var _Builder_serviceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "Download",
 			Handler:       _Builder_Download_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "ListChroots",
+			Handler:       _Builder_ListChroots_Handler,
 			ServerStreams: true,
 		},
 		{

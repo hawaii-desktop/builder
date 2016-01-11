@@ -82,6 +82,23 @@ service Builder {
 
   ////////////////////////////////////////////////////////////////////////////
 
+  // Add or update a chroot.
+  //
+  // Store chroot information so that it can be referenced later from projects.
+  rpc AddChroot(ChrootInfo) returns (BooleanMessage);
+
+  // Remove a chroot.
+  //
+  // Remove chroot information.
+  rpc RemoveChroot(ChrootInfo) returns (BooleanMessage);
+
+  // List chroots.
+  //
+  // Return the list of chroots.
+  rpc ListChroots(StringMessage) returns (stream ChrootInfo);
+
+  ////////////////////////////////////////////////////////////////////////////
+
   // Add or update a package.
   //
   // Store package information so that it can be referenced later when
@@ -383,6 +400,18 @@ enum EnumTargetType {
 message VcsInfo {
   string url = 1;
   string branch = 2;
+}
+
+// Chroot information.
+message ChrootInfo {
+  // Release (fedora, epel, ...)
+  string release = 1;
+
+  // Version (22, 23, rawhide, ...)
+  string version = 2;
+
+  // Architecture (i386, x86_64, armhfp, ...)
+  string architecture = 3;
 }
 
 // Package information.
