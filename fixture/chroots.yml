@@ -1,0 +1,10 @@
+add-chroots:
+  - release: "fedora"
+    version: "23"
+    arch: "i386"
+  - release: "fedora"
+    version: "23"
+    arch: "x86_64"
+  - release: "fedora"
+    version: "23"
+    arch: "armhfp"
