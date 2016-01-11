@@ -498,6 +498,48 @@ func (m *RpcService) Download(request *pb.DownloadRequest, stream pb.Builder_Dow
 	return nil
 }
 
+// Add or update a chroot.
+func (m *RpcService) AddChroot(ctx context.Context, args *pb.ChrootInfo) (*pb.BooleanMessage, error) {
+	chroot := &database.Chroot{
+		OsRelease:    args.Release,
+		OsVersion:    args.Version,
+		Architecture: args.Architecture,
+		Active:       true,
+	}
+	if err := m.master.db.AddChroot(chroot); err != nil {
+		return nil, err
+	}
+	return &pb.BooleanMessage{Result: true}, nil
+}
+
+// Remove chroot.
+func (m *RpcService) RemoveChroot(ctx context.Context, args *pb.ChrootInfo) (*pb.BooleanMessage, error) {
+	err := m.master.db.RemoveChroot(args.Release, args.Version, args.Architecture)
+	if err != nil {
+		return nil, err
+	}
+	return &pb.BooleanMessage{Result: true}, nil
+}
+
+// List all chroots.
+func (m *RpcService) ListChroots(args *pb.StringMessage, stream pb.Builder_ListChrootsServer) error {
+	list := m.master.db.ListAllChroots()
+	if len(list) == 0 {
+		return nil
+	}
+
+	for _, chroot := range list {
+		reply := &pb.ChrootInfo{
+			Release:      chroot.OsRelease,
+			Version:      chroot.OsVersion,
+			Architecture: chroot.Architecture,
+		}
+		stream.Send(reply)
+	}
+
+	return nil
+}
+
 // Add or update a package.
 func (m *RpcService) AddPackage(ctx context.Context, args *pb.PackageInfo) (*pb.BooleanMessage, error) {
 	pkg := &database.Package{
