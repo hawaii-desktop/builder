@@ -95,7 +95,7 @@ service Builder {
   // List chroots.
   //
   // Return the list of chroots.
-  rpc ListChroots(StringMessage) returns (stream ChrootInfo);
+  rpc ListChroots(ListChrootsRequest) returns (stream ChrootInfo);
 
   ////////////////////////////////////////////////////////////////////////////
 
@@ -380,6 +380,33 @@ message DownloadResponse {
 
 /****************************************************************************/
 
+// ListChroots request enum.
+enum EnumListChroots {
+  AllChroots = 0;
+  ActiveChroots = 1;
+  InactiveChroots = 2;
+}
+
+// ListChroots request.
+message ListChrootsRequest {
+  // What chroot will be included in the list.
+  EnumListChroots search_flag = 1;
+}
+
+// Chroot information.
+message ChrootInfo {
+  // Release (fedora, epel, ...)
+  string release = 1;
+
+  // Version (22, 23, rawhide, ...)
+  string version = 2;
+
+  // Architecture (i386, x86_64, armhfp, ...)
+  string architecture = 3;
+}
+
+/****************************************************************************/
+
 // Job status.
 enum EnumJobStatus {
   JOB_STATUS_JUST_CREATED = 0;
@@ -400,18 +427,6 @@ enum EnumTargetType {
 message VcsInfo {
   string url = 1;
   string branch = 2;
-}
-
-// Chroot information.
-message ChrootInfo {
-  // Release (fedora, epel, ...)
-  string release = 1;
-
-  // Version (22, 23, rawhide, ...)
-  string version = 2;
-
-  // Architecture (i386, x86_64, armhfp, ...)
-  string architecture = 3;
 }
 
 // Package information.

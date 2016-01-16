@@ -522,19 +522,24 @@ func (m *RpcService) RemoveChroot(ctx context.Context, args *pb.ChrootInfo) (*pb
 }
 
 // List all chroots.
-func (m *RpcService) ListChroots(args *pb.StringMessage, stream pb.Builder_ListChrootsServer) error {
+func (m *RpcService) ListChroots(args *pb.ListChrootsRequest, stream pb.Builder_ListChrootsServer) error {
 	list := m.master.db.ListAllChroots()
 	if len(list) == 0 {
 		return nil
 	}
 
 	for _, chroot := range list {
-		reply := &pb.ChrootInfo{
-			Release:      chroot.OsRelease,
-			Version:      chroot.OsVersion,
-			Architecture: chroot.Architecture,
+		ok := (args.SearchFlag == pb.EnumListChroots_ActiveChroots && chroot.Active) ||
+			(args.SearchFlag == pb.EnumListChroots_InactiveChroots && !chroot.Active) ||
+			(args.SearchFlag == pb.EnumListChroots_AllChroots)
+		if ok {
+			reply := &pb.ChrootInfo{
+				Release:      chroot.OsRelease,
+				Version:      chroot.OsVersion,
+				Architecture: chroot.Architecture,
+			}
+			stream.Send(reply)
 		}
-		stream.Send(reply)
 	}
 
 	return nil

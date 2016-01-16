@@ -50,6 +50,12 @@ var (
 	ErrInvalidVcs = errors.New("invalid VCS information")
 )
 
+const (
+	AllChroots      pb.EnumListChroots = pb.EnumListChroots_AllChroots
+	ActiveChroots   pb.EnumListChroots = pb.EnumListChroots_ActiveChroots
+	InactiveChroots pb.EnumListChroots = pb.EnumListChroots_InactiveChroots
+)
+
 // Create a new Client object.
 func NewClient(conn *grpc.ClientConn) *Client {
 	return &Client{conn: conn, client: pb.NewBuilderClient(conn)}
@@ -83,8 +89,8 @@ func (c *Client) RemoveChroot(release, version, arch string) error {
 }
 
 // List chroots.
-func (c *Client) ListChroots() error {
-	stream, err := c.client.ListChroots(context.Background(), &pb.StringMessage{".+"})
+func (c *Client) ListChroots(state_flag pb.EnumListChroots) error {
+	stream, err := c.client.ListChroots(context.Background(), &pb.ListChrootsRequest{state_flag})
 	if err != nil {
 		return err
 	}

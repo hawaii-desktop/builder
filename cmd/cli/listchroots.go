@@ -37,7 +37,10 @@ var CmdListChroots = cli.Command{
 	Usage:       "List chroots",
 	Description: `List chroots added to the database.`,
 	Action:      runListChroots,
-	Flags:       []cli.Flag{},
+	Flags: []cli.Flag{
+		cli.BoolFlag{"active, a", "list only active chroots", ""},
+		cli.BoolFlag{"inactive, i", "list only inactive chroots", ""},
+	},
 }
 
 func runListChroots(ctx *cli.Context) {
@@ -53,7 +56,13 @@ func runListChroots(ctx *cli.Context) {
 	defer client.Close()
 
 	// List chroots
-	if err = client.ListChroots(); err != nil {
+	flags := AllChroots
+	if ctx.Bool("active") {
+		flags = ActiveChroots
+	} else if ctx.Bool("inactive") {
+		flags = InactiveChroots
+	}
+	if err = client.ListChroots(flags); err != nil {
 		logging.Errorln(err)
 		return
 	}

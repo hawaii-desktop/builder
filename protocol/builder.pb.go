@@ -32,8 +32,9 @@ It has these top-level messages:
 	DownloadChunk
 	DownloadEnd
 	DownloadResponse
-	VcsInfo
+	ListChrootsRequest
 	ChrootInfo
+	VcsInfo
 	PackageInfo
 	ImageInfo
 */
@@ -52,6 +53,30 @@ import (
 var _ = proto.Marshal
 var _ = fmt.Errorf
 var _ = math.Inf
+
+// ListChroots request enum.
+type EnumListChroots int32
+
+const (
+	EnumListChroots_AllChroots      EnumListChroots = 0
+	EnumListChroots_ActiveChroots   EnumListChroots = 1
+	EnumListChroots_InactiveChroots EnumListChroots = 2
+)
+
+var EnumListChroots_name = map[int32]string{
+	0: "AllChroots",
+	1: "ActiveChroots",
+	2: "InactiveChroots",
+}
+var EnumListChroots_value = map[string]int32{
+	"AllChroots":      0,
+	"ActiveChroots":   1,
+	"InactiveChroots": 2,
+}
+
+func (x EnumListChroots) String() string {
+	return proto.EnumName(EnumListChroots_name, int32(x))
+}
 
 // Job status.
 type EnumJobStatus int32
@@ -810,15 +835,15 @@ func _DownloadResponse_OneofUnmarshaler(msg proto.Message, tag, wire int, b *pro
 	}
 }
 
-// VCS information.
-type VcsInfo struct {
-	Url    string `protobuf:"bytes,1,opt,name=url" json:"url,omitempty"`
-	Branch string `protobuf:"bytes,2,opt,name=branch" json:"branch,omitempty"`
+// ListChroots request.
+type ListChrootsRequest struct {
+	// What chroot will be included in the list.
+	SearchFlag EnumListChroots `protobuf:"varint,1,opt,name=search_flag,enum=protocol.EnumListChroots" json:"search_flag,omitempty"`
 }
 
-func (m *VcsInfo) Reset()         { *m = VcsInfo{} }
-func (m *VcsInfo) String() string { return proto.CompactTextString(m) }
-func (*VcsInfo) ProtoMessage()    {}
+func (m *ListChrootsRequest) Reset()         { *m = ListChrootsRequest{} }
+func (m *ListChrootsRequest) String() string { return proto.CompactTextString(m) }
+func (*ListChrootsRequest) ProtoMessage()    {}
 
 // Chroot information.
 type ChrootInfo struct {
@@ -833,6 +858,16 @@ type ChrootInfo struct {
 func (m *ChrootInfo) Reset()         { *m = ChrootInfo{} }
 func (m *ChrootInfo) String() string { return proto.CompactTextString(m) }
 func (*ChrootInfo) ProtoMessage()    {}
+
+// VCS information.
+type VcsInfo struct {
+	Url    string `protobuf:"bytes,1,opt,name=url" json:"url,omitempty"`
+	Branch string `protobuf:"bytes,2,opt,name=branch" json:"branch,omitempty"`
+}
+
+func (m *VcsInfo) Reset()         { *m = VcsInfo{} }
+func (m *VcsInfo) String() string { return proto.CompactTextString(m) }
+func (*VcsInfo) ProtoMessage()    {}
 
 // Package information.
 type PackageInfo struct {
@@ -890,6 +925,7 @@ func (m *ImageInfo) GetVcs() *VcsInfo {
 }
 
 func init() {
+	proto.RegisterEnum("protocol.EnumListChroots", EnumListChroots_name, EnumListChroots_value)
 	proto.RegisterEnum("protocol.EnumJobStatus", EnumJobStatus_name, EnumJobStatus_value)
 	proto.RegisterEnum("protocol.EnumTargetType", EnumTargetType_name, EnumTargetType_value)
 }
@@ -950,7 +986,7 @@ type BuilderClient interface {
 	// List chroots.
 	//
 	// Return the list of chroots.
-	ListChroots(ctx context.Context, in *StringMessage, opts ...grpc.CallOption) (Builder_ListChrootsClient, error)
+	ListChroots(ctx context.Context, in *ListChrootsRequest, opts ...grpc.CallOption) (Builder_ListChrootsClient, error)
 	// Add or update a package.
 	//
 	// Store package information so that it can be referenced later when
@@ -1133,7 +1169,7 @@ func (c *builderClient) RemoveChroot(ctx context.Context, in *ChrootInfo, opts .
 	return out, nil
 }
 
-func (c *builderClient) ListChroots(ctx context.Context, in *StringMessage, opts ...grpc.CallOption) (Builder_ListChrootsClient, error) {
+func (c *builderClient) ListChroots(ctx context.Context, in *ListChrootsRequest, opts ...grpc.CallOption) (Builder_ListChrootsClient, error) {
 	stream, err := grpc.NewClientStream(ctx, &_Builder_serviceDesc.Streams[3], c.cc, "/protocol.Builder/ListChroots", opts...)
 	if err != nil {
 		return nil, err
@@ -1317,7 +1353,7 @@ type BuilderServer interface {
 	// List chroots.
 	//
 	// Return the list of chroots.
-	ListChroots(*StringMessage, Builder_ListChrootsServer) error
+	ListChroots(*ListChrootsRequest, Builder_ListChrootsServer) error
 	// Add or update a package.
 	//
 	// Store package information so that it can be referenced later when
@@ -1488,7 +1524,7 @@ func _Builder_RemoveChroot_Handler(srv interface{}, ctx context.Context, dec fun
 }
 
 func _Builder_ListChroots_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(StringMessage)
+	m := new(ListChrootsRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
