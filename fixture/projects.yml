@@ -4,6 +4,11 @@
     chroots: ["fedora-23-i386", "fedora-23-x86_64", "fedora-23-armhfp"]
     auto_createrepo: true
     build_enable_net: true
+  - name: "hawaiios"
+    description: "This repository contains stable builds for the Hawaii operating system. It contains packages suitable for operating system images."
+    chroots: ["fedora-23-i386", "fedora-23-x86_64", "fedora-23-armhfp"]
+    auto_createrepo: true
+    build_enable_net: true
   - name: "hawaii-release"
     description: "This repository contains stable builds of Hawaii. The aim of this repository is to allow users to test the latest version of Hawaii before it hits official Fedora repositories."
     chroots: ["fedora-23-i386", "fedora-23-x86_64", "fedora-23-armhfp"]
