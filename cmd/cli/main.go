@@ -60,7 +60,8 @@ func main() {
 		CmdListChroots,
 		CmdListImages,
 		CmdImport,
-		CmdBuild,
+		CmdBuildImage,
+		CmdBuildPackage,
 		CmdCert,
 	}
 	app.Flags = []cli.Flag{
