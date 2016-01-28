@@ -1,0 +1,19 @@
+add-images:
+  - name: live
+    description: PC
+    archs:
+     - x86_64
+    vcs:
+      url: https://bitbucket.org/hawaii-fedora-ci/hawaii-kickstart.git
+  - name: raspberrypi2
+    descr: Raspberry Pi 2
+    archs:
+    - armhfp
+    vcs:
+      url: https://bitbucket.org/hawaii-fedora-ci/hawaii-kickstart.git
+  - name: wandboard
+    descr: Wandboard Solo/Dual/Quad
+    archs:
+    - armhfp
+    vcs:
+      url: https://bitbucket.org/hawaii-fedora-ci/hawaii-kickstart.git
